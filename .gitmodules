@@ -1,0 +1,3 @@
+[submodule "NeteaseCloudApi-Go"]
+	path = NeteaseCloudApi-Go
+	url = https://github.com/XiaoMengXinX/NeteaseCloudApi-Go
