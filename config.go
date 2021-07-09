@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/EDDYCJY/gsema"
+	songdownloader "github.com/XiaoMengXinX/NeteaseCloudApi-Go/tools/SongDownloader/utils"
 	"github.com/XiaoMengXinX/NeteaseCloudApi-Go/utils"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -67,6 +69,9 @@ type SongInfo struct {
 	FromChatID   int64
 	FromChatName string
 }
+type DownloadingMusic struct {
+	MusicID string
+}
 type RequestTimes struct {
 	TimeMinute string
 	ChatID     int64
@@ -74,12 +79,25 @@ type RequestTimes struct {
 
 func (s *LogFormatter) Format(entry *log.Entry) ([]byte, error) {
 	timestamp := time.Now().Local().Format("2006/01/02 15:04:05")
-	msg := fmt.Sprintf("%s [%s] %s (%s:%d)\n", timestamp, strings.ToUpper(entry.Level.String()), entry.Message, path.Base(entry.Caller.File), entry.Caller.Line)
+	var msg string
+	if config["BotDebug"] == "true" {
+		msg = fmt.Sprintf("%s [%s] %s (%s:%d) [%s]\n", timestamp, strings.ToUpper(entry.Level.String()), entry.Message, path.Base(entry.Caller.File), entry.Caller.Line, entry.Caller.Function)
+	} else {
+		msg = fmt.Sprintf("%s [%s] %s (%s:%d)\n", timestamp, strings.ToUpper(entry.Level.String()), entry.Message, path.Base(entry.Caller.File), entry.Caller.Line)
+	}
 	return []byte(msg), nil
 }
 
 func init() {
-	log.SetOutput(os.Stdout)
+	songdownloader.CheckPathExists("./log")
+	timeStamp := time.Now().Local().Format("2006-01-02")
+	logFile := fmt.Sprintf("./log/%v.log", timeStamp)
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Error(err)
+	}
+	output := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(output)
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:          false,
 		FullTimestamp:          true,
@@ -87,7 +105,18 @@ func init() {
 		PadLevelText:           true,
 	})
 	log.SetFormatter(new(LogFormatter))
-	log.SetLevel(log.InfoLevel)
+	switch config["LogLevel"] {
+	case "DEBUG":
+		log.SetLevel(log.DebugLevel)
+	case "WARN":
+		log.SetLevel(log.WarnLevel)
+	case "FATAL":
+		log.SetLevel(log.FatalLevel)
+	case "TRACE":
+		log.SetLevel(log.TraceLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
 	log.SetReportCaller(true)
 }
 
@@ -104,7 +133,7 @@ func init() {
 		log.Fatal("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&SongInfo{}, &RequestTimes{})
+	err = db.AutoMigrate(&SongInfo{}, &RequestTimes{}, &DownloadingMusic{})
 	if err != nil {
 		log.Errorln(err)
 	}
@@ -112,6 +141,15 @@ func init() {
 }
 
 func init() {
+	db := DB.Session(&gorm.Session{AllowGlobalUpdate: true})
+	err := db.Delete(&RequestTimes{}).Error
+	if err != nil {
+		log.Errorln(err)
+	}
+	err = db.Delete(&DownloadingMusic{}).Error
+	if err != nil {
+		log.Errorln(err)
+	}
 	startCron()
 }
 
@@ -133,10 +171,6 @@ func startCron() { // 定时清理每分钟请求请求记录
 			}
 		}()
 		db := DB.Session(&gorm.Session{AllowGlobalUpdate: true})
-		err := db.Delete(&RequestTimes{}).Error
-		if err != nil {
-			log.Errorln(err)
-		}
 		now := time.Now()
 		t := now.Add(time.Minute * -1)
 		dbResult := db.Delete(&RequestTimes{}, fmt.Sprintf("%d%d", t.Hour(), t.Minute()))

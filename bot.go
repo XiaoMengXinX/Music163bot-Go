@@ -38,7 +38,9 @@ func main() {
 		log.Panic(err)
 	}
 
-	bot.Debug = false
+	if config["BotApiDebug"] == "true" {
+		bot.Debug = true
+	}
 
 	log.Printf("%s 验证成功", bot.Self.UserName)
 	botName = bot.Self.UserName // 自动获取 botName
@@ -324,6 +326,8 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 						log.Errorln(err)
 					}
 				}()
+				db := DB.Session(&gorm.Session{AllowGlobalUpdate: true})
+				db.Where("music_id = ?", musicid).Delete(&DownloadingMusic{})
 				newEditMsg := tgbotapi.NewEditMessageText(message.Chat.ID, message.MessageID, fmt.Sprintf("未知错误 0"))
 				message, err = bot.Send(newEditMsg) // 方便错误定位
 				if err != nil {
@@ -348,10 +352,33 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 	if dbWrite.Error != nil {
 		log.Errorln(err)
 	}
+
+	err = db.Where("music_id = ?", musicid).First(&DownloadingMusic{}).Error
+	if err == nil {
+		Msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("存在下载任务，请稍候..."))
+		Msg.ReplyToMessageID = message.MessageID
+		msg, err := bot.Send(Msg)
+		var IsDownloadFinished bool
+		for !IsDownloadFinished {
+			err := db.Where("music_id = ?", musicid).First(&DownloadingMusic{}).Error
+			if err != nil {
+				IsDownloadFinished = true
+			}
+			time.Sleep(time.Duration(100) * time.Millisecond)
+		}
+		time.Sleep(time.Duration(500) * time.Millisecond)
+		deleteMsg := tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID)
+		_, err = bot.Request(deleteMsg)
+		if err != nil {
+			log.Errorln(err)
+		}
+	}
+
 	err = db.Where("music_id = ?", musicid).First(&songInfo).Error // 查找是否有缓存数据
 	if err == nil {                                                // 从缓存数据发送
 		if songInfo.FileID != "" && songInfo.SongName != "" {
 			newEditMsg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("「%s」- %s\n专辑： %s\n%s %sMB\n命中缓存，正在发送中...", songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+			newEditMsg.ReplyToMessageID = message.MessageID
 			message, err = bot.Send(newEditMsg)
 			if err != nil {
 				log.Errorln(err)
@@ -416,6 +443,11 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 	}
 	songInfo.FromUserID = message.From.ID
 	songInfo.FromUserName = message.From.UserName
+
+	dbResult = db.Create(&DownloadingMusic{MusicID: musicid})
+	if dbResult.Error != nil {
+		log.Errorln(err)
+	}
 
 	newMsg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("正在获取歌曲信息..."))
 	newMsg.ReplyToMessageID = message.MessageID
@@ -500,6 +532,8 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 func handleMusic(ids []string, songInfo SongInfo, message tgbotapi.Message, bot tgbotapi.BotAPI, resultCache, options map[string]interface{}) (err error) {
 	defer func() {
 		downloadTreads.Done()
+		db := DB.Session(&gorm.Session{AllowGlobalUpdate: true})
+		db.Where("music_id = ?", songInfo.MusicID).Delete(&DownloadingMusic{})
 		err := recover()
 		if err != nil {
 			log.Errorln(err)
@@ -526,7 +560,7 @@ func handleMusic(ids []string, songInfo SongInfo, message tgbotapi.Message, bot 
 		log.Errorln(err)
 	}
 
-	err = downloader.DownloadSongWithMetadata(ids, resultCache, options)
+	_, err = downloader.DownloadSongWithMetadata(ids, resultCache, options)
 	if err != nil {
 		return err
 	}

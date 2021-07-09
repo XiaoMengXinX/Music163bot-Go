@@ -3,8 +3,6 @@ github.com/EDDYCJY/gsema v0.0.0-20190120044130-7f6a61b75219 h1:TCY1aa2IQInhAIium
 github.com/EDDYCJY/gsema v0.0.0-20190120044130-7f6a61b75219/go.mod h1:wd3egVZ3+ISuA+PWDRLbjNRYZUQwwWXCTcXQrfZAOmQ=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
-github.com/XiaoMengXinX/NeteaseCloudApi-Go v0.0.0-20210708161012-e6e70c4afe06 h1:JsBQiwKFwxMo024zMdNbsZubQzokdmUdU0KDNq52GL8=
-github.com/XiaoMengXinX/NeteaseCloudApi-Go v0.0.0-20210708161012-e6e70c4afe06/go.mod h1:Lm1uS5/KMgGYS9+EiB941840fW+QCu10C6Ezi7kN1kY=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/bogem/id3v2 v1.1.1/go.mod h1:D1rDm80qF/ocBU+Ik8U4RKnwMq/oNkkB8vGcnrlMJmM=
@@ -26,8 +24,8 @@ github.com/go-flac/go-flac v0.2.0 h1:OHkzRdNe3FgE8siGxHTEDmIx0VlnoTEFcMsr8Vi5TEo
 github.com/go-flac/go-flac v0.2.0/go.mod h1:P86QyESY/OI+SZWx/O6xU2a43+9lQ4SPcjZ/RKSFZZs=
 github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1.0.20210627191509-66dc9e824616 h1:K/WKhvqLPjZYoBJS2z1F0FZrwql29Xav55EBBpLIwTM=
 github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1.0.20210627191509-66dc9e824616/go.mod h1:5+h9c5l1Z/+Pi+5boa1Fmr4Q+FImsXYnifor92ljaVs=
-github.com/google/go-cmp v0.5.4 h1:L8R9j+yAqZuZjsqh/z+F1NCffTKKLShY6zXTItVIZ8M=
-github.com/google/go-cmp v0.5.4/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.6 h1:BKbKCqvP6I+rmFHt06ZmyQtvB8xAkWdhFyr0ZUNZcxQ=
+github.com/google/go-cmp v0.5.6/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/goulash/audio v1.0.0 h1:VnwjaxEmFVq19G2fcfa3gwdXtg1vr8EUBe8SWIQw6Go=
 github.com/goulash/audio v1.0.0/go.mod h1:SP2rquv/eMEuSX3VNlIx6xGWmVFabPfC6KqXPlqnMXs=
 github.com/goulash/stat v0.0.0-20160808140053-152dab06d086 h1:gNxJxfoyKDoE7Z3TVgC7AreKTvtTT9thCtnMCTLp4CM=
@@ -63,7 +61,6 @@ github.com/vbauerster/mpb/v5 v5.4.0/go.mod h1:fi4wVo7BVQ22QcvFObm+VwliQXlV1eBT8J
 github.com/yoki123/ncmdump v0.3.6 h1:ew1Erlvra+8KVWTukSLmQaq0/Lr0e4l3pgpHNwr9BYE=
 github.com/yoki123/ncmdump v0.3.6/go.mod h1:zceNaqPdbHJNv2+l3JFrrq2loDQDh2MEuUR4MHf6sdw=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20201218084310-7d0127a74742 h1:+CBz4km/0KPU3RGTwARGh/noP3bEwtHcq+0YcBQM2JQ=
 golang.org/x/sys v0.0.0-20201218084310-7d0127a74742/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 h1:dXfMednGJh/SUUFjTLsWJz3P+TQt9qnR11GgeI3vWKs=
 golang.org/x/sys v0.0.0-20210426230700-d19ff857e887/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
