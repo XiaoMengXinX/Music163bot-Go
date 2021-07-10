@@ -28,7 +28,7 @@
 **克隆代码 （使用 submoudle ）**
 
 ```
-git clone --recurse-submodules https://github.com/XiaoMengXinX/Music163bot
+git clone --recurse-submodules https://github.com/XiaoMengXinX/Music163bot-Go
 ```
 
 **使用脚本自动编译 ( 支持 windows 的 bash 环境，例如 git bash )**
