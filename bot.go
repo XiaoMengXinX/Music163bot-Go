@@ -96,12 +96,12 @@ func main() {
 							"*Music163bot-Go %s*\n"+
 								"Github: https://github.com/XiaoMengXinX/Music163bot-Go\n\n"+
 								"\\[编译环境] %s\n"+
-								"\\[程序版本] %s-%s\n"+
+								"\\[程序版本] %s\n"+
 								"\\[编译哈希] %s\n"+
 								"\\[编译日期] %s\n"+
 								"\\[编译系统] %s\n"+
 								"\\[运行环境] %s",
-							VERSION, RUNTIME_VERSION, VERSION, COMMIT_SHA_S, COMMIT_SHA, BUILD_TIME, BUILD_OS, BUILD_ARCH),
+							VERSION, RUNTIME_VERSION, VERSION, COMMIT_SHA, BUILD_TIME, BUILD_OS, BUILD_ARCH),
 						)
 						newMsg.ParseMode = tgbotapi.ModeMarkdown
 						newMsg.ReplyToMessageID = message.MessageID

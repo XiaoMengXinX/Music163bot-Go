@@ -59,7 +59,6 @@ var (
 	RUNTIME_VERSION = fmt.Sprintf(runtime.Version())                     // 编译环境
 	VERSION         = ""                                                 // 程序版本
 	COMMIT_SHA      = ""                                                 // 编译哈希
-	COMMIT_SHA_S    = ""                                                 // 短哈希
 	BUILD_TIME      = ""                                                 // 编译日期
 	BUILD_OS        = ""                                                 // 编译系统
 	BUILD_ARCH      = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
