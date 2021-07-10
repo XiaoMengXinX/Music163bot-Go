@@ -4,8 +4,25 @@ COMMIT_SHA_S=$(git rev-parse --short HEAD)
 COMMIT_SHA=$(git rev-parse HEAD)
 VERSION=$(git describe --tags)
 BUILD_TIME=$(date +'%Y-%m-%d %T')
-BUILD_OS="$(lsb_release -i -s) $(lsb_release -r -s)"
-BUILD_ARCH=$(uname -m)
+
+if which systeminfo >/dev/null; then
+  BUILD_OS="$(systeminfo | grep "OS Name:" | sed -e "s/OS Name://" -e "s/  //g" -e "s/ //")"
+elif which lsb_release >/dev/null; then
+  BUILD_OS="$(lsb_release -i -s) $(lsb_release -r -s)"
+else
+  BUILD_OS="null"
+fi
+
+CUSTOM_GOOS=$1
+CUSTOM_GOARCH=$2
+
+if [[ "$CUSTOM_GOOS" != "" ]]; then
+  export GOOS="$CUSTOM_GOOS"
+fi
+
+if [[ "$CUSTOM_GOARCH" != "" ]]; then
+  export GOARCH="$CUSTOM_GOARCH"
+fi
 
 LDFlags="\
     -s -w
