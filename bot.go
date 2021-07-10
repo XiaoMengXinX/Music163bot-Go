@@ -58,7 +58,7 @@ func main() {
 			switch {
 			case update.Message.Command() != "":
 				switch update.Message.Command() {
-				case "musicid", "start":
+				case "musicid", "netease", "start":
 					musicid := update.Message.CommandArguments()
 
 					_, err := strconv.ParseFloat(musicid, 64)
