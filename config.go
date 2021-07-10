@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -46,10 +47,24 @@ var config = readConfig()
    https://music.163.com/song?id=1436919586&userid=2333
    https://y.music.163.com/m/song/28941713/?userid=376740360
 */
-var reg1 = regexp.MustCompile(`(.*)song\?id=`)
-var reg2 = regexp.MustCompile("(.*)song/")
-var reg3 = regexp.MustCompile("/(.*)")
-var reg4 = regexp.MustCompile("&(.*)")
+
+var (
+	reg1 = regexp.MustCompile(`(.*)song\?id=`)
+	reg2 = regexp.MustCompile("(.*)song/")
+	reg3 = regexp.MustCompile("/(.*)")
+	reg4 = regexp.MustCompile("&(.*)")
+)
+
+var (
+	RUNTIME_VERSION = fmt.Sprintf(runtime.Version())                     // 编译环境
+	VERSION         = ""                                                 // 程序版本
+	COMMIT_SHA      = ""                                                 // 编译哈希
+	COMMIT_SHA_S    = ""                                                 // 短哈希
+	BUILD_TIME      = ""                                                 // 编译日期
+	BUILD_OS        = ""                                                 // 编译系统
+	BUILD_ARCH      = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
+
+)
 
 type LogFormatter struct{}
 type SongInfo struct {

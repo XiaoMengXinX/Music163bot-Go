@@ -83,6 +83,33 @@ func main() {
 							log.Errorln(err)
 						}
 					}
+				case "about":
+					func() {
+						defer func() {
+							err := recover()
+							if err != nil {
+								log.Errorln(err)
+							}
+						}()
+						message := *update.Message
+						newMsg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(
+							"*Music163bot-Go %s*\n"+
+								"Github: https://github.com/XiaoMengXinX/Music163bot-Go\n\n"+
+								"\\[编译环境] %s\n"+
+								"\\[程序版本] %s-%s\n"+
+								"\\[编译哈希] %s\n"+
+								"\\[编译日期] %s\n"+
+								"\\[编译系统] %s\n"+
+								"\\[运行环境] %s",
+							VERSION, RUNTIME_VERSION, VERSION, COMMIT_SHA_S, COMMIT_SHA, BUILD_TIME, BUILD_OS, BUILD_ARCH),
+						)
+						newMsg.ParseMode = tgbotapi.ModeMarkdown
+						newMsg.ReplyToMessageID = message.MessageID
+						message, err = bot.Send(newMsg)
+						if err != nil {
+							log.Errorln(err)
+						}
+					}()
 				case "rmcache":
 					if config["BotDebug"] == "true" {
 						func() {
@@ -353,7 +380,7 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 		log.Errorln(err)
 	}
 
-	err = db.Where("music_id = ?", musicid).First(&DownloadingMusic{}).Error
+	err = db.Where("music_id = ?", musicid).First(&DownloadingMusic{}).Error // 查找是否已经存在下载任务
 	if err == nil {
 		Msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("存在下载任务，请稍候..."))
 		Msg.ReplyToMessageID = message.MessageID
@@ -395,7 +422,7 @@ func processMusic(musicid string, message tgbotapi.Message, bot tgbotapi.BotAPI)
 
 			audioFile := tgbotapi.FileID(songInfo.FileID)
 			newAudio := tgbotapi.NewAudio(message.Chat.ID, audioFile)
-			newAudio.Caption = fmt.Sprintf("%s\n专辑： %s\n#网易云音乐 #%s %.2fkpbs\nvia @%s", songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
+			newAudio.Caption = fmt.Sprintf("「%s」- %s\n专辑： %s\n#网易云音乐 #%s %.2fkpbs\nvia @%s", songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
 			newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
 			newAudio.Performer = songInfo.SongArtists
 			newAudio.Duration = songInfo.Duration / 1000
