@@ -12,7 +12,6 @@
     <img src="https://img.shields.io/github/v/release/XiaoMengXinX/Music163bot-Go?include_prereleases&style=flat-square">
   </a>
 </p>
-
 ## ✨ 特性
 
 - 分享链接嗅探
@@ -83,3 +82,9 @@ $ ./Music163bot-Go
 2021/07/10 10:00:00 [INFO] xxxxBot 验证成功 (bot.go:45)
 ```
 
+## 🤖 命令
+
+- **/musicid , /netease + [$MusicID]**  —— 从 MusicID 获取歌曲
+- **/search + [$KeyWords]** —— 搜索歌曲
+- **/about** —— 关于本 bot
+- **/rmcache + [all/$MusicID]** —— (仅在 BotDebug=true 时可用)  清除所有歌曲缓存 / 清除指定 MusicID 的缓存
