@@ -34,7 +34,7 @@ git clone --recurse-submodules https://github.com/XiaoMengXinX/Music163bot-Go
 **使用脚本自动编译 ( 支持 windows 的 bash 环境，例如 git bash )**
 
 ```
-cd Music163bot
+cd Music163bot-Go
 bash build.sh 
 
 # 也可以加入参数以交叉编译，如
