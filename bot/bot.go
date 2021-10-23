@@ -1,14 +1,16 @@
 package bot
 
 import (
+	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"time"
 )
 
-func Start() {
-	tgbotapi.SetLogger(logrus.StandardLogger())
-	bot, err := tgbotapi.NewBotAPI("1701038738:AAHUYczwWO-8eLZVjogSQfnqM8gDYc09HlY1")
+func Start(config map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) error) (actionCode int) {
+	_ = tgbotapi.SetLogger(logrus.StandardLogger())
+	bot, err := tgbotapi.NewBotAPI(config["BOT_TOKEN"])
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -25,18 +27,46 @@ func Start() {
 			continue
 		}
 
-		logrus.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+		switch update.Message.Command() {
+		case "ping":
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "pong")
+			msg.ReplyToMessageID = update.Message.MessageID
+			_, err := bot.Send(msg)
+			if err != nil {
+				logrus.Errorln(err)
+			}
+		case "loadExt":
+			extFile := update.Message.CommandArguments()
+			extData := update.Message.ReplyToMessage.Text
+			err := ioutil.WriteFile(fmt.Sprintf("%s/%s", config["ExtPath"], extFile), []byte(extData), 0644)
+			if err != nil {
+				logrus.Errorln(err)
+			} else {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Extension saved to %s/%s", config["ExtPath"], extFile))
+				msg.ReplyToMessageID = update.Message.MessageID
+				_, _ = bot.Send(msg)
+			}
+		case "reload":
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Reloading...")
+			msg.ReplyToMessageID = update.Message.MessageID
+			_, _ = bot.Send(msg)
+			bot.StopReceivingUpdates()
+			time.Sleep(2 * time.Second)
+			return 2
+		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		time.Sleep(time.Duration(5) * time.Second)
-
-		a, _ := bot.Send(msg)
-
-		time.Sleep(time.Duration(5) * time.Second)
-
-		editmsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, a.MessageID, "update.Message.Text")
-		bot.Send(editmsg)
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					logrus.Errorln(err)
+				}
+			}()
+			err := ext(bot, update)
+			if err != nil {
+				logrus.Errorln(err)
+			}
+		}()
 	}
+
+	return 0
 }
