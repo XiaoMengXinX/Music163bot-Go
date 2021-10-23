@@ -262,6 +262,13 @@ func main() {
 			break
 		case 2:
 			time.Sleep(2 * time.Second)
+			conf, err := readConfig(*_ConfigPath)
+			if err != nil {
+				logrus.Errorln(err)
+				logrus.Errorln("读取配置文件失败，请检查配置文件")
+			} else {
+				config = conf
+			}
 			continue
 		case 3:
 			time.Sleep(2 * time.Second)

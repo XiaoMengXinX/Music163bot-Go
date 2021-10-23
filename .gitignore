@@ -24,3 +24,6 @@ config.ini
 /Music163bot-Go*
 /src
 /ext
+/cache
+*.mp3
+*.flac
