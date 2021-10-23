@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/XiaoMengXinX/CloudMusicDownloader v1.1.1
 	github.com/XiaoMengXinX/Music163Api-Go v0.1.15
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1.0.20210627191509-66dc9e824616
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.2-0.20210820200834-309d612d7095
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sirupsen/logrus v1.8.1
 	github.com/traefik/yaegi v0.10.0

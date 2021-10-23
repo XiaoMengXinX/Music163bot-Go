@@ -15,8 +15,8 @@ github.com/go-flac/flacvorbis v0.1.0 h1:xStJfPrZ/IoA2oBUEwgrlaSf+Opo6/YuQfkqVhkP
 github.com/go-flac/flacvorbis v0.1.0/go.mod h1:70N9vVkQ4Jew0oBWkwqDMIE21h7pMUtQJpnMD0js6XY=
 github.com/go-flac/go-flac v0.3.1 h1:BWA7HdO67S4ZLWSVHCxsDHuedFFu5RiV/wmuhvO6Hxo=
 github.com/go-flac/go-flac v0.3.1/go.mod h1:jG9IumOfAXr+7J40x0AiQIbJzXf9Y7+Zs/2CNWe4LMk=
-github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1.0.20210627191509-66dc9e824616 h1:K/WKhvqLPjZYoBJS2z1F0FZrwql29Xav55EBBpLIwTM=
-github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1.0.20210627191509-66dc9e824616/go.mod h1:5+h9c5l1Z/+Pi+5boa1Fmr4Q+FImsXYnifor92ljaVs=
+github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.2-0.20210820200834-309d612d7095 h1:oIT1xkRYsax2LkiKiq2Z6SvgAYEdEx4gqMmDaDNaUrg=
+github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.2-0.20210820200834-309d612d7095/go.mod h1:5+h9c5l1Z/+Pi+5boa1Fmr4Q+FImsXYnifor92ljaVs=
 github.com/google/go-cmp v0.2.0 h1:+dTQ8DZQJz0Mb/HjFlkptS1FeQ4cWSnN941F8aEG4SQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=

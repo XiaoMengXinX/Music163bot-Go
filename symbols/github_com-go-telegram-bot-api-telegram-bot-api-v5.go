@@ -7,7 +7,6 @@ import (
 	"go/constant"
 	"go/token"
 	"net/http"
-	"net/url"
 	"reflect"
 )
 
@@ -30,6 +29,7 @@ func init() {
 		"ErrAPIForbidden":          reflect.ValueOf(constant.MakeFromLiteral("\"forbidden\"", token.STRING, 0)),
 		"ErrBadFileType":           reflect.ValueOf(constant.MakeFromLiteral("\"bad file type\"", token.STRING, 0)),
 		"ErrBadURL":                reflect.ValueOf(constant.MakeFromLiteral("\"bad or empty url\"", token.STRING, 0)),
+		"EscapeText":               reflect.ValueOf(tgbotapi.EscapeText),
 		"FileEndpoint":             reflect.ValueOf(constant.MakeFromLiteral("\"https://api.telegram.org/file/bot%s/%s\"", token.STRING, 0)),
 		"ModeHTML":                 reflect.ValueOf(constant.MakeFromLiteral("\"HTML\"", token.STRING, 0)),
 		"ModeMarkdown":             reflect.ValueOf(constant.MakeFromLiteral("\"Markdown\"", token.STRING, 0)),
@@ -67,7 +67,6 @@ func init() {
 		"NewEditMessageText":                      reflect.ValueOf(tgbotapi.NewEditMessageText),
 		"NewEditMessageTextAndMarkup":             reflect.ValueOf(tgbotapi.NewEditMessageTextAndMarkup),
 		"NewForward":                              reflect.ValueOf(tgbotapi.NewForward),
-		"NewGetMyCommands":                        reflect.ValueOf(tgbotapi.NewGetMyCommands),
 		"NewGetMyCommandsWithScope":               reflect.ValueOf(tgbotapi.NewGetMyCommandsWithScope),
 		"NewGetMyCommandsWithScopeAndLanguage":    reflect.ValueOf(tgbotapi.NewGetMyCommandsWithScopeAndLanguage),
 		"NewInlineKeyboardButtonData":             reflect.ValueOf(tgbotapi.NewInlineKeyboardButtonData),
@@ -398,16 +397,12 @@ type _github_com_go_telegram_bot_api_telegram_bot_api_v5_Fileable struct {
 
 // _github_com_go_telegram_bot_api_telegram_bot_api_v5_HTTPClient is an interface wrapper for HTTPClient type
 type _github_com_go_telegram_bot_api_telegram_bot_api_v5_HTTPClient struct {
-	IValue    interface{}
-	WDo       func(req *http.Request) (*http.Response, error)
-	WPostForm func(url string, data url.Values) (*http.Response, error)
+	IValue interface{}
+	WDo    func(req *http.Request) (*http.Response, error)
 }
 
 func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_HTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return W.WDo(req)
-}
-func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_HTTPClient) PostForm(url string, data url.Values) (*http.Response, error) {
-	return W.WPostForm(url, data)
 }
 
 // _github_com_go_telegram_bot_api_telegram_bot_api_v5_PassportElementError is an interface wrapper for PassportElementError type
