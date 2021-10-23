@@ -22,6 +22,7 @@ import (
 	"path"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -40,14 +41,15 @@ var (
 )
 
 var (
-	runtimeVer   = fmt.Sprintf(runtime.Version()) // 编译环境
-	_VersionName = ""                             // 程序版本
-	_VersionCode = 0
-	commitSHA    = ""                                                 // 编译哈希
-	buildTime    = ""                                                 // 编译日期
-	buildOS      = ""                                                 // 编译系统
-	buildArch    = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
-	repo         = ""                                                 // 项目地址
+	runtimeVer      = fmt.Sprintf(runtime.Version()) // 编译环境
+	_VersionName    = ""                             // 程序版本
+	_VersionCodeStr = ""
+	_VersionCode    = 0
+	commitSHA       = ""                                                 // 编译哈希
+	buildTime       = ""                                                 // 编译日期
+	buildOS         = ""                                                 // 编译系统
+	buildArch       = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
+	repo            = ""                                                 // 项目地址
 )
 
 type metadata struct {
@@ -77,6 +79,8 @@ func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func init() {
+	_VersionCode, _ = strconv.Atoi(_VersionCodeStr)
+
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors:          false,
 		FullTimestamp:          true,
@@ -156,6 +160,10 @@ func init() {
 	}
 	if config["EnableExt"] == "true" {
 		*_EnableExt = true
+	} else {
+		if *_EnableExt {
+			config["EnableExt"] = "true"
+		}
 	}
 }
 
