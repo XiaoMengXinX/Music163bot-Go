@@ -187,20 +187,17 @@ func main() {
 					data, err := getUpdate(versionData)
 					meta = data
 					if err != nil {
-						logrus.Errorln(err)
 						return err
 					}
 					if !*_NoMD5Check {
 						logrus.Println("正在校验文件MD5")
 						err := checkMD5(meta)
 						if err != nil {
-							logrus.Errorln(err)
 							return err
 						}
 						logrus.Println("MD5校验成功")
 					}
 				} else {
-					logrus.Errorln(err)
 					return err
 				}
 			}
@@ -426,13 +423,13 @@ func getVersions() (versionData []versions, err error) {
 
 func checkMD5(data metadata) (err error) {
 	for _, f := range data.Files {
-		file, err := ioutil.ReadFile(f.File)
+		file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", *_SrcPath, path.Base(f.File)))
 		if err != nil {
 			return err
 		}
 		md5Data := md5.Sum(file)
 		if hex.EncodeToString(md5Data[:]) != f.Md5 {
-			return fmt.Errorf("文件: %s MD5效验失败 ", f.File)
+			return fmt.Errorf("文件: %s/%s MD5效验失败 ", *_SrcPath, path.Base(f.File))
 		}
 	}
 	return err
