@@ -85,13 +85,6 @@ func init() {
 	})
 	logrus.SetFormatter(new(LogFormatter))
 	logrus.SetReportCaller(true)
-	for _, v := range []string{`panic`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`} {
-		v = config["LogLevel"]
-		level, err := logrus.ParseLevel(v)
-		if err != nil {
-			logrus.SetLevel(level)
-		}
-	}
 	dirExists("./log")
 	timeStamp := time.Now().Local().Format("2006-01-02")
 	logFile := fmt.Sprintf("./log/%v.log", timeStamp)
@@ -101,6 +94,14 @@ func init() {
 	}
 	output := io.MultiWriter(os.Stdout, file)
 	logrus.SetOutput(output)
+	if config["LogLevel"] != "" {
+		level, err := logrus.ParseLevel(config["LogLevel"])
+		if err != nil {
+			logrus.Errorln(err)
+		} else {
+			logrus.SetLevel(level)
+		}
+	}
 
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	_ConfigPath = f.String("c", "config.ini", "配置文件")
