@@ -81,7 +81,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		songInfo.FileExt = "mp3"
 	}
 	songInfo.FileSize = fmt.Sprintf("%.2f", float64(songURL.Data[0].Size)/1024/1024)
-	songInfo.BitRate = songURL.Data[0].Br
+	songInfo.BitRate = 8 * songURL.Data[0].Size / (songDetail.Songs[0].Dt / 1000)
 
 	newEditMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+waitForDown, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
 	_, err = bot.Send(newEditMsg)

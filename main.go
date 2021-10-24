@@ -49,7 +49,8 @@ var (
 	buildTime       = ""                                                 // 编译日期
 	buildOS         = ""                                                 // 编译系统
 	buildArch       = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
-	repo            = ""                                                 // 项目地址
+	repoPath        = ""                                                 // 项目地址
+	rawRepoPath     = ""
 )
 
 type metadata struct {
@@ -134,6 +135,8 @@ func init() {
 	config["commitSHA"] = commitSHA
 	config["buildOS"] = buildOS
 	config["buildArch"] = buildArch
+	config["repoPath"] = repoPath
+	config["rawRepoPath"] = rawRepoPath
 	if config["AutoUpdate"] == "false" {
 		*_NoUpdate = true
 	}
@@ -400,7 +403,7 @@ func getUpdate(versionData []versions) (meta metadata, err error) {
 	}
 
 	logrus.Printf("检测到版本更新: %s(%d), 正在获取更新", latest.Version, latest.VersionCode)
-	dataFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/metadata.json", repo, latest.CommitSha))
+	dataFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/metadata.json", repoPath, latest.CommitSha))
 	if err != nil {
 		return meta, err
 	}
@@ -411,7 +414,7 @@ func getUpdate(versionData []versions) (meta metadata, err error) {
 
 	_ = json.Unmarshal(dataFile, &meta)
 	for _, v := range meta.Files {
-		srcFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repo, latest.CommitSha, v.File))
+		srcFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repoPath, latest.CommitSha, v.File))
 		if err != nil {
 			return meta, err
 		}
@@ -425,7 +428,7 @@ func getUpdate(versionData []versions) (meta metadata, err error) {
 }
 
 func getVersions() (versionData []versions, err error) {
-	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/v2/versions.json", repo))
+	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions.json", rawRepoPath))
 	if err != nil {
 		return versionData, err
 	}
