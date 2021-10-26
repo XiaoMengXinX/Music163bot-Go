@@ -123,14 +123,15 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		return err
 	}
 
-	var picPath string
+	var picPath, resizePicPath string
 	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)), 8)
 	err = p.Download()
 	if err != nil {
 		logrus.Errorln(err)
 	} else {
+		picPath = cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl))
 		var err error
-		picPath, err = resizeImg(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)))
+		resizePicPath, err = resizeImg(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)))
 		if err != nil {
 			logrus.Errorln(err)
 		}
@@ -180,7 +181,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 	newAudio.Duration = songDetail.Songs[0].Dt / 1000
 	newAudio.ReplyMarkup = numericKeyboard
 	if picPath != "" {
-		newAudio.Thumb = picPath
+		newAudio.Thumb = resizePicPath
 	}
 
 	audio, err := bot.Send(newAudio)
