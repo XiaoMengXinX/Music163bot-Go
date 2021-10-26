@@ -48,3 +48,7 @@ func dirExists(path string) bool {
 	logrus.Errorf("Error: %v\n", err)
 	return false
 }
+
+func linkTest(text string) string {
+	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), "")
+}

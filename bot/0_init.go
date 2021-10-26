@@ -3,11 +3,22 @@ package bot
 import (
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 	"gorm.io/gorm"
+	"regexp"
 )
 
+var DB *gorm.DB
+var config map[string]string
 var data utils.RequestData
 var botName string
 var cacheDir = "./cache"
+
+var (
+	reg1 = regexp.MustCompile(`(.*)song\?id=`)
+	reg2 = regexp.MustCompile("(.*)song/")
+	reg5 = regexp.MustCompile("/(.*)")
+	reg4 = regexp.MustCompile("&(.*)")
+	reg3 = regexp.MustCompile(`\?(.*)`)
+)
 
 var (
 	aboutText = `*Music163bot-Go %s*
@@ -42,28 +53,11 @@ via @%s`
 	hitCache         = `命中缓存，正在发送中...`
 	sendMeTo         = `Send me to...`
 	uploadFailed     = `发送失败 %s`
-	getUrlFailed     = `获取下载链接失败`
+	getUrlFailed     = `获取歌曲下载链接失败`
 	fetchInfo        = `正在获取歌曲信息...`
 	fetchInfoFailed  = `获取歌曲信息失败`
 	waitForDown      = `等待下载中...`
 	downloading      = `下载中...`
+	downloadFailed   = "下载失败"
 	uploading        = `下载完成，发送中...`
 )
-
-type SongInfo struct {
-	gorm.Model
-	MusicID      int
-	SongName     string
-	SongArtists  string
-	SongAlbum    string
-	FileExt      string
-	FileSize     string
-	BitRate      int
-	Duration     int
-	FileID       string
-	ThumbFileID  string
-	FromUserID   int64
-	FromUserName string
-	FromChatID   int64
-	FromChatName string
-}

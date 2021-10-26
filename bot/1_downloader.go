@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 )
 
@@ -25,9 +24,7 @@ type HttpDownloader struct {
 }
 
 // New 新建下载任务
-func New(url string, numThreads int) (*HttpDownloader, error) {
-	var urlSplits = strings.Split(url, "/")
-	var filename = urlSplits[len(urlSplits)-1]
+func New(url string, filename string, numThreads int) (*HttpDownloader, error) {
 	res, err := http.Head(url)
 	if err != nil {
 		return nil, err

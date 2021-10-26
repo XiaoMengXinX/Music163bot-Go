@@ -259,10 +259,9 @@ func main() {
 		}
 		switch actionCode {
 		case 0:
-			break
+			os.Exit(0)
 		case 1:
 			logrus.Fatal("Unexpected error")
-			break
 		case 2:
 			time.Sleep(2 * time.Second)
 			conf, err := readConfig(*_ConfigPath)
