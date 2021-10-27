@@ -16,16 +16,73 @@ import (
 	"time"
 )
 
-func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (err error) {
+var limiter = make(chan bool, 2)
+
+func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	defer func() {
+		<-limiter
 		e := recover()
 		if e != nil {
 			err = fmt.Errorf("%v", e)
 		}
 	}()
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, fetchInfo)
-	msg.ReplyToMessageID = update.Message.MessageID
-	msgResult, err := bot.Send(msg)
+	limiter <- true
+
+	var songInfo util.SongInfo
+	var msgResult tgbotapi.Message
+	sendFailed := func(err error) {
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploadFailed, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize, err))
+		_, err = bot.Send(editMsg)
+		if err != nil {
+			logrus.Errorln(err)
+		}
+	}
+
+	db := DB.Session(&gorm.Session{})
+	err = db.Where("music_id = ?", musicID).First(&songInfo).Error
+	if err == nil {
+		msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(musicInfoMsg+hitCache, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+		msg.ReplyToMessageID = message.MessageID
+		msgResult, err = bot.Send(msg)
+		if err != nil {
+			return err
+		}
+		numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/#/song/%d/", songInfo.MusicID)),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/#/song/%d/", songInfo.MusicID)),
+			),
+		)
+		newAudio := tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
+		newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
+		newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
+		newAudio.Performer = songInfo.SongArtists
+		newAudio.Duration = songInfo.Duration
+		newAudio.ReplyMarkup = numericKeyboard
+		if songInfo.ThumbFileID != "" {
+			newAudio.Thumb = tgbotapi.FileID(songInfo.ThumbFileID)
+		}
+
+		_, err = bot.Send(newAudio)
+		if err != nil {
+			sendFailed(err)
+			return err
+		}
+
+		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
+		_, err = bot.Request(deleteMsg)
+		if err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, fetchInfo)
+	msg.ReplyToMessageID = message.MessageID
+	msgResult, err = bot.Send(msg)
 	if err != nil {
 		return err
 	}
@@ -33,11 +90,11 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 	b := api.NewBatch(
 		api.BatchAPI{
 			Key:  api.SongDetailAPI,
-			Json: api.CreateSongDetailReqJson([]int{musicid}),
+			Json: api.CreateSongDetailReqJson([]int{musicID}),
 		},
 		api.BatchAPI{
 			Key:  api.SongUrlAPI,
-			Json: api.CreateSongURLJson(api.SongURLConfig{Ids: []int{musicid}}),
+			Json: api.CreateSongURLJson(api.SongURLConfig{Ids: []int{musicID}}),
 		},
 	)
 	_, _, err = b.Do(data)
@@ -53,7 +110,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 	_ = json.Unmarshal([]byte(result[api.SongUrlAPI]), &songURL)
 
 	if len(songDetail.Songs) == 0 || len(songURL.Data) == 0 {
-		editMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fetchInfoFailed)
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fetchInfoFailed)
 		_, err = bot.Send(editMsg)
 		if err != nil {
 			logrus.Errorln(err)
@@ -61,7 +118,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		return err
 	}
 	if songURL.Data[0].Url == "" {
-		editMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, getUrlFailed)
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, getUrlFailed)
 		_, err = bot.Send(editMsg)
 		if err != nil {
 			logrus.Errorln(err)
@@ -69,18 +126,17 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		return err
 	}
 
-	var songInfo util.SongInfo
-
-	songInfo.FromChatID = update.Message.Chat.ID
-	if update.Message.Chat.IsPrivate() {
-		songInfo.FromChatName = update.Message.Chat.UserName
+	songInfo.FromChatID = message.Chat.ID
+	if message.Chat.IsPrivate() {
+		songInfo.FromChatName = message.Chat.UserName
 	} else {
-		songInfo.FromChatName = update.Message.Chat.Title
+		songInfo.FromChatName = message.Chat.Title
 	}
-	songInfo.FromUserID = update.Message.From.ID
-	songInfo.FromUserName = update.Message.From.UserName
+	songInfo.FromUserID = message.From.ID
+	songInfo.FromUserName = message.From.UserName
 
-	songInfo.MusicID = musicid
+	songInfo.MusicID = musicID
+	songInfo.Duration = songDetail.Songs[0].Dt / 1000
 	songInfo.SongName = songDetail.Songs[0].Name // 解析歌曲信息
 	songInfo.SongArtists = parseArtist(songDetail.Songs[0])
 	songInfo.SongAlbum = songDetail.Songs[0].Al.Name
@@ -96,35 +152,27 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 	songInfo.FileSize = fmt.Sprintf("%.2f", float64(songURL.Data[0].Size)/1024/1024)
 	songInfo.BitRate = 8 * songURL.Data[0].Size / (songDetail.Songs[0].Dt / 1000)
 
-	newEditMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+downloading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+	newEditMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+downloading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
 	_, err = bot.Send(newEditMsg)
 	if err != nil {
 		return err
-	}
-
-	downFailed := func() {
-		newMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+downloadFailed, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
-		_, err := bot.Send(newMsg)
-		if err != nil {
-			logrus.Errorln(err)
-		}
 	}
 
 	timeStramp := time.Now().UnixMicro()
 
 	d, err := New(url, fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), 8)
 	if err != nil {
-		downFailed()
+		sendFailed(err)
 		return err
 	}
 	err = d.Download()
 	if err != nil {
-		downFailed()
+		sendFailed(err)
 		return err
 	}
 
 	var picPath, resizePicPath string
-	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)), 8)
+	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)), 2)
 	err = p.Download()
 	if err != nil {
 		logrus.Errorln(err)
@@ -137,7 +185,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		}
 	}
 
-	editMsg := tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+	editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
 	_, err = bot.Send(editMsg)
 	if err != nil {
 		return err
@@ -153,7 +201,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), picPath, marker, songDetail.Songs[0])
 	}
 	if err != nil {
-		downFailed()
+		sendFailed(err)
 		return err
 	}
 
@@ -161,7 +209,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 	fileName := replacer.Replace(fmt.Sprintf("%v - %v.%v", strings.Replace(songInfo.SongArtists, "/", ",", -1), songInfo.SongName, songInfo.FileExt))
 	err = os.Rename(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), cacheDir+"/"+fileName)
 	if err != nil {
-		downFailed()
+		sendFailed(err)
 		return err
 	}
 
@@ -174,11 +222,11 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		),
 	)
 
-	newAudio := tgbotapi.NewAudio(update.Message.Chat.ID, cacheDir+"/"+fileName)
+	newAudio := tgbotapi.NewAudio(message.Chat.ID, cacheDir+"/"+fileName)
 	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
 	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
 	newAudio.Performer = songInfo.SongArtists
-	newAudio.Duration = songDetail.Songs[0].Dt / 1000
+	newAudio.Duration = songInfo.Duration
 	newAudio.ReplyMarkup = numericKeyboard
 	if picPath != "" {
 		newAudio.Thumb = resizePicPath
@@ -186,11 +234,7 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 
 	audio, err := bot.Send(newAudio)
 	if err != nil {
-		editMsg = tgbotapi.NewEditMessageText(update.Message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploadFailed, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize, err))
-		_, err = bot.Send(editMsg)
-		if err != nil {
-			logrus.Errorln(err)
-		}
+		sendFailed(err)
 		return err
 	}
 
@@ -199,10 +243,22 @@ func processMusic(musicid int, update tgbotapi.Update, bot *tgbotapi.BotAPI) (er
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 
-	db := DB.Session(&gorm.Session{})
 	dbResult := db.Create(&songInfo) // 写入歌曲缓存
 	if dbResult.Error != nil {
 		return dbResult.Error
+	}
+
+	for _, f := range []string{cacheDir + "/" + fileName, resizePicPath, picPath} {
+		err := os.Remove(f)
+		if err != nil {
+			logrus.Errorln(err)
+		}
+	}
+
+	deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
+	_, err = bot.Request(deleteMsg)
+	if err != nil {
+		return err
 	}
 
 	return err

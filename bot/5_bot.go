@@ -66,12 +66,13 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		case update.Message.Command() != "":
 			switch update.Message.Command() {
 			case "musicid", "netease", "start":
-				musicid, _ := strconv.Atoi(update.Message.CommandArguments())
-				if musicid == 0 {
-					continue
-				}
+				updateMsg := *update.Message
 				go func() {
-					err := processMusic(musicid, update, bot)
+					musicid, _ := strconv.Atoi(updateMsg.CommandArguments())
+					if musicid == 0 {
+						return
+					}
+					err := processMusic(musicid, updateMsg, bot)
 					if err != nil {
 						logrus.Errorln(err)
 					}
@@ -114,14 +115,15 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				}
 			}
 		case strings.Contains(update.Message.Text, "music.163.com"):
-			var replacer = strings.NewReplacer("\n", "", " ", "")
-			messageText := replacer.Replace(update.Message.Text) // 去除消息内空格和换行 避免不必要的麻烦（
-			musicid, _ := strconv.Atoi(linkTest(messageText))
-			if musicid == 0 {
-				continue
-			}
+			updateMsg := *update.Message
 			go func() {
-				err := processMusic(musicid, update, bot)
+				var replacer = strings.NewReplacer("\n", "", " ", "")
+				messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
+				musicid, _ := strconv.Atoi(linkTest(messageText))
+				if musicid == 0 {
+					return
+				}
+				err := processMusic(musicid, updateMsg, bot)
 				if err != nil {
 					logrus.Errorln(err)
 				}
