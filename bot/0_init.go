@@ -52,11 +52,12 @@ via @%s`
 	alreadyStart     = `存在下载任务，请稍候...`
 	hitCache         = `命中缓存，正在发送中...`
 	sendMeTo         = `Send me to...`
-	uploadFailed     = `下载/发送失败\n%v`
-	getUrlFailed     = `获取歌曲下载链接失败`
-	fetchInfo        = `正在获取歌曲信息...`
-	fetchInfoFailed  = `获取歌曲信息失败`
-	waitForDown      = `等待下载中...`
-	downloading      = `下载中...`
-	uploading        = `下载完成，发送中...`
+	uploadFailed     = `下载/发送失败
+%v`
+	getUrlFailed    = `获取歌曲下载链接失败`
+	fetchInfo       = `正在获取歌曲信息...`
+	fetchInfoFailed = `获取歌曲信息失败`
+	waitForDown     = `等待下载中...`
+	downloading     = `下载中...`
+	uploading       = `下载完成，发送中...`
 )

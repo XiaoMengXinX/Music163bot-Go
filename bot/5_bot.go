@@ -68,6 +68,9 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			case "musicid", "netease", "start":
 				updateMsg := *update.Message
 				go func() {
+					if updateMsg.Command() == "start" && !updateMsg.Chat.IsPrivate() {
+						return
+					}
 					musicid, _ := strconv.Atoi(updateMsg.CommandArguments())
 					if musicid == 0 {
 						return

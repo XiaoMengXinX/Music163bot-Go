@@ -26,8 +26,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			err = fmt.Errorf("%v", e)
 		}
 	}()
-	limiter <- true
-
 	var songInfo util.SongInfo
 	var msgResult tgbotapi.Message
 	sendFailed := func(err error) {
@@ -79,10 +77,17 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 
 		return err
 	}
-
-	msg := tgbotapi.NewMessage(message.Chat.ID, fetchInfo)
+	msg := tgbotapi.NewMessage(message.Chat.ID, waitForDown)
 	msg.ReplyToMessageID = message.MessageID
 	msgResult, err = bot.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	limiter <- true
+
+	editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fetchInfo)
+	_, err = bot.Send(editMsg)
 	if err != nil {
 		return err
 	}
@@ -152,8 +157,8 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	songInfo.FileSize = fmt.Sprintf("%.2f", float64(songURL.Data[0].Size)/1024/1024)
 	songInfo.BitRate = 8 * songURL.Data[0].Size / (songDetail.Songs[0].Dt / 1000)
 
-	newEditMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+downloading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
-	_, err = bot.Send(newEditMsg)
+	editMsg = tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+downloading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+	_, err = bot.Send(editMsg)
 	if err != nil {
 		return err
 	}
@@ -185,7 +190,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		}
 	}
 
-	editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+	editMsg = tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
 	_, err = bot.Send(editMsg)
 	if err != nil {
 		return err
