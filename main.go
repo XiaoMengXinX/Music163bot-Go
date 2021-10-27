@@ -127,47 +127,7 @@ func init() {
 		logrus.Fatal(err)
 	}
 	config = conf
-
-	config["BinVersionName"] = _VersionName
-	config["BinVersionCode"] = fmt.Sprintf("%d", _VersionCode)
-	config["runtimeVer"] = runtimeVer
-	config["buildTime"] = buildTime
-	config["commitSHA"] = commitSHA
-	config["buildOS"] = buildOS
-	config["buildArch"] = buildArch
-	config["repoPath"] = repoPath
-	config["rawRepoPath"] = rawRepoPath
-	if config["AutoUpdate"] == "false" {
-		*_NoUpdate = true
-	}
-	if config["CheckMD5"] == "false" {
-		*_NoMD5Check = true
-	}
-	if config["SrcPath"] != "" {
-		*_SrcPath = config["SrcPath"]
-	} else {
-		config["SrcPath"] = *_SrcPath
-	}
-	if config["BotEntry"] != "" {
-		*_BotEntry = config["BotEntry"]
-	}
-	if config["ExtPath"] != "" {
-		*_ExtPath = config["ExtPath"]
-	} else {
-		config["ExtPath"] = *_ExtPath
-	}
-	if config["ExtEntry"] != "" {
-		*_ExtEntry = config["ExtEntry"]
-	} else {
-		config["ExtEntry"] = *_ExtEntry
-	}
-	if config["EnableExt"] == "true" {
-		*_EnableExt = true
-	} else {
-		if *_EnableExt {
-			config["EnableExt"] = "true"
-		}
-	}
+	initConfig(config)
 }
 
 func main() {
@@ -267,9 +227,10 @@ func main() {
 			conf, err := readConfig(*_ConfigPath)
 			if err != nil {
 				logrus.Errorln(err)
-				logrus.Errorln("读取配置文件失败，请检查配置文件")
+				logrus.Fatal("读取配置文件失败，请检查配置文件")
 			} else {
 				config = conf
+				initConfig(config)
 			}
 			continue
 		case 3:
@@ -533,4 +494,47 @@ func dirExists(path string) bool {
 	}
 	logrus.Errorf("Error: %v\n", err)
 	return false
+}
+
+func initConfig(config map[string]string) {
+	config["BinVersionName"] = _VersionName
+	config["BinVersionCode"] = fmt.Sprintf("%d", _VersionCode)
+	config["runtimeVer"] = runtimeVer
+	config["buildTime"] = buildTime
+	config["commitSHA"] = commitSHA
+	config["buildOS"] = buildOS
+	config["buildArch"] = buildArch
+	config["repoPath"] = repoPath
+	config["rawRepoPath"] = rawRepoPath
+	if config["AutoUpdate"] == "false" {
+		*_NoUpdate = true
+	}
+	if config["CheckMD5"] == "false" {
+		*_NoMD5Check = true
+	}
+	if config["SrcPath"] != "" {
+		*_SrcPath = config["SrcPath"]
+	} else {
+		config["SrcPath"] = *_SrcPath
+	}
+	if config["BotEntry"] != "" {
+		*_BotEntry = config["BotEntry"]
+	}
+	if config["ExtPath"] != "" {
+		*_ExtPath = config["ExtPath"]
+	} else {
+		config["ExtPath"] = *_ExtPath
+	}
+	if config["ExtEntry"] != "" {
+		*_ExtEntry = config["ExtEntry"]
+	} else {
+		config["ExtEntry"] = *_ExtEntry
+	}
+	if config["EnableExt"] == "true" {
+		*_EnableExt = true
+	} else {
+		if *_EnableExt {
+			config["EnableExt"] = "true"
+		}
+	}
 }
