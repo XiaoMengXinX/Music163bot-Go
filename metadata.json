@@ -1,6 +1,6 @@
 {
-  "version": "v1.9.2",
-  "version_code": 19002,
+  "version": "v1.9.3",
+  "version_code": 19003,
   "files": [
     {
       "file": "bot/0_init.go",
@@ -24,7 +24,7 @@
     },
     {
       "file": "bot/2_modules.go",
-      "md5": "22a32e13333d92f3ecf3a592c6482615"
+      "md5": "665e9dc3b176cec883f02d5e15bad10b"
     },
     {
       "file": "bot/2_processMusic.go",
