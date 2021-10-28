@@ -18,7 +18,7 @@ LDFlags="\
     -X 'main._VersionCodeStr=${1}' \
     -X 'main.commitSHA=${COMMIT_SHA}' \
     -X 'main.buildTime=${BUILD_TIME}' \
-    -X 'main.BUILD_OS=${BUILD_OS}' \
+    -X 'main.buildOS=${BUILD_OS}' \
     -X 'main.repoPath=XiaoMengXinX/Music163bot-Go'\
     -X 'main.rawRepoPath=XiaoMengXinX/Music163bot-Go/v2'\
 "

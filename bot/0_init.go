@@ -21,15 +21,16 @@ var (
 )
 
 var (
-	aboutText = `*Music163bot-Go %s*
+	aboutText = `*Music163bot-Go v2*
 Github: https://github.com/XiaoMengXinX/Music163bot-Go
 
 \[编译环境] %s
-\[程序版本] %s
+\[编译版本] %s
 \[编译哈希] %s
 \[编译日期] %s
 \[编译系统] %s
-\[运行环境] %s`
+\[运行环境] %s
+\[运行版本] %s`
 	musicInfo = `「%s」- %s
 专辑: %s
 #网易云音乐 #%s %.2fkpbs

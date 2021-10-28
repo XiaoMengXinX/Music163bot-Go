@@ -80,6 +80,14 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						logrus.Errorln(err)
 					}
 				}()
+			case "about":
+				updateMsg := *update.Message
+				go func() {
+					err := printAbout(updateMsg, bot)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+				}()
 			}
 
 			if in(fmt.Sprintf("%d", update.Message.From.ID), botAdmin) {

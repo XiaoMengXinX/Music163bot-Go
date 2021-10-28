@@ -20,7 +20,6 @@ var limiter = make(chan bool, 2)
 
 func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	defer func() {
-		<-limiter
 		e := recover()
 		if e != nil {
 			err = fmt.Errorf("%v", e)
@@ -85,6 +84,9 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	limiter <- true
+	defer func() {
+		<-limiter
+	}()
 
 	editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fetchInfo)
 	_, err = bot.Send(editMsg)

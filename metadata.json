@@ -1,10 +1,38 @@
 {
-  "version": "v0.0.1",
-  "version_code": 1,
+  "version": "v1.9.0",
+  "version_code": 19000,
   "files": [
     {
-      "file": "bot/bot.go",
-      "md5": "02360397fc4ce351f5df881b45d10d6a"
+      "file": "bot/0_init.go",
+      "md5": "5cc000f17aa45a3def1a56ef66472c0b"
+    },
+    {
+      "file": "bot/1_db.go",
+      "md5": "7f862752768543bfb159657a61b73451"
+    },
+    {
+      "file": "bot/1_downloader.go",
+      "md5": "b925754aefbb138e46b0be0b8e459c83"
+    },
+    {
+      "file": "bot/1_pic.go",
+      "md5": "7febcf61edb1185bb53ad689eec839f3"
+    },
+    {
+      "file": "bot/1_tools.go",
+      "md5": "8a3ef217e89ac2e1ae61ed2750b300eb"
+    },
+    {
+      "file": "bot/2_modules.go",
+      "md5": "22a32e13333d92f3ecf3a592c6482615"
+    },
+    {
+      "file": "bot/2_processMusic.go",
+      "md5": "1ccc7020c91d8bc6b4f9a2fb52c9271c"
+    },
+    {
+      "file": "bot/5_bot.go",
+      "md5": "ccc4204eea3ac7a4cac0995e5089f3be"
     }
   ]
 }
