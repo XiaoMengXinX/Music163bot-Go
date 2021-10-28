@@ -46,6 +46,10 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		logrus.Fatal(err)
 	}
 
+	if config["BotAPI"] != "" {
+		bot.SetAPIEndpoint(config["BotAPI"] + "/bot%s/%s")
+	}
+
 	if config["BotDebug"] == "true" {
 		bot.Debug = true
 	}
