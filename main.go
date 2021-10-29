@@ -177,6 +177,9 @@ func main() {
 		var ext func(*tgbotapi.BotAPI, tgbotapi.Update) error
 		if func() bool {
 			if err == nil {
+				if !*_NoMD5Check && !*_NoUpdate && len(meta.Files) == 0 {
+					return true
+				}
 				v, err := loadDyn(meta)
 				if err == nil {
 					if *_EnableExt {
