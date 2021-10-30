@@ -1,12 +1,12 @@
 [
   {
-    "version": "v2.0.0",
-    "version_code": 20000,
-    "commit_sha": "4a838f314d339e4c17544af862c0300973207075"
-  },
-  {
     "version": "v2.1.0",
     "version_code": 20100,
     "commit_sha": "95bb8b098f9a768063f6945fa3cec3b377f4eda7"
+  },
+  {
+    "version": "v2.0.0",
+    "version_code": 20000,
+    "commit_sha": "4a838f314d339e4c17544af862c0300973207075"
   }
 ]
