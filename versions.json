@@ -1,7 +1,7 @@
 [
   {
-    "version": "v1.9.3",
-    "version_code": 19003,
-    "commit_sha": "e2f2935cc6faca0b872422c2692ebc591c5233ca"
+    "version": "v2.0.0",
+    "version_code": 20000,
+    "commit_sha": "798f251bee64788caf922680ffc9201337163dc0"
   }
 ]
