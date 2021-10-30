@@ -3,5 +3,10 @@
     "version": "v2.0.0",
     "version_code": 20000,
     "commit_sha": "4a838f314d339e4c17544af862c0300973207075"
+  },
+  {
+    "version": "v2.1.0",
+    "version_code": 20100,
+    "commit_sha": "8212450e644a24def9592ee4980adcca8e751c74"
   }
 ]
