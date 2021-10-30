@@ -47,7 +47,6 @@ var (
 	_VersionCode    = 0
 	commitSHA       = ""                                                 // 编译哈希
 	buildTime       = ""                                                 // 编译日期
-	buildOS         = ""                                                 // 编译系统
 	buildArch       = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
 	repoPath        = ""                                                 // 项目地址
 	rawRepoPath     = ""
@@ -513,7 +512,6 @@ func initConfig(config map[string]string) {
 	config["runtimeVer"] = runtimeVer
 	config["buildTime"] = buildTime
 	config["commitSHA"] = commitSHA
-	config["buildOS"] = buildOS
 	config["buildArch"] = buildArch
 	config["repoPath"] = repoPath
 	config["rawRepoPath"] = rawRepoPath

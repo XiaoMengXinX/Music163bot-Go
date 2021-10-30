@@ -20,7 +20,7 @@ func processSearch(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	}
 	result, err := api.SearchSong(data, api.SearchSongConfig{
 		Keyword: message.CommandArguments(),
-		Limit:   20,
+		Limit:   10,
 	})
 	searchResult := result
 	if len(searchResult.Result.Songs) == 0 {

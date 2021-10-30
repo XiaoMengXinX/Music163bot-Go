@@ -189,13 +189,37 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			}()
 		case update.InlineQuery != nil:
 			updateQuery := *update.InlineQuery
-			go func() {
-				musicid, _ := strconv.Atoi(linkTest(updateQuery.Query))
-				err = processInlineMusic(musicid, updateQuery, bot)
-				if err != nil {
-					logrus.Errorln(err)
-				}
-			}()
+			switch {
+			case updateQuery.Query == "help":
+				go func() {
+					err = processInlineHelp(updateQuery, bot)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+				}()
+			case strings.Contains(updateQuery.Query, "search"):
+				go func() {
+					err = processInlineSearch(updateQuery, bot)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+				}()
+			default:
+				go func() {
+					musicid, _ := strconv.Atoi(linkTest(updateQuery.Query))
+					if musicid != 0 {
+						err = processInlineMusic(musicid, updateQuery, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					} else {
+						err = processEmptyInline(updateQuery, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}
+				}()
+			}
 		}
 
 		if config["EnableExt"] == "true" && ext != nil {

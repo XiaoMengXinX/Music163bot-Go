@@ -29,7 +29,6 @@ Github: https://github.com/XiaoMengXinX/Music163bot-Go
 \[编译版本] %s
 \[编译哈希] %s
 \[编译日期] %s
-\[编译系统] %s
 \[运行环境] %s
 \[运行版本] %s`
 	musicInfo = `「%s」- %s
