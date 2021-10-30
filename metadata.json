@@ -1,14 +1,14 @@
 {
-  "version": "v1.9.3",
-  "version_code": 19003,
+  "version": "v2.0.0",
+  "version_code": 20000,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "5cc000f17aa45a3def1a56ef66472c0b"
+      "md5": "69d78d213c2b3d03492fd96ed91c1038"
     },
     {
       "file": "bot/1_db.go",
-      "md5": "7f862752768543bfb159657a61b73451"
+      "md5": "32329d4ee1540866dc45a2d8260e1441"
     },
     {
       "file": "bot/1_downloader.go",
@@ -24,15 +24,23 @@
     },
     {
       "file": "bot/2_modules.go",
-      "md5": "665e9dc3b176cec883f02d5e15bad10b"
+      "md5": "9d43c950816475d58108724789f4746f"
+    },
+    {
+      "file": "bot/2_processInline.go",
+      "md5": "9b5cbfbf77fe8358dd43ac5c282be35d"
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "f497d263f1b1f615f245b7da42caf56f"
+      "md5": "4b78b306978b1f979ca95c769ed50314"
+    },
+    {
+      "file": "bot/2_processSearch.go",
+      "md5": "88164cabd3574a384263b5b650f994f7"
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "28074f5fea719a6371cc32daed27c545"
+      "md5": "87a4068929a1c89f844e2d4d10587114"
     }
   ]
 }
