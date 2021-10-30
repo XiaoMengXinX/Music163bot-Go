@@ -1,6 +1,6 @@
 {
   "version": "v2.1.0",
-  "version_code": 200100,
+  "version_code": 20100,
   "files": [
     {
       "file": "bot/0_init.go",
