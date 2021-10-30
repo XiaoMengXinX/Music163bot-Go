@@ -416,14 +416,18 @@ func checkMD5(data metadata) (err error) {
 	return err
 }
 
-func readConfig(path string) (map[string]string, error) {
-	config := make(map[string]string)
+func readConfig(path string) (config map[string]string, err error) {
+	config = make(map[string]string)
 	f, err := os.Open(path)
 	if err != nil {
 		return config, err
-		//panic(err)
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		e := f.Close()
+		if e != nil {
+			err = e
+		}
+	}(f)
 	r := bufio.NewReader(f)
 	for {
 		b, _, err := r.ReadLine()
@@ -432,7 +436,6 @@ func readConfig(path string) (map[string]string, error) {
 				break
 			}
 			return config, err
-			//panic(err)
 		}
 		s := strings.TrimSpace(string(b))
 		index := strings.Index(s, "=")
@@ -463,7 +466,12 @@ func getFile(url string) (body []byte, err error) {
 	if err != nil {
 		return body, err
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		e := Body.Close()
+		if e != nil {
+			err = e
+		}
+	}(res.Body)
 
 	body, err = ioutil.ReadAll(res.Body)
 	if err != nil {

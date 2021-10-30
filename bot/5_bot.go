@@ -14,6 +14,7 @@ import (
 var bot *tgbotapi.BotAPI
 var botAdmin []string
 
+// Start bot entry
 func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) error) (actionCode int) {
 	config = conf
 	defer func() {
@@ -63,19 +64,96 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message == nil { // ignore any non-Message Updates
+		if update.Message == nil && update.CallbackQuery == nil && update.InlineQuery == nil { // ignore any non-Message Updates
 			continue
 		}
 		switch {
-		case update.Message.Command() != "":
-			switch update.Message.Command() {
-			case "musicid", "netease", "start":
-				updateMsg := *update.Message
-				go func() {
+		case update.Message != nil:
+			updateMsg := *update.Message
+			if update.Message.Command() != "" {
+				switch update.Message.Command() {
+				case "musicid", "netease", "start":
 					if updateMsg.Command() == "start" && !updateMsg.Chat.IsPrivate() {
 						return
 					}
-					musicid, _ := strconv.Atoi(updateMsg.CommandArguments())
+					go func() {
+						musicid, _ := strconv.Atoi(updateMsg.CommandArguments())
+						if musicid == 0 {
+							return
+						}
+						err := processMusic(musicid, updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
+				case "search":
+					go func() {
+						err := processSearch(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
+				case "about":
+					go func() {
+						err := printAbout(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
+				}
+				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdmin) {
+					switch update.Message.Command() {
+					case "loadext":
+						extFile := update.Message.CommandArguments()
+						extData := update.Message.ReplyToMessage.Text
+						err := ioutil.WriteFile(fmt.Sprintf("%s/%s", config["ExtPath"], extFile), []byte(extData), 0644)
+						if err != nil {
+							logrus.Errorln(err)
+						} else {
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Extension saved to %s/%s", config["ExtPath"], extFile))
+							msg.ReplyToMessageID = update.Message.MessageID
+							_, _ = bot.Send(msg)
+						}
+					case "rmcache":
+						go func() {
+							var replacer = strings.NewReplacer("\n", "", " ", "")
+							messageText := replacer.Replace(updateMsg.Text)
+							musicid, _ := strconv.Atoi(linkTest(messageText))
+							if musicid == 0 {
+								return
+							}
+							err := rmCache(musicid, updateMsg, bot)
+							if err != nil {
+								logrus.Errorln(err)
+							}
+						}()
+					case "reload":
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Reloading...")
+						msg.ReplyToMessageID = update.Message.MessageID
+						_, _ = bot.Send(msg)
+						return 2
+					case "update":
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Trying update...")
+						msg.ReplyToMessageID = update.Message.MessageID
+						_, _ = bot.Send(msg)
+						return 3
+					case "stop":
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Stopping main thread...")
+						msg.ReplyToMessageID = update.Message.MessageID
+						_, _ = bot.Send(msg)
+						return 0
+					case "panic":
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Panic: %s", update.Message.CommandArguments()))
+						msg.ReplyToMessageID = update.Message.MessageID
+						_, _ = bot.Send(msg)
+						panic(update.Message.CommandArguments())
+					}
+				}
+			} else if strings.Contains(update.Message.Text, "music.163.com") {
+				go func() {
+					var replacer = strings.NewReplacer("\n", "", " ", "")
+					messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
+					musicid, _ := strconv.Atoi(linkTest(messageText))
 					if musicid == 0 {
 						return
 					}
@@ -84,68 +162,43 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						logrus.Errorln(err)
 					}
 				}()
-			case "about":
-				updateMsg := *update.Message
-				go func() {
-					err := printAbout(updateMsg, bot)
-					if err != nil {
-						logrus.Errorln(err)
-					}
-				}()
 			}
-
-			if in(fmt.Sprintf("%d", update.Message.From.ID), botAdmin) {
-				switch update.Message.Command() {
-				case "loadExt":
-					extFile := update.Message.CommandArguments()
-					extData := update.Message.ReplyToMessage.Text
-					err := ioutil.WriteFile(fmt.Sprintf("%s/%s", config["ExtPath"], extFile), []byte(extData), 0644)
-					if err != nil {
-						logrus.Errorln(err)
-					} else {
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Extension saved to %s/%s", config["ExtPath"], extFile))
-						msg.ReplyToMessageID = update.Message.MessageID
-						_, _ = bot.Send(msg)
-					}
-				case "reload":
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Reloading...")
-					msg.ReplyToMessageID = update.Message.MessageID
-					_, _ = bot.Send(msg)
-					return 2
-				case "update":
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Trying update...")
-					msg.ReplyToMessageID = update.Message.MessageID
-					_, _ = bot.Send(msg)
-					return 3
-				case "stop":
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Stoping main thread...")
-					msg.ReplyToMessageID = update.Message.MessageID
-					_, _ = bot.Send(msg)
-					return 0
-				case "panic":
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Panic: %s", update.Message.CommandArguments()))
-					msg.ReplyToMessageID = update.Message.MessageID
-					_, _ = bot.Send(msg)
-					panic(update.Message.CommandArguments())
-				}
-			}
-		case strings.Contains(update.Message.Text, "music.163.com"):
-			updateMsg := *update.Message
+		case update.CallbackQuery != nil:
+			updateQuery := *update.CallbackQuery
 			go func() {
-				var replacer = strings.NewReplacer("\n", "", " ", "")
-				messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
-				musicid, _ := strconv.Atoi(linkTest(messageText))
-				if musicid == 0 {
-					return
+				musicid, _ := strconv.Atoi(updateQuery.Data)
+				if updateQuery.Message.Chat.IsPrivate() {
+					callback := tgbotapi.NewCallback(updateQuery.ID, "Success")
+					_, err := bot.Request(callback)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+					message := *updateQuery.Message
+					err = processMusic(musicid, message, bot)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+				} else {
+					callback := tgbotapi.NewCallback(updateQuery.ID, "Success")
+					callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicid)
+					_, err := bot.Request(callback)
+					if err != nil {
+						logrus.Errorln(err)
+					}
 				}
-				err := processMusic(musicid, updateMsg, bot)
+			}()
+		case update.InlineQuery != nil:
+			updateQuery := *update.InlineQuery
+			go func() {
+				musicid, _ := strconv.Atoi(linkTest(updateQuery.Query))
+				err = processInlineMusic(musicid, updateQuery, bot)
 				if err != nil {
 					logrus.Errorln(err)
 				}
 			}()
 		}
 
-		if config["EnableExt"] == "true" {
+		if config["EnableExt"] == "true" && ext != nil {
 			func() {
 				defer func() {
 					if err := recover(); err != nil {

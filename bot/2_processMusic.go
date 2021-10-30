@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var limiter = make(chan bool, 2)
+var limiter = make(chan bool, 4)
 
 func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	defer func() {
@@ -44,25 +44,8 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			return err
 		}
-		numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-			),
-		)
-		newAudio := tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
-		newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
-		newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
-		newAudio.Performer = songInfo.SongArtists
-		newAudio.Duration = songInfo.Duration
-		newAudio.ReplyMarkup = numericKeyboard
-		if songInfo.ThumbFileID != "" {
-			newAudio.Thumb = tgbotapi.FileID(songInfo.ThumbFileID)
-		}
 
-		_, err = bot.Send(newAudio)
+		_, err := sendMusic(songInfo, "", "", message, bot)
 		if err != nil {
 			sendFailed(err)
 			return err
@@ -87,6 +70,29 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	defer func() {
 		<-limiter
 	}()
+
+	err = db.Where("music_id = ?", musicID).First(&songInfo).Error
+	if err == nil {
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+hitCache, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, songInfo.FileSize))
+		msgResult, err = bot.Send(editMsg)
+		if err != nil {
+			return err
+		}
+
+		_, err := sendMusic(songInfo, "", "", message, bot)
+		if err != nil {
+			sendFailed(err)
+			return err
+		}
+
+		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
+		_, err = bot.Request(deleteMsg)
+		if err != nil {
+			return err
+		}
+
+		return err
+	}
 
 	editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fetchInfo)
 	_, err = bot.Send(editMsg)
@@ -220,26 +226,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
-	numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-		),
-	)
-
-	newAudio := tgbotapi.NewAudio(message.Chat.ID, cacheDir+"/"+fileName)
-	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
-	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
-	newAudio.Performer = songInfo.SongArtists
-	newAudio.Duration = songInfo.Duration
-	newAudio.ReplyMarkup = numericKeyboard
-	if picPath != "" {
-		newAudio.Thumb = resizePicPath
-	}
-
-	audio, err := bot.Send(newAudio)
+	audio, err := sendMusic(songInfo, cacheDir+"/"+fileName, resizePicPath, message, bot)
 	if err != nil {
 		sendFailed(err)
 		return err
@@ -269,4 +256,34 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	return err
+}
+
+func sendMusic(songInfo util.SongInfo, musicPath, picPath string, message tgbotapi.Message, bot *tgbotapi.BotAPI) (audio tgbotapi.Message, err error) {
+	numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+		),
+	)
+	var newAudio tgbotapi.AudioConfig
+	if songInfo.FileID != "" {
+		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
+	} else {
+		newAudio = tgbotapi.NewAudio(message.Chat.ID, musicPath)
+	}
+	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
+	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
+	newAudio.Performer = songInfo.SongArtists
+	newAudio.Duration = songInfo.Duration
+	newAudio.ReplyMarkup = numericKeyboard
+	if songInfo.ThumbFileID != "" {
+		newAudio.Thumb = tgbotapi.FileID(songInfo.ThumbFileID)
+	}
+	if picPath != "" {
+		newAudio.Thumb = picPath
+	}
+	audio, err = bot.Send(newAudio)
+	return audio, err
 }

@@ -14,7 +14,7 @@ func initDB(config map[string]string) {
 		database = config["Database"]
 	}
 	db, err := gorm.Open(sqlite.Open(database), &gorm.Config{
-		Logger:      logger.Default.LogMode(logger.Info),
+		Logger:      logger.Default.LogMode(logger.Silent),
 		PrepareStmt: true,
 	})
 	if err != nil {
