@@ -4,7 +4,7 @@
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "69d78d213c2b3d03492fd96ed91c1038"
+      "md5": "ef01323778029bbf1fe9b92202f840f3"
     },
     {
       "file": "bot/1_db.go",
@@ -40,7 +40,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "87a4068929a1c89f844e2d4d10587114"
+      "md5": "d381ae9d0615f52b69d7ba856da2a477"
     }
   ]
 }
