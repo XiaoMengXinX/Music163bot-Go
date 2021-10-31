@@ -192,7 +192,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	} else {
 		picPath = cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl))
 		var err error
-		resizePicPath, err = resizeImg(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)))
+		resizePicPath, err = resizeImg(picPath)
 		if err != nil {
 			logrus.Errorln(err)
 		}
@@ -211,7 +211,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	case ".flac":
 		err = downloader.AddFlacId3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), resizePicPath, marker, songDetail.Songs[0])
 	default:
-		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), picPath, marker, songDetail.Songs[0])
+		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), resizePicPath, marker, songDetail.Songs[0])
 	}
 	if err != nil {
 		sendFailed(err)

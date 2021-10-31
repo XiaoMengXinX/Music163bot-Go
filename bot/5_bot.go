@@ -117,7 +117,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 					case "rmcache":
 						go func() {
 							var replacer = strings.NewReplacer("\n", "", " ", "")
-							messageText := replacer.Replace(updateMsg.Text)
+							messageText := replacer.Replace(updateMsg.CommandArguments())
 							musicid, _ := strconv.Atoi(linkTest(messageText))
 							if musicid == 0 {
 								return
