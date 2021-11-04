@@ -204,14 +204,22 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
+	var musicPic string
+	picStat, _ := os.Stat(picPath)
+	if picStat.Size() > 2*1024*1024 {
+		musicPic = resizePicPath
+	} else {
+		musicPic = picPath
+	}
+
 	marker, _ := downloader.CreateMarker(songDetail.Songs[0], songURL.Data[0])
 	switch path.Ext(path.Base(url)) {
 	case ".mp3":
-		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), resizePicPath, marker, songDetail.Songs[0])
+		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
 	case ".flac":
-		err = downloader.AddFlacId3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), resizePicPath, marker, songDetail.Songs[0])
+		err = downloader.AddFlacId3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
 	default:
-		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), resizePicPath, marker, songDetail.Songs[0])
+		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
 	}
 	if err != nil {
 		sendFailed(err)
