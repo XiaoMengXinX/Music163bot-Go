@@ -1,6 +1,6 @@
 {
-  "version": "v2.1.2",
-  "version_code": 20102,
+  "version": "v2.1.3",
+  "version_code": 20103,
   "files": [
     {
       "file": "bot/0_init.go",
@@ -32,7 +32,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "f538c0bc06b30b378cab1624051075a5"
+      "md5": "48b462237c5f6281380a38d219ae2096"
     },
     {
       "file": "bot/2_processSearch.go",
