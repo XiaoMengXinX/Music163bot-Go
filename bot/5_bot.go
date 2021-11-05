@@ -42,6 +42,9 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 	}
 
 	err := tgbotapi.SetLogger(logrus.StandardLogger())
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	bot, err = tgbotapi.NewBotAPI(config["BOT_TOKEN"])
 	if err != nil {
 		logrus.Fatal(err)
