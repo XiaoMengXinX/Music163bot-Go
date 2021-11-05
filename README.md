@@ -22,13 +22,13 @@
 - 歌曲快速分享
 - 下载无损flac音频 （需设置网易云VIP账号的MUSIC_U)
 - 动态更新（使用 [traefik/yaegi](https://github.com/traefik/yaegi) 作为动态扩展框架）
-- 扩展插件（需设置 `EnableExt = true `或加入 `-enable-ext` 参数，插件示例参考 [demo.go](https://github.com/XiaoMengXinX/Music163bot-Go/blob/v2/extension/demo.go)）
+- 扩展插件（需设置 `EnableExt = true `或加入 `-enable-ext` 参数，插件示例参考 [demo.go](https://github.com/XiaoMengXinX/Music163bot-Go/blob/v2/extension/demo.go) ）
 
 ## ⚙️ 构建
 
-构建前请确保拥有 `Go 1.17`
+构建前请确保拥有 `Go 1.17`或更新版本
 
-**克隆代码 （使用 submoudle ）**
+**克隆代码**
 
 ```
 git clone https://github.com/XiaoMengXinX/Music163bot-Go
