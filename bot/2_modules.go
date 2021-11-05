@@ -36,14 +36,9 @@ func rmCache(musicid int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err e
 			return err
 		}
 		return err
-	} else {
-		newMsg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(noCache))
-		newMsg.ReplyToMessageID = message.MessageID
-		message, err = bot.Send(newMsg)
-		if err != nil {
-			return err
-		}
 	}
-
+	newMsg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(noCache))
+	newMsg.ReplyToMessageID = message.MessageID
+	message, err = bot.Send(newMsg)
 	return err
 }

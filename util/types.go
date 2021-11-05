@@ -2,6 +2,7 @@ package util
 
 import "gorm.io/gorm"
 
+// SongInfo 歌曲信息
 type SongInfo struct {
 	gorm.Model
 	MusicID      int

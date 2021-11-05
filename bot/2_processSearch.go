@@ -13,11 +13,10 @@ func processSearch(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 		msg.ReplyToMessageID = message.MessageID
 		msgResult, err = bot.Send(msg)
 		return err
-	} else {
-		msg := tgbotapi.NewMessage(message.Chat.ID, searching)
-		msg.ReplyToMessageID = message.MessageID
-		msgResult, err = bot.Send(msg)
 	}
+	msg := tgbotapi.NewMessage(message.Chat.ID, searching)
+	msg.ReplyToMessageID = message.MessageID
+	msgResult, err = bot.Send(msg)
 	result, err := api.SearchSong(data, api.SearchSongConfig{
 		Keyword: message.CommandArguments(),
 		Limit:   10,
