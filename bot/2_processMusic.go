@@ -184,6 +184,15 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
+	if md5verify, err := verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !md5verify {
+		sendFailed(fmt.Errorf("%s\n%s", err, "请尝试重新下载"))
+		err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
+		if err != nil {
+			logrus.Errorln(err)
+		}
+		return nil
+	}
+
 	var picPath, resizePicPath string
 	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStramp, path.Base(songDetail.Songs[0].Al.PicUrl)), 2)
 	err = p.Download()
