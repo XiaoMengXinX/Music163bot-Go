@@ -1,6 +1,6 @@
 {
-  "version": "v2.1.4",
-  "version_code": 20104,
+  "version": "v2.1.5",
+  "version_code": 20105,
   "files": [
     {
       "file": "bot/0_init.go",
@@ -20,7 +20,7 @@
     },
     {
       "file": "bot/1_tools.go",
-      "md5": "b6d5568b1c199be811faaa7965b6893f"
+      "md5": "8fe51eff2b2b18a7d8a160085d4dd3a3"
     },
     {
       "file": "bot/2_modules.go",
