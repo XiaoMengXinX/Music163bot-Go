@@ -57,8 +57,12 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	md5Data := md5.Sum(file)
-	if hex.EncodeToString(md5Data[:]) != md5str {
+	md5data := md5.Sum(file)
+	var md5buffer []byte
+	for _, j := range md5data[:] {
+		md5buffer = append(md5buffer, j)
+	}
+	if hex.EncodeToString(md5buffer) != md5str {
 		return false, fmt.Errorf("MD5校验失败")
 	}
 	return true, nil
