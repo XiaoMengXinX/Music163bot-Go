@@ -58,7 +58,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		bot.Debug = true
 	}
 
-	if maxRedownTimes, _ = strconv.Atoi(config["MaxRedownTimes"]); maxRedownTimes == 0 {
+	if maxRedownTimes, _ = strconv.Atoi(config["MaxRedownTimes"]); maxRedownTimes <= 0 {
 		maxRedownTimes = 3
 	}
 

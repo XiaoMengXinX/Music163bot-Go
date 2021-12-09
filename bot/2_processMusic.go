@@ -179,22 +179,22 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
-	var isMD5Verified bool
-	for i := 0; !isMD5Verified && i < maxRedownTimes && config["AutoRedown"] != "false"; i++ {
+	var isMD5Verified = false
+	for i := 0; !isMD5Verified && i < maxRedownTimes; i++ {
 		err = d.Download()
 		if err != nil {
 			sendFailed(err)
 			return err
 		}
 
-		if md5verify, err := verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !md5verify {
+		if isMD5Verified, err = verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !isMD5Verified && config["AutoRedown"] != "false" {
 			sendFailed(fmt.Errorf("%s\n"+redownlpading, err, i, maxRedownTimes))
 			err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
 			if err != nil {
 				logrus.Errorln(err)
 			}
 		} else {
-			isMD5Verified = true
+			break
 		}
 	}
 	if !isMD5Verified {
