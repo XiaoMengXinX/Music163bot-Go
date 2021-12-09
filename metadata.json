@@ -1,6 +1,6 @@
 {
-  "version": "v2.1.6",
-  "version_code": 20106,
+  "version": "v2.1.7",
+  "version_code": 20107,
   "files": [
     {
       "file": "bot/0_init.go",
@@ -32,7 +32,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "0f1518d62406adb98d5d4d999b8b1135"
+      "md5": "d8414c5fd9f9809035e1095768eba1cc"
     },
     {
       "file": "bot/2_processSearch.go",
@@ -40,7 +40,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "68544763c555d4503a0f35b49f69f800"
+      "md5": "be889532910dcdd0798728bf4ece66a5"
     }
   ]
 }
