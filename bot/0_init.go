@@ -12,6 +12,7 @@ var config map[string]string
 var data utils.RequestData
 var botName string
 var cacheDir = "./cache"
+var maxRedownTimes int
 
 var (
 	reg1 = regexp.MustCompile(`(.*)song\?id=`)
@@ -56,4 +57,7 @@ via @%s`
 	waitForDown     = `等待下载中...`
 	downloading     = `下载中...`
 	uploading       = `下载完成，发送中...`
+	md5VerFailed    = "MD5校验失败"
+	redownlpading   = "尝试重新下载中 (%d/%d)"
+	tryToRedown     = "请稍后重试"
 )

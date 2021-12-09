@@ -63,7 +63,7 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 		md5buffer = append(md5buffer, j)
 	}
 	if hex.EncodeToString(md5buffer) != md5str {
-		return false, fmt.Errorf("MD5校验失败")
+		return false, fmt.Errorf(md5VerFailed)
 	}
 	return true, nil
 }

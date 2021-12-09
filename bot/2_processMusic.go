@@ -178,18 +178,27 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		sendFailed(err)
 		return err
 	}
-	err = d.Download()
-	if err != nil {
-		sendFailed(err)
-		return err
-	}
 
-	if md5verify, err := verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !md5verify {
-		sendFailed(fmt.Errorf("%s\n%s", err, "请尝试重新下载"))
-		err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
+	var isMD5Verified bool
+	for i := 0; !isMD5Verified && i < maxRedownTimes && config["AutoRedown"] != "false"; i++ {
+		err = d.Download()
 		if err != nil {
-			logrus.Errorln(err)
+			sendFailed(err)
+			return err
 		}
+
+		if md5verify, err := verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !md5verify {
+			sendFailed(fmt.Errorf("%s\n"+redownlpading, err, i, maxRedownTimes))
+			err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
+			if err != nil {
+				logrus.Errorln(err)
+			}
+		} else {
+			isMD5Verified = true
+		}
+	}
+	if !isMD5Verified {
+		sendFailed(fmt.Errorf("%s\n%s", md5VerFailed, tryToRedown))
 		return nil
 	}
 
