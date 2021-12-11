@@ -92,7 +92,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		} else if !isLatest {
 			return 2
 		}
-		if meta.VersionCode < 20200 {
+		if meta.Unsupported {
 			for _, i := range botAdmin {
 				msg := tgbotapi.NewMessage(int64(i), fmt.Sprintf(updateBinVer, config["repoPath"]))
 				_, _ = bot.Send(msg)

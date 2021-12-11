@@ -15,6 +15,7 @@ import (
 type metadata struct {
 	Version     string `json:"version"`
 	VersionCode int    `json:"version_code"`
+	Unsupported bool   `json:"unsupported"`
 	Files       []struct {
 		File string `json:"file"`
 		Md5  string `json:"md5"`

@@ -14,6 +14,7 @@ var dir = "./bot"
 type metadata struct {
 	Version     string     `json:"version"`
 	VersionCode int        `json:"version_code"`
+	Unsupported bool       `json:"unsupported"`
 	Files       []fileData `json:"files"`
 }
 

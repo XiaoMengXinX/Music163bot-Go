@@ -1,6 +1,7 @@
 {
   "version": "v2.2.1",
   "version_code": 20201,
+  "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
