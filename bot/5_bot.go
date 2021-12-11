@@ -7,12 +7,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
 
 var bot *tgbotapi.BotAPI
-var botAdmin []string
+var botAdmin []int
+var botAdminStr []string
 
 // Start bot entry
 func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) error) (actionCode int) {
@@ -22,11 +24,20 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		if e != nil {
 			logrus.Errorln(e)
 			actionCode = 1
-		} else {
-			bot.StopReceivingUpdates()
 		}
 	}()
-	botAdmin = strings.Split(config["BotAdmin"], ",")
+	botAdminStr = strings.Split(config["BotAdmin"], ",")
+	if len(botAdminStr) == 0 && config["BotAdmin"] != "" {
+		botAdminStr = []string{config["BotAdmin"]}
+	}
+	if len(botAdminStr) != 0 {
+		for _, s := range botAdminStr {
+			id, err := strconv.Atoi(s)
+			if err == nil {
+				botAdmin = append(botAdmin, id)
+			}
+		}
+	}
 
 	initDB(config)
 
@@ -64,6 +75,27 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 
 	logrus.Printf("%s 验证成功", bot.Self.UserName)
 	botName = bot.Self.UserName
+	defer bot.StopReceivingUpdates()
+
+	if config["AutoUpdate"] != "false" {
+		err := fmt.Errorf("")
+		var meta metadata
+		meta, err = getUpdate()
+		if err != nil {
+			logrus.Errorf("%s, 尝试重新下载更新中", err)
+			e := os.Remove(fmt.Sprintf("%s/version.json", config["SrcPath"]))
+			if e != nil {
+				logrus.Errorln(e)
+			}
+			return 2
+		}
+		if meta.VersionCode < 20200 {
+			for _, i := range botAdmin {
+				msg := tgbotapi.NewMessage(int64(i), updateBinVersion)
+				_, _ = bot.Send(msg)
+			}
+		}
+	}
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -108,7 +140,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						}
 					}()
 				}
-				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdmin) {
+				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
 					case "loadext":
 						extFile := update.Message.CommandArguments()
@@ -143,32 +175,30 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Trying update...")
 						msg.ReplyToMessageID = update.Message.MessageID
 						_, _ = bot.Send(msg)
-						return 3
+						_, err := getUpdate()
+						if err != nil {
+							return 2
+						}
 					case "stop":
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Stopping main thread...")
 						msg.ReplyToMessageID = update.Message.MessageID
 						_, _ = bot.Send(msg)
 						return 0
-					case "panic":
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Panic: %s", update.Message.CommandArguments()))
-						msg.ReplyToMessageID = update.Message.MessageID
-						_, _ = bot.Send(msg)
-						panic(update.Message.CommandArguments())
 					}
+				} else if strings.Contains(update.Message.Text, "music.163.com") {
+					go func() {
+						var replacer = strings.NewReplacer("\n", "", " ", "")
+						messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
+						musicid, _ := strconv.Atoi(linkTest(messageText))
+						if musicid == 0 {
+							return
+						}
+						err := processMusic(musicid, updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
 				}
-			} else if strings.Contains(update.Message.Text, "music.163.com") {
-				go func() {
-					var replacer = strings.NewReplacer("\n", "", " ", "")
-					messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
-					musicid, _ := strconv.Atoi(linkTest(messageText))
-					if musicid == 0 {
-						return
-					}
-					err := processMusic(musicid, updateMsg, bot)
-					if err != nil {
-						logrus.Errorln(err)
-					}
-				}()
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery

@@ -1,10 +1,10 @@
 {
-  "version": "v2.1.7",
-  "version_code": 20107,
+  "version": "v2.2.0",
+  "version_code": 20200,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "ae530adfc898045e65e5a812a2befee5"
+      "md5": "a32f0aa911ffdd7207ee30cf834764ea"
     },
     {
       "file": "bot/1_db.go",
@@ -23,6 +23,10 @@
       "md5": "a0c8ae3043f1d9494cebb33d36bf050f"
     },
     {
+      "file": "bot/1_update.go",
+      "md5": "79ea3f70c2a71dd40da3dc1b3d0565c0"
+    },
+    {
       "file": "bot/2_modules.go",
       "md5": "37b8c79b759ff3f4b69e174b8f1e4c69"
     },
@@ -32,7 +36,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "d8414c5fd9f9809035e1095768eba1cc"
+      "md5": "8fc3eb06a1e1495203e8c36f5956591a"
     },
     {
       "file": "bot/2_processSearch.go",
@@ -40,7 +44,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "be889532910dcdd0798728bf4ece66a5"
+      "md5": "ce4d7b9aa7f460464b8101c5e8b321dd"
     }
   ]
 }

@@ -25,5 +25,6 @@ config.ini
 /src
 /ext
 /cache
+/test
 *.mp3
 *.flac

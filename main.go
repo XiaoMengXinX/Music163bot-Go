@@ -17,7 +17,6 @@ import (
 	"github.com/traefik/yaegi/stdlib/unsafe"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
 	"reflect"
@@ -59,12 +58,6 @@ type metadata struct {
 		File string `json:"file"`
 		Md5  string `json:"md5"`
 	} `json:"files"`
-}
-
-type versions struct {
-	Version     string `json:"version"`
-	VersionCode int    `json:"version_code"`
-	CommitSha   string `json:"commit_sha"`
 }
 
 // LogFormatter 自定义 log 格式
@@ -135,48 +128,26 @@ func main() {
 
 	for true {
 		err := func() (err error) {
-			if *_NoUpdate && actionCode != 3 {
-				data, err := getLocalVersion()
+			data, err := getLocalVersion()
+			if err != nil {
+				return err
+			}
+			meta = data
+			if !*_NoMD5Check && data.VersionCode != 0 {
+				logrus.Println("正在校验文件MD5")
+				err := checkMD5(data)
 				if err != nil {
 					return err
 				}
-				meta = data
-				if !*_NoMD5Check && data.VersionCode != 0 {
-					logrus.Println("正在校验文件MD5")
-					err := checkMD5(data)
-					if err != nil {
-						return err
-					}
-					logrus.Println("MD5校验成功")
-				}
-
-			} else {
-				logrus.Printf("正在检查更新中")
-				versionData, err := getVersions()
-				if err == nil {
-					data, err := getUpdate(versionData)
-					meta = data
-					if err != nil {
-						return err
-					}
-					if !*_NoMD5Check {
-						logrus.Println("正在校验文件MD5")
-						err := checkMD5(meta)
-						if err != nil {
-							return err
-						}
-						logrus.Println("MD5校验成功")
-					}
-				} else {
-					return err
-				}
+				logrus.Println("MD5校验成功")
 			}
 			return err
 		}()
+
 		var ext func(*tgbotapi.BotAPI, tgbotapi.Update) error
 		if func() bool {
 			if err == nil {
-				if !*_NoMD5Check && !*_NoUpdate && len(meta.Files) == 0 {
+				if (!*_NoMD5Check && len(meta.Files) == 0) || (*_NoUpdate && len(meta.Files) == 0) {
 					return true
 				}
 				v, err := loadDyn(meta)
@@ -337,70 +308,6 @@ func getLocalVersion() (meta metadata, err error) {
 	return meta, err
 }
 
-func getUpdate(versionData []versions) (meta metadata, err error) {
-	dirExists(*_SrcPath)
-	var versionName string
-	var versionCode int
-	currentVersion, _ := getLocalVersion()
-	if currentVersion.VersionCode != 0 {
-		versionCode = currentVersion.VersionCode
-		versionName = currentVersion.Version
-		meta = currentVersion
-	} else {
-		versionCode = _VersionCode
-		versionName = _VersionName
-	}
-
-	latest := func() versions {
-		for _, v := range versionData {
-			if v.VersionCode > versionCode {
-				return v
-			}
-		}
-		return versions{}
-	}()
-	if latest.VersionCode == 0 {
-		logrus.Printf("%s(%d) 已是最新版本", versionName, versionCode)
-		return meta, err
-	}
-
-	logrus.Printf("检测到版本更新: %s(%d), 正在获取更新", latest.Version, latest.VersionCode)
-	dataFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/metadata.json", repoPath, latest.CommitSha))
-	if err != nil {
-		return meta, err
-	}
-	err = ioutil.WriteFile(fmt.Sprintf("%s/version.json", *_SrcPath), dataFile, 0644)
-	if err != nil {
-		return meta, err
-	}
-
-	_ = json.Unmarshal(dataFile, &meta)
-	for _, v := range meta.Files {
-		srcFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repoPath, latest.CommitSha, v.File))
-		if err != nil {
-			return meta, err
-		}
-		err = ioutil.WriteFile(fmt.Sprintf("%s/%s", *_SrcPath, path.Base(v.File)), srcFile, 0644)
-		if err != nil {
-			return meta, err
-		}
-	}
-	logrus.Println("更新下载完成")
-	return meta, err
-}
-
-func getVersions() (versionData []versions, err error) {
-	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions.json", rawRepoPath))
-	if err != nil {
-		return versionData, err
-	}
-	err = json.Unmarshal(updateData, &versionData)
-	if err != nil {
-		return versionData, err
-	}
-	return versionData, err
-}
-
 func checkMD5(data metadata) (err error) {
 	for _, f := range data.Files {
 		file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", *_SrcPath, path.Base(f.File)))
@@ -454,31 +361,6 @@ func readConfig(path string) (config map[string]string, err error) {
 	return config, err
 }
 
-func getFile(url string) (body []byte, err error) {
-	method := "GET"
-	client := &http.Client{}
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return body, err
-	}
-	res, err := client.Do(req)
-	if err != nil {
-		return body, err
-	}
-	defer func(Body io.ReadCloser) {
-		e := Body.Close()
-		if e != nil {
-			err = e
-		}
-	}(res.Body)
-
-	body, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		return body, err
-	}
-	return body, err
-}
-
 func fileExists(path string) bool {
 	_, err := os.Stat(path) //os.Stat获取文件信息
 	if err != nil {
@@ -515,10 +397,14 @@ func initConfig(config map[string]string) {
 	config["buildArch"] = buildArch
 	config["repoPath"] = repoPath
 	config["rawRepoPath"] = rawRepoPath
-	if config["AutoUpdate"] == "false" {
+	if *_NoUpdate {
+		config["AutoUpdate"] = "false"
+	} else if config["AutoUpdate"] == "false" {
 		*_NoUpdate = true
 	}
-	if config["CheckMD5"] == "false" {
+	if *_NoMD5Check {
+		config["CheckMD5"] = "false"
+	} else if config["CheckMD5"] == "false" {
 		*_NoMD5Check = true
 	}
 	if config["SrcPath"] != "" {

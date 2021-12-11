@@ -188,7 +188,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		}
 
 		if isMD5Verified, err = verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStramp, path.Base(url)), songURL.Data[0].Md5); !isMD5Verified && config["AutoRedown"] != "false" {
-			sendFailed(fmt.Errorf("%s\n"+redownlpading, err, i, maxRedownTimes))
+			sendFailed(fmt.Errorf("%s\n"+redownlpading, err, i+1, maxRedownTimes))
 			err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
 			if err != nil {
 				logrus.Errorln(err)

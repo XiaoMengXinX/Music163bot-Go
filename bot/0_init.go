@@ -51,13 +51,15 @@ via @%s`
 	sendMeTo      = `Send me to...`
 	uploadFailed  = `下载/发送失败
 %v`
-	getUrlFailed    = `获取歌曲下载链接失败`
-	fetchInfo       = `正在获取歌曲信息...`
-	fetchInfoFailed = `获取歌曲信息失败`
-	waitForDown     = `等待下载中...`
-	downloading     = `下载中...`
-	uploading       = `下载完成，发送中...`
-	md5VerFailed    = "MD5校验失败"
-	redownlpading   = "尝试重新下载中 (%d/%d)"
-	tryToRedown     = "请稍后重试"
+	getUrlFailed     = `获取歌曲下载链接失败`
+	fetchInfo        = `正在获取歌曲信息...`
+	fetchInfoFailed  = `获取歌曲信息失败`
+	waitForDown      = `等待下载中...`
+	downloading      = `下载中...`
+	uploading        = `下载完成，发送中...`
+	md5VerFailed     = "MD5校验失败"
+	redownlpading    = "尝试重新下载中 (%d/%d)"
+	tryToRedown      = "请稍后重试"
+	updateBinVersion = `请更新主程序文件版本！
+详见: https://github.com/XiaoMengXinX/Music163bot-Go/releases`
 )
