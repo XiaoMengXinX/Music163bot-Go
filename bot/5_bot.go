@@ -89,7 +89,6 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			}
 			return 2
 		}
-		fmt.Println(meta.VersionCode)
 		if meta.VersionCode < 20200 {
 			for _, i := range botAdmin {
 				msg := tgbotapi.NewMessage(int64(i), updateBinVersion)
@@ -186,20 +185,20 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						_, _ = bot.Send(msg)
 						return 0
 					}
-				} else if strings.Contains(update.Message.Text, "music.163.com") {
-					go func() {
-						var replacer = strings.NewReplacer("\n", "", " ", "")
-						messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
-						musicid, _ := strconv.Atoi(linkTest(messageText))
-						if musicid == 0 {
-							return
-						}
-						err := processMusic(musicid, updateMsg, bot)
-						if err != nil {
-							logrus.Errorln(err)
-						}
-					}()
 				}
+			} else if strings.Contains(update.Message.Text, "music.163.com") {
+				go func() {
+					var replacer = strings.NewReplacer("\n", "", " ", "")
+					messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
+					musicid, _ := strconv.Atoi(linkTest(messageText))
+					if musicid == 0 {
+						return
+					}
+					err := processMusic(musicid, updateMsg, bot)
+					if err != nil {
+						logrus.Errorln(err)
+					}
+				}()
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery
