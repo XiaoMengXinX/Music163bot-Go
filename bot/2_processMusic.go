@@ -110,11 +110,10 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			Json: api.CreateSongURLJson(api.SongURLConfig{Ids: []int{musicID}}),
 		},
 	)
-	_, _, err = b.Do(data)
-	if err != nil {
+	if b.Do(data).Error != nil {
 		return err
 	}
-	result := b.Parse()
+	_, result := b.Parse()
 
 	var songDetail types.SongsDetailData
 	_ = json.Unmarshal([]byte(result[api.SongDetailAPI]), &songDetail)
@@ -297,7 +296,7 @@ func sendMusic(songInfo util.SongInfo, musicPath, picPath string, message tgbota
 	if songInfo.FileID != "" {
 		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
 	} else {
-		newAudio = tgbotapi.NewAudio(message.Chat.ID, musicPath)
+		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FilePath(musicPath))
 	}
 	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
 	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
@@ -308,7 +307,7 @@ func sendMusic(songInfo util.SongInfo, musicPath, picPath string, message tgbota
 		newAudio.Thumb = tgbotapi.FileID(songInfo.ThumbFileID)
 	}
 	if picPath != "" {
-		newAudio.Thumb = picPath
+		newAudio.Thumb = tgbotapi.FilePath(picPath)
 	}
 	audio, err = bot.Send(newAudio)
 	return audio, err

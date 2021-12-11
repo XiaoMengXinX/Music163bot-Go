@@ -6,6 +6,7 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go/constant"
 	"go/token"
+	"io"
 	"net/http"
 	"reflect"
 )
@@ -14,20 +15,18 @@ func init() {
 	Symbols["github.com/go-telegram-bot-api/telegram-bot-api/v5/tgbotapi"] = map[string]reflect.Value{
 		// function, constant and variable definitions
 		"APIEndpoint":              reflect.ValueOf(constant.MakeFromLiteral("\"https://api.telegram.org/bot%s/%s\"", token.STRING, 0)),
+		"ChatChooseSticker":        reflect.ValueOf(constant.MakeFromLiteral("\"choose_sticker\"", token.STRING, 0)),
 		"ChatFindLocation":         reflect.ValueOf(constant.MakeFromLiteral("\"find_location\"", token.STRING, 0)),
-		"ChatRecordAudio":          reflect.ValueOf(constant.MakeFromLiteral("\"record_audio\"", token.STRING, 0)),
 		"ChatRecordVideo":          reflect.ValueOf(constant.MakeFromLiteral("\"record_video\"", token.STRING, 0)),
 		"ChatRecordVideoNote":      reflect.ValueOf(constant.MakeFromLiteral("\"record_video_note\"", token.STRING, 0)),
 		"ChatRecordVoice":          reflect.ValueOf(constant.MakeFromLiteral("\"record_voice\"", token.STRING, 0)),
 		"ChatTyping":               reflect.ValueOf(constant.MakeFromLiteral("\"typing\"", token.STRING, 0)),
-		"ChatUploadAudio":          reflect.ValueOf(constant.MakeFromLiteral("\"upload_audio\"", token.STRING, 0)),
 		"ChatUploadDocument":       reflect.ValueOf(constant.MakeFromLiteral("\"upload_document\"", token.STRING, 0)),
 		"ChatUploadPhoto":          reflect.ValueOf(constant.MakeFromLiteral("\"upload_photo\"", token.STRING, 0)),
 		"ChatUploadVideo":          reflect.ValueOf(constant.MakeFromLiteral("\"upload_video\"", token.STRING, 0)),
 		"ChatUploadVideoNote":      reflect.ValueOf(constant.MakeFromLiteral("\"upload_video_note\"", token.STRING, 0)),
 		"ChatUploadVoice":          reflect.ValueOf(constant.MakeFromLiteral("\"upload_voice\"", token.STRING, 0)),
 		"ErrAPIForbidden":          reflect.ValueOf(constant.MakeFromLiteral("\"forbidden\"", token.STRING, 0)),
-		"ErrBadFileType":           reflect.ValueOf(constant.MakeFromLiteral("\"bad file type\"", token.STRING, 0)),
 		"ErrBadURL":                reflect.ValueOf(constant.MakeFromLiteral("\"bad or empty url\"", token.STRING, 0)),
 		"EscapeText":               reflect.ValueOf(tgbotapi.EscapeText),
 		"FileEndpoint":             reflect.ValueOf(constant.MakeFromLiteral("\"https://api.telegram.org/file/bot%s/%s\"", token.STRING, 0)),
@@ -117,7 +116,6 @@ func init() {
 		"NewPoll":                                 reflect.ValueOf(tgbotapi.NewPoll),
 		"NewRemoveKeyboard":                       reflect.ValueOf(tgbotapi.NewRemoveKeyboard),
 		"NewReplyKeyboard":                        reflect.ValueOf(tgbotapi.NewReplyKeyboard),
-		"NewSendDice":                             reflect.ValueOf(tgbotapi.NewSendDice),
 		"NewSetMyCommands":                        reflect.ValueOf(tgbotapi.NewSetMyCommands),
 		"NewSetMyCommandsWithScope":               reflect.ValueOf(tgbotapi.NewSetMyCommandsWithScope),
 		"NewSetMyCommandsWithScopeAndLanguage":    reflect.ValueOf(tgbotapi.NewSetMyCommandsWithScopeAndLanguage),
@@ -152,8 +150,11 @@ func init() {
 		"AddStickerConfig":                 reflect.ValueOf((*tgbotapi.AddStickerConfig)(nil)),
 		"Animation":                        reflect.ValueOf((*tgbotapi.Animation)(nil)),
 		"AnimationConfig":                  reflect.ValueOf((*tgbotapi.AnimationConfig)(nil)),
+		"ApproveChatJoinRequestConfig":     reflect.ValueOf((*tgbotapi.ApproveChatJoinRequestConfig)(nil)),
 		"Audio":                            reflect.ValueOf((*tgbotapi.Audio)(nil)),
 		"AudioConfig":                      reflect.ValueOf((*tgbotapi.AudioConfig)(nil)),
+		"BanChatMemberConfig":              reflect.ValueOf((*tgbotapi.BanChatMemberConfig)(nil)),
+		"BanChatSenderChatConfig":          reflect.ValueOf((*tgbotapi.BanChatSenderChatConfig)(nil)),
 		"BaseChat":                         reflect.ValueOf((*tgbotapi.BaseChat)(nil)),
 		"BaseEdit":                         reflect.ValueOf((*tgbotapi.BaseEdit)(nil)),
 		"BaseFile":                         reflect.ValueOf((*tgbotapi.BaseFile)(nil)),
@@ -173,6 +174,7 @@ func init() {
 		"ChatInfoConfig":                   reflect.ValueOf((*tgbotapi.ChatInfoConfig)(nil)),
 		"ChatInviteLink":                   reflect.ValueOf((*tgbotapi.ChatInviteLink)(nil)),
 		"ChatInviteLinkConfig":             reflect.ValueOf((*tgbotapi.ChatInviteLinkConfig)(nil)),
+		"ChatJoinRequest":                  reflect.ValueOf((*tgbotapi.ChatJoinRequest)(nil)),
 		"ChatLocation":                     reflect.ValueOf((*tgbotapi.ChatLocation)(nil)),
 		"ChatMember":                       reflect.ValueOf((*tgbotapi.ChatMember)(nil)),
 		"ChatMemberConfig":                 reflect.ValueOf((*tgbotapi.ChatMemberConfig)(nil)),
@@ -189,6 +191,7 @@ func init() {
 		"CreateChatInviteLinkConfig":       reflect.ValueOf((*tgbotapi.CreateChatInviteLinkConfig)(nil)),
 		"Credentials":                      reflect.ValueOf((*tgbotapi.Credentials)(nil)),
 		"DataCredentials":                  reflect.ValueOf((*tgbotapi.DataCredentials)(nil)),
+		"DeclineChatJoinRequest":           reflect.ValueOf((*tgbotapi.DeclineChatJoinRequest)(nil)),
 		"DeleteChatPhotoConfig":            reflect.ValueOf((*tgbotapi.DeleteChatPhotoConfig)(nil)),
 		"DeleteChatStickerSetConfig":       reflect.ValueOf((*tgbotapi.DeleteChatStickerSetConfig)(nil)),
 		"DeleteMessageConfig":              reflect.ValueOf((*tgbotapi.DeleteMessageConfig)(nil)),
@@ -213,6 +216,7 @@ func init() {
 		"FileConfig":                       reflect.ValueOf((*tgbotapi.FileConfig)(nil)),
 		"FileCredentials":                  reflect.ValueOf((*tgbotapi.FileCredentials)(nil)),
 		"FileID":                           reflect.ValueOf((*tgbotapi.FileID)(nil)),
+		"FilePath":                         reflect.ValueOf((*tgbotapi.FilePath)(nil)),
 		"FileReader":                       reflect.ValueOf((*tgbotapi.FileReader)(nil)),
 		"FileURL":                          reflect.ValueOf((*tgbotapi.FileURL)(nil)),
 		"Fileable":                         reflect.ValueOf((*tgbotapi.Fileable)(nil)),
@@ -310,6 +314,7 @@ func init() {
 		"ReplyKeyboardMarkup":              reflect.ValueOf((*tgbotapi.ReplyKeyboardMarkup)(nil)),
 		"ReplyKeyboardRemove":              reflect.ValueOf((*tgbotapi.ReplyKeyboardRemove)(nil)),
 		"RequestFile":                      reflect.ValueOf((*tgbotapi.RequestFile)(nil)),
+		"RequestFileData":                  reflect.ValueOf((*tgbotapi.RequestFileData)(nil)),
 		"ResponseParameters":               reflect.ValueOf((*tgbotapi.ResponseParameters)(nil)),
 		"RestrictChatMemberConfig":         reflect.ValueOf((*tgbotapi.RestrictChatMemberConfig)(nil)),
 		"RevokeChatInviteLinkConfig":       reflect.ValueOf((*tgbotapi.RevokeChatInviteLinkConfig)(nil)),
@@ -337,6 +342,7 @@ func init() {
 		"StopPollConfig":                   reflect.ValueOf((*tgbotapi.StopPollConfig)(nil)),
 		"SuccessfulPayment":                reflect.ValueOf((*tgbotapi.SuccessfulPayment)(nil)),
 		"UnbanChatMemberConfig":            reflect.ValueOf((*tgbotapi.UnbanChatMemberConfig)(nil)),
+		"UnbanChatSenderChatConfig":        reflect.ValueOf((*tgbotapi.UnbanChatSenderChatConfig)(nil)),
 		"UnpinAllChatMessagesConfig":       reflect.ValueOf((*tgbotapi.UnpinAllChatMessagesConfig)(nil)),
 		"UnpinChatMessageConfig":           reflect.ValueOf((*tgbotapi.UnpinChatMessageConfig)(nil)),
 		"Update":                           reflect.ValueOf((*tgbotapi.Update)(nil)),
@@ -368,6 +374,7 @@ func init() {
 		"_HTTPClient":           reflect.ValueOf((*_github_com_go_telegram_bot_api_telegram_bot_api_v5_HTTPClient)(nil)),
 		"_PassportElementError": reflect.ValueOf((*_github_com_go_telegram_bot_api_telegram_bot_api_v5_PassportElementError)(nil)),
 		"_PassportScopeElement": reflect.ValueOf((*_github_com_go_telegram_bot_api_telegram_bot_api_v5_PassportScopeElement)(nil)),
+		"_RequestFileData":      reflect.ValueOf((*_github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData)(nil)),
 	}
 }
 
@@ -418,4 +425,22 @@ type _github_com_go_telegram_bot_api_telegram_bot_api_v5_PassportScopeElement st
 
 func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_PassportScopeElement) ScopeType() string {
 	return W.WScopeType()
+}
+
+// _github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData is an interface wrapper for RequestFileData type
+type _github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData struct {
+	IValue       interface{}
+	WNeedsUpload func() bool
+	WSendData    func() string
+	WUploadData  func() (string, io.Reader, error)
+}
+
+func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData) NeedsUpload() bool {
+	return W.WNeedsUpload()
+}
+func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData) SendData() string {
+	return W.WSendData()
+}
+func (W _github_com_go_telegram_bot_api_telegram_bot_api_v5_RequestFileData) UploadData() (string, io.Reader, error) {
+	return W.WUploadData()
 }

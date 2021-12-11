@@ -89,6 +89,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			}
 			return 2
 		}
+		fmt.Println(meta.VersionCode)
 		if meta.VersionCode < 20200 {
 			for _, i := range botAdmin {
 				msg := tgbotapi.NewMessage(int64(i), updateBinVersion)

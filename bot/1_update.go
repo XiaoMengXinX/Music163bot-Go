@@ -51,7 +51,9 @@ func getLocalVersion() (meta metadata, err error) {
 			return meta, err
 		}
 		err = json.Unmarshal(content, &meta)
-		return meta, err
+	} else {
+		meta.VersionCode, _ = strconv.Atoi(config["BinVersionCode"])
+		meta.Version = config["BinVersionName"]
 	}
 	return meta, err
 }
@@ -61,14 +63,10 @@ func checkUpdate(versionData []versions) (meta metadata, err error) {
 	var versionName string
 	var versionCode int
 	currentVersion, _ := getLocalVersion()
-	if currentVersion.VersionCode != 0 {
-		versionCode = currentVersion.VersionCode
-		versionName = currentVersion.Version
-		meta = currentVersion
-	} else {
-		versionCode, _ = strconv.Atoi(config["BinVersionCode"])
-		versionName = config["BinVersionName"]
-	}
+
+	versionCode = currentVersion.VersionCode
+	versionName = currentVersion.Version
+	meta = currentVersion
 
 	latest := func() versions {
 		for _, v := range versionData {
@@ -109,7 +107,7 @@ func checkUpdate(versionData []versions) (meta metadata, err error) {
 }
 
 func getVersions() (versionData []versions, err error) {
-	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions.json", config["rawRepoPath"]))
+	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions_v2.2.json", config["rawRepoPath"]))
 	if err != nil {
 		return versionData, err
 	}
