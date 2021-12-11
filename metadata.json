@@ -1,6 +1,6 @@
 {
-  "version": "v2.2.2",
-  "version_code": 20202,
+  "version": "v2.2.3",
+  "version_code": 20203,
   "unsupported": false,
   "files": [
     {
@@ -45,7 +45,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "88518fa61f6d787cf45639f7024cc0da"
+      "md5": "4f368fe0b23889fd9bcf856fcc41f148"
     }
   ]
 }
