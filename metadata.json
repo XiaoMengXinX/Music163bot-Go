@@ -1,6 +1,6 @@
 {
-  "version": "v2.2.0",
-  "version_code": 20200,
+  "version": "",
+  "version_code": 0,
   "files": [
     {
       "file": "bot/0_init.go",
@@ -44,7 +44,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "b497b9931a43f4aa81c6f59972f57467"
+      "md5": "cd926bd4f439d1779b7016cd4e78e209"
     }
   ]
 }
