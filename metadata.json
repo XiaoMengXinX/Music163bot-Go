@@ -1,10 +1,10 @@
 {
-  "version": "v2.2.0",
-  "version_code": 20200,
+  "version": "2.1.8",
+  "version_code": 20108,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "a32f0aa911ffdd7207ee30cf834764ea"
+      "md5": "d0c67ffe613bad438950b2dfaab0d42f"
     },
     {
       "file": "bot/1_db.go",
