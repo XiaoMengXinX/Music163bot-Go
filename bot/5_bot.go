@@ -183,7 +183,6 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							if isLatest {
 								editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintf(isLatestVer, meta.Version, meta.VersionCode))
 								_, _ = bot.Send(editMsg)
-								return 2
 							} else {
 								editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintf(updatedToVer, meta.Version, meta.VersionCode))
 								_, _ = bot.Send(editMsg)
