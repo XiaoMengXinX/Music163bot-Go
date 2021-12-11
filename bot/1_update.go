@@ -27,21 +27,21 @@ type versions struct {
 	CommitSha   string `json:"commit_sha"`
 }
 
-func getUpdate() (meta metadata, err error) {
+func getUpdate() (meta metadata, isLatest bool, err error) {
 	versionData, err := getVersions()
-	meta, err = checkUpdate(versionData)
+	meta, isLatest, err = checkUpdate(versionData)
 	if err != nil {
-		return meta, err
+		return meta, isLatest, err
 	}
-	if config["CheckMD5"] != "false" {
+	if config["CheckMD5"] != "false" && !isLatest {
 		logrus.Println("正在校验文件MD5")
 		err := checkUpdateMD5(meta)
 		if err != nil {
-			return meta, err
+			return meta, isLatest, err
 		}
 		logrus.Println("MD5校验成功")
 	}
-	return meta, err
+	return meta, isLatest, err
 }
 
 func getLocalVersion() (meta metadata, err error) {
@@ -58,7 +58,7 @@ func getLocalVersion() (meta metadata, err error) {
 	return meta, err
 }
 
-func checkUpdate(versionData []versions) (meta metadata, err error) {
+func checkUpdate(versionData []versions) (meta metadata, isLatest bool, err error) {
 	dirExists(config["SrcPath"])
 	var versionName string
 	var versionCode int
@@ -78,32 +78,32 @@ func checkUpdate(versionData []versions) (meta metadata, err error) {
 	}()
 	if latest.VersionCode == 0 {
 		logrus.Printf("%s(%d) 已是最新版本", versionName, versionCode)
-		return meta, err
+		return meta, true, err
 	}
 
 	logrus.Printf("检测到版本更新: %s(%d), 正在获取更新", latest.Version, latest.VersionCode)
 	dataFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/metadata.json", config["repoPath"], latest.CommitSha))
 	if err != nil {
-		return meta, err
+		return meta, false, err
 	}
 	err = ioutil.WriteFile(fmt.Sprintf("%s/version.json", config["SrcPath"]), dataFile, 0644)
 	if err != nil {
-		return meta, err
+		return meta, false, err
 	}
 
 	_ = json.Unmarshal(dataFile, &meta)
 	for _, v := range meta.Files {
 		srcFile, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", config["repoPath"], latest.CommitSha, v.File))
 		if err != nil {
-			return meta, err
+			return meta, false, err
 		}
 		err = ioutil.WriteFile(fmt.Sprintf("%s/%s", config["SrcPath"], path.Base(v.File)), srcFile, 0644)
 		if err != nil {
-			return meta, err
+			return meta, false, err
 		}
 	}
 	logrus.Println("更新下载完成")
-	return meta, err
+	return meta, false, err
 }
 
 func getVersions() (versionData []versions, err error) {

@@ -47,19 +47,26 @@ via @%s`
 	noCache       = `歌曲未缓存`
 	tapToDownload = `点击上方按钮缓存歌曲`
 	tapMeToDown   = `点我缓存歌曲`
-	hitCache      = `命中缓存，正在发送中...`
+	hitCache      = `命中缓存, 正在发送中...`
 	sendMeTo      = `Send me to...`
 	uploadFailed  = `下载/发送失败
 %v`
-	getUrlFailed     = `获取歌曲下载链接失败`
-	fetchInfo        = `正在获取歌曲信息...`
-	fetchInfoFailed  = `获取歌曲信息失败`
-	waitForDown      = `等待下载中...`
-	downloading      = `下载中...`
-	uploading        = `下载完成，发送中...`
-	md5VerFailed     = "MD5校验失败"
-	redownlpading    = "尝试重新下载中 (%d/%d)"
-	tryToRedown      = "请稍后重试"
-	updateBinVersion = `请更新主程序文件版本！
-详见: https://github.com/XiaoMengXinX/Music163bot-Go/releases`
+	getUrlFailed    = `获取歌曲下载链接失败`
+	fetchInfo       = `正在获取歌曲信息...`
+	fetchInfoFailed = `获取歌曲信息失败`
+	waitForDown     = `等待下载中...`
+	downloading     = `下载中...`
+	uploading       = `下载完成, 发送中...`
+	md5VerFailed    = "MD5校验失败"
+	redownlpading   = "尝试重新下载中 (%d/%d)"
+	tryToRedown     = "请稍后重试"
+	updatedToVer    = "已更新到 %s(%d) 版本, 重新加载中"
+	checkingUpdate  = "检查更新中"
+	reloading       = "重新加载中"
+	callbackText    = "Success"
+	stopText        = "Stopping main thread..."
+	extSaved        = "插件源码已保存到 %s/%s"
+	updateBinVer    = `请更新主程序文件版本！
+详见: https://github.com/%s/releases`
+	isLatestVer = "%s(%d) 已是最新版本"
 )

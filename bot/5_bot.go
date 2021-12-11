@@ -78,9 +78,10 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 	defer bot.StopReceivingUpdates()
 
 	if config["AutoUpdate"] != "false" {
+		var isLatest bool
 		err := fmt.Errorf("")
 		var meta metadata
-		meta, err = getUpdate()
+		meta, isLatest, err = getUpdate()
 		if err != nil {
 			logrus.Errorf("%s, 尝试重新下载更新中", err)
 			e := os.Remove(fmt.Sprintf("%s/version.json", config["SrcPath"]))
@@ -88,10 +89,12 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				logrus.Errorln(e)
 			}
 			return 2
+		} else if !isLatest {
+			return 2
 		}
 		if meta.VersionCode < 20200 {
 			for _, i := range botAdmin {
-				msg := tgbotapi.NewMessage(int64(i), updateBinVersion)
+				msg := tgbotapi.NewMessage(int64(i), fmt.Sprintf(updateBinVer, config["repoPath"]))
 				_, _ = bot.Send(msg)
 			}
 		}
@@ -149,7 +152,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						if err != nil {
 							logrus.Errorln(err)
 						} else {
-							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Extension saved to %s/%s", config["ExtPath"], extFile))
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(extSaved, config["ExtPath"], extFile))
 							msg.ReplyToMessageID = update.Message.MessageID
 							_, _ = bot.Send(msg)
 						}
@@ -167,20 +170,32 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							}
 						}()
 					case "reload":
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Reloading...")
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, reloading)
 						msg.ReplyToMessageID = update.Message.MessageID
 						_, _ = bot.Send(msg)
 						return 2
 					case "update":
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Trying update...")
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, checkingUpdate)
 						msg.ReplyToMessageID = update.Message.MessageID
-						_, _ = bot.Send(msg)
-						_, err := getUpdate()
-						if err != nil {
-							return 2
+						msgResult, _ := bot.Send(msg)
+						meta, isLatest, err := getUpdate()
+						if err == nil {
+							if isLatest {
+								editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintf(isLatestVer, meta.Version, meta.VersionCode))
+								_, _ = bot.Send(editMsg)
+								return 2
+							} else {
+								editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintf(updatedToVer, meta.Version, meta.VersionCode))
+								_, _ = bot.Send(editMsg)
+								return 2
+							}
+						} else {
+							editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintln(err))
+							_, _ = bot.Send(editMsg)
+							logrus.Errorln(err)
 						}
 					case "stop":
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Stopping main thread...")
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, stopText)
 						msg.ReplyToMessageID = update.Message.MessageID
 						_, _ = bot.Send(msg)
 						return 0
@@ -205,7 +220,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			go func() {
 				musicid, _ := strconv.Atoi(updateQuery.Data)
 				if updateQuery.Message.Chat.IsPrivate() {
-					callback := tgbotapi.NewCallback(updateQuery.ID, "Success")
+					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
 					_, err := bot.Request(callback)
 					if err != nil {
 						logrus.Errorln(err)
@@ -216,7 +231,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						logrus.Errorln(err)
 					}
 				} else {
-					callback := tgbotapi.NewCallback(updateQuery.ID, "Success")
+					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
 					callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicid)
 					_, err := bot.Request(callback)
 					if err != nil {
