@@ -8,7 +8,7 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sirupsen/logrus v1.8.1
-	github.com/traefik/yaegi v0.10.0
+	github.com/traefik/yaegi v0.11.1
 	gorm.io/driver/sqlite v1.1.6
 	gorm.io/gorm v1.21.16
 )
