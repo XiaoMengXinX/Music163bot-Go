@@ -1,11 +1,11 @@
 {
-  "version": "v2.2.3",
-  "version_code": 20203,
+  "version": "v2.2.4",
+  "version_code": 20204,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "4b5ebb452d6fc7ba1a7c21f503b1c72c"
+      "md5": "c31289edc7001b30518e0575c00b018c"
     },
     {
       "file": "bot/1_db.go",
@@ -28,10 +28,6 @@
       "md5": "f36e07f5fc9ce3b7866fb4c7b665be1c"
     },
     {
-      "file": "bot/2_modules.go",
-      "md5": "37b8c79b759ff3f4b69e174b8f1e4c69"
-    },
-    {
       "file": "bot/2_processInline.go",
       "md5": "cad09f9b188dda7e600483b6ffeac9bd"
     },
@@ -41,11 +37,15 @@
     },
     {
       "file": "bot/2_processSearch.go",
-      "md5": "6f32192640f80d69fc908574c0884c2c"
+      "md5": "11bfef670090b11e05f22d1ec50b1127"
+    },
+    {
+      "file": "bot/3_modules.go",
+      "md5": "6ef79be2f302eef62ed92ce42ad73422"
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "4f368fe0b23889fd9bcf856fcc41f148"
+      "md5": "881c1cfaa1bf2d7cb0711c88cc60db7c"
     }
   ]
 }
