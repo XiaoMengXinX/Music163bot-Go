@@ -114,7 +114,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			updateMsg := *update.Message
 			if update.Message.Command() != "" {
 				switch update.Message.Command() {
-				case "musicid", "netease", "start":
+				case "musicid", "start":
 					if updateMsg.Command() == "start" && !updateMsg.Chat.IsPrivate() {
 						return
 					}
@@ -124,6 +124,13 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							return
 						}
 						err := processMusic(musicid, updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
+				case "music", "netease":
+					go func() {
+						err := processAnyMusic(updateMsg, bot)
 						if err != nil {
 							logrus.Errorln(err)
 						}

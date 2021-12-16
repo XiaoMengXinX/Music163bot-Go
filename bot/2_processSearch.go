@@ -17,11 +17,13 @@ func processSearch(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, searching)
 	msg.ReplyToMessageID = message.MessageID
 	msgResult, err = bot.Send(msg)
-	result, err := api.SearchSong(data, api.SearchSongConfig{
+	if err != nil {
+		return err
+	}
+	searchResult, _ := api.SearchSong(data, api.SearchSongConfig{
 		Keyword: message.CommandArguments(),
 		Limit:   10,
 	})
-	searchResult := result
 	if len(searchResult.Result.Songs) == 0 {
 		newEditMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, noResults)
 		msgResult, err = bot.Send(newEditMsg)

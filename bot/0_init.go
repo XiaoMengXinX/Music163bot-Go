@@ -40,16 +40,17 @@ via @%s`
 专辑: %s
 %s %sMB
 `
-	rmcacheReport = `清除 [%s] 缓存成功`
-	inputKeyword  = "请输入搜索关键词"
-	searching     = `搜索中...`
-	noResults     = `未找到结果`
-	noCache       = `歌曲未缓存`
-	tapToDownload = `点击上方按钮缓存歌曲`
-	tapMeToDown   = `点我缓存歌曲`
-	hitCache      = `命中缓存, 正在发送中...`
-	sendMeTo      = `Send me to...`
-	uploadFailed  = `下载/发送失败
+	rmcacheReport    = `清除 [%s] 缓存成功`
+	inputKeyword     = "请输入搜索关键词"
+	inputIDorKeyword = "请输入MusicID或歌曲关键词"
+	searching        = `搜索中...`
+	noResults        = `未找到结果`
+	noCache          = `歌曲未缓存`
+	tapToDownload    = `点击上方按钮缓存歌曲`
+	tapMeToDown      = `点我缓存歌曲`
+	hitCache         = `命中缓存, 正在发送中...`
+	sendMeTo         = `Send me to...`
+	uploadFailed     = `下载/发送失败
 %v`
 	getUrlFailed    = `获取歌曲下载链接失败`
 	fetchInfo       = `正在获取歌曲信息...`
