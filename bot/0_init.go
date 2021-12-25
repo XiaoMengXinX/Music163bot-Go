@@ -42,7 +42,8 @@ via @%s`
 `
 	rmcacheReport    = `清除 [%s] 缓存成功`
 	inputKeyword     = "请输入搜索关键词"
-	inputIDorKeyword = "请输入MusicID或歌曲关键词"
+	inputIDorKeyword = "请输入歌曲ID或歌曲关键词"
+	inputContent     = "请输入歌曲关键词/歌曲分享链接/歌曲ID"
 	searching        = `搜索中...`
 	noResults        = `未找到结果`
 	noCache          = `歌曲未缓存`
@@ -52,6 +53,7 @@ via @%s`
 	sendMeTo         = `Send me to...`
 	uploadFailed     = `下载/发送失败
 %v`
+	getLrcFailed    = `获取歌词失败, 歌曲可能不存在或为纯音乐`
 	getUrlFailed    = `获取歌曲下载链接失败`
 	fetchInfo       = `正在获取歌曲信息...`
 	fetchInfoFailed = `获取歌曲信息失败`
@@ -69,5 +71,6 @@ via @%s`
 	extSaved        = "插件源码已保存到 %s/%s"
 	updateBinVer    = `请更新主程序文件版本！
 详见: https://github.com/%s/releases`
-	isLatestVer = "%s(%d) 已是最新版本"
+	isLatestVer   = "%s(%d) 已是最新版本"
+	fetchingLyric = "正在获取歌词中"
 )
