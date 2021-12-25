@@ -48,7 +48,9 @@ func init() {
 		"SendMsgData":              reflect.ValueOf((*types.SendMsgData)(nil)),
 		"ShortURLData":             reflect.ValueOf((*types.ShortURLData)(nil)),
 		"SongDetailData":           reflect.ValueOf((*types.SongDetailData)(nil)),
+		"SongDownloadURLData":      reflect.ValueOf((*types.SongDownloadURLData)(nil)),
 		"SongLikeData":             reflect.ValueOf((*types.SongLikeData)(nil)),
+		"SongLyricData":            reflect.ValueOf((*types.SongLyricData)(nil)),
 		"SongURLData":              reflect.ValueOf((*types.SongURLData)(nil)),
 		"SongsDetailData":          reflect.ValueOf((*types.SongsDetailData)(nil)),
 		"SongsURLData":             reflect.ValueOf((*types.SongsURLData)(nil)),
@@ -60,5 +62,9 @@ func init() {
 		"UserPlaylistData":         reflect.ValueOf((*types.UserPlaylistData)(nil)),
 		"UserSettingData":          reflect.ValueOf((*types.UserSettingData)(nil)),
 		"UserSignData":             reflect.ValueOf((*types.UserSignData)(nil)),
+		"VipGrowthpointData":       reflect.ValueOf((*types.VipGrowthpointData)(nil)),
+		"VipInfoData":              reflect.ValueOf((*types.VipInfoData)(nil)),
+		"VipTaskRewardData":        reflect.ValueOf((*types.VipTaskRewardData)(nil)),
+		"VipTaskslistDetailData":   reflect.ValueOf((*types.VipTaskslistDetailData)(nil)),
 	}
 }
