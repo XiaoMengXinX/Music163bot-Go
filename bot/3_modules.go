@@ -86,11 +86,24 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 			logrus.Errorln(err)
 		}
 	}
-	if message.CommandArguments() == "" {
+	if message.CommandArguments() == "" && message.ReplyToMessage == nil {
 		msg := tgbotapi.NewMessage(message.Chat.ID, inputContent)
 		msg.ReplyToMessageID = message.MessageID
 		_, err = bot.Send(msg)
 		return err
+	} else if message.CommandArguments() == "" && message.ReplyToMessage != nil {
+		message = *message.ReplyToMessage
+		if !message.IsCommand() && len(message.Entities) != 0 {
+			message.Entities[0].Type = "bot_command"
+			message.Entities[0].Length = -1
+		} else if !message.IsCommand() && len(message.Entities) == 0 {
+			message.Entities = []tgbotapi.MessageEntity{
+				{
+					Type:   "bot_command",
+					Length: -1,
+				},
+			}
+		}
 	}
 	msg := tgbotapi.NewMessage(message.Chat.ID, fetchingLyric)
 	msg.ReplyToMessageID = message.MessageID
@@ -162,5 +175,6 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 		_, err = bot.Request(deleteMsg)
 		return err
 	}
+	sendFailed()
 	return
 }
