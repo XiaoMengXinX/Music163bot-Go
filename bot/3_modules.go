@@ -96,15 +96,12 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 		if !message.IsCommand() && len(message.Entities) != 0 {
 			message.Entities[0].Type = "bot_command"
 			message.Entities[0].Length = -1
+			message.Entities[0].Offset = 0
 		} else if !message.IsCommand() && len(message.Entities) == 0 {
-			message.Entities = []tgbotapi.MessageEntity{
-				{
-					Type:   "bot_command",
-					Length: -1,
-				},
-			}
+			message.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Length: -1, Offset: 0}}
 		}
 	}
+	fmt.Println(message.CommandArguments())
 	msg := tgbotapi.NewMessage(message.Chat.ID, fetchingLyric)
 	msg.ReplyToMessageID = message.MessageID
 	msgResult, err = bot.Send(msg)
