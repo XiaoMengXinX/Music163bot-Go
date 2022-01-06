@@ -112,7 +112,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		switch {
 		case update.Message != nil:
 			updateMsg := *update.Message
-			if update.Message.Command() != "" {
+			if atStr := strings.ReplaceAll(update.Message.CommandWithAt(), update.Message.Command(), ""); update.Message.Command() != "" && (atStr == "" || atStr == "@"+botName) {
 				switch update.Message.Command() {
 				case "start":
 					if !updateMsg.Chat.IsPrivate() {
