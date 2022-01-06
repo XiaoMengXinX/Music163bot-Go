@@ -1,6 +1,6 @@
 {
-  "version": "v2.2.8",
-  "version_code": 20208,
+  "version": "v2.2.9",
+  "version_code": 20209,
   "unsupported": false,
   "files": [
     {
@@ -33,7 +33,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "fd2d95b2d7a0c23bf1f9744fb386e2a2"
+      "md5": "fb299b1d780e81ae362da74e25044280"
     },
     {
       "file": "bot/2_processSearch.go",
@@ -41,7 +41,7 @@
     },
     {
       "file": "bot/3_modules.go",
-      "md5": "c871003690e1d35a26a51cfc6b73211e"
+      "md5": "84936fafdd0aaeb4cc33300929cddbd7"
     },
     {
       "file": "bot/5_bot.go",

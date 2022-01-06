@@ -101,7 +101,6 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 			message.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Length: -1, Offset: 0}}
 		}
 	}
-	fmt.Println(message.CommandArguments())
 	msg := tgbotapi.NewMessage(message.Chat.ID, fetchingLyric)
 	msg.ReplyToMessageID = message.MessageID
 	msgResult, err = bot.Send(msg)
@@ -162,6 +161,12 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 				return err
 			}
 		}
+		defer func(name string) {
+			err := os.Remove(name)
+			if err != nil {
+				logrus.Errorln(err)
+			}
+		}(lrcPath)
 		var newFile tgbotapi.DocumentConfig
 		newFile = tgbotapi.NewDocument(message.Chat.ID, tgbotapi.FilePath(lrcPath))
 		_, err = bot.Send(newFile)

@@ -179,7 +179,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	var isMD5Verified = false
-	for i := 0; !isMD5Verified && i < maxRedownTimes; i++ {
+	for i := 0; i < maxRedownTimes; i++ {
 		err = d.Download()
 		if err != nil {
 			sendFailed(err)
@@ -191,6 +191,13 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStramp, path.Base(url)))
 			if err != nil {
 				logrus.Errorln(err)
+			}
+			if songUrl, _ := api.GetSongURL(data, api.SongURLConfig{Ids: []int{musicID}}); len(songUrl.Data) != 0 {
+				d, err = New(url, fmt.Sprintf("%d-%s", timeStramp, path.Base(songUrl.Data[0].Url)), 8)
+				if err != nil {
+					sendFailed(err)
+					return err
+				}
 			}
 		} else {
 			break
