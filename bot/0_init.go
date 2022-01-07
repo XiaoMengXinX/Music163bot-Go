@@ -34,11 +34,11 @@ Github: https://github.com/XiaoMengXinX/Music163bot-Go
 \[运行版本] %s`
 	musicInfo = `「%s」- %s
 专辑: %s
-#网易云音乐 #%s %.2fkpbs
+#网易云音乐 #%s %.2fMB %.2fkpbs
 via @%s`
 	musicInfoMsg = `%s
 专辑: %s
-%s %sMB
+%s %.2fMB
 `
 	rmcacheReport    = `清除 [%s] 缓存成功`
 	inputKeyword     = "请输入搜索关键词"

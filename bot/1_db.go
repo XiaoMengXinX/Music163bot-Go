@@ -1,12 +1,32 @@
 package bot
 
 import (
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/util"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
+
+// SongInfo 歌曲信息
+type SongInfo struct {
+	gorm.Model
+	MusicID      int
+	SongName     string
+	SongArtists  string
+	SongAlbum    string
+	FileExt      string
+	MusicSize    int
+	PicSize      int
+	EmbPicSize   int
+	BitRate      int
+	Duration     int
+	FileID       string
+	ThumbFileID  string
+	FromUserID   int64
+	FromUserName string
+	FromChatID   int64
+	FromChatName string
+}
 
 func initDB(config map[string]string) {
 	database := "cache.db"
@@ -21,9 +41,9 @@ func initDB(config map[string]string) {
 		logrus.Fatal("Failed to connect database : ", err)
 	}
 
-	err = db.AutoMigrate(&util.SongInfo{})
+	err = db.Table("song_infos").AutoMigrate(&SongInfo{})
 	if err != nil {
 		logrus.Errorln(err)
 	}
-	DB = db
+	DB = db.Table("song_infos")
 }

@@ -3,7 +3,6 @@ package bot
 import (
 	"fmt"
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/util"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"strings"
@@ -11,7 +10,7 @@ import (
 )
 
 func processInlineMusic(musicid int, message tgbotapi.InlineQuery, bot *tgbotapi.BotAPI) (err error) {
-	var songInfo util.SongInfo
+	var songInfo SongInfo
 	db := DB.Session(&gorm.Session{})
 	err = db.Where("music_id = ?", musicid).First(&songInfo).Error // 查找是否有缓存数据
 	if err == nil {                                                // 从缓存数据回应 inlineQuery
@@ -26,7 +25,7 @@ func processInlineMusic(musicid int, message tgbotapi.InlineQuery, bot *tgbotapi
 			)
 
 			newAudio := tgbotapi.NewInlineQueryResultCachedDocument(message.ID, songInfo.FileID, fmt.Sprintf("%s - %s", songInfo.SongArtists, songInfo.SongName))
-			newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.BitRate)/1000, botName)
+			newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
 			newAudio.ReplyMarkup = &numericKeyboard
 			newAudio.Description = songInfo.SongAlbum
 

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/util"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -33,7 +32,7 @@ func printAbout(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 
 func rmCache(musicid int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	db := DB.Session(&gorm.Session{})
-	var songInfo util.SongInfo
+	var songInfo SongInfo
 	err = db.Where("music_id = ?", musicid).First(&songInfo).Error
 	if !errors.Is(err, logger.ErrRecordNotFound) {
 		db.Where("music_id = ?", musicid).Delete(&songInfo)
