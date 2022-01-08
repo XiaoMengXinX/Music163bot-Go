@@ -1,11 +1,11 @@
 {
-  "version": "v2.2.11",
-  "version_code": 20211,
+  "version": "v2.2.12",
+  "version_code": 20212,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "763d307204e4dce9eed458a1d2b1b141"
+      "md5": "ec0538cba64c5250dd2e47fb2066f512"
     },
     {
       "file": "bot/1_db.go",
@@ -13,7 +13,7 @@
     },
     {
       "file": "bot/1_downloader.go",
-      "md5": "b925754aefbb138e46b0be0b8e459c83"
+      "md5": "de1040d7bae014a8f6e93b97593498ca"
     },
     {
       "file": "bot/1_pic.go",
@@ -21,7 +21,7 @@
     },
     {
       "file": "bot/1_tools.go",
-      "md5": "a0c8ae3043f1d9494cebb33d36bf050f"
+      "md5": "2911b0e658f7f9d06b6cd6253d1b11dc"
     },
     {
       "file": "bot/1_update.go",
@@ -33,7 +33,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "021caf7fa423e9febd36e1612f4df6d8"
+      "md5": "e3bc89d6c85d8533226624b99de8a3ed"
     },
     {
       "file": "bot/2_processSearch.go",
@@ -45,7 +45,7 @@
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "a104122b05af26586a71b4cd63f6c867"
+      "md5": "83b7c45dae6198360dcc6546c2c11fe0"
     }
   ]
 }
