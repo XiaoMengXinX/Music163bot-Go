@@ -1,13 +1,13 @@
 package bot
 
 import (
+	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"sync"
+	"time"
 )
 
 const (
@@ -55,8 +55,15 @@ func (h *HttpDownloader) Download() (err error) {
 			err = fmt.Errorf("%v", e)
 		}
 	}(f)
-	if h.acceptRanges == false {
-		resp, err := http.Get(h.url)
+	errChan := make(chan error, h.numThreads)
+	if h.acceptRanges == false || h.numThreads <= 1 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(downloaderTimeout)*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "GET", h.url, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return err
 		}
@@ -65,19 +72,19 @@ func (h *HttpDownloader) Download() (err error) {
 			return err
 		}
 	} else {
-		var wg sync.WaitGroup
 		for _, ranges := range h.Split() {
-			wg.Add(1)
 			go func(start, end int) {
-				defer wg.Done()
-				err := h.download(start, end)
-				if err != nil {
-					logrus.Errorf("An error occurred while downloading %s: %v", h.url, err)
-					return
-				}
+				errChan <- h.download(start, end)
 			}(ranges[0], ranges[1])
 		}
-		wg.Wait()
+		for i := 0; i < h.numThreads; i++ {
+			select {
+			case err := <-errChan:
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -99,7 +106,9 @@ func (h *HttpDownloader) Split() [][]int {
 
 // 多线程下载
 func (h *HttpDownloader) download(start, end int) (err error) {
-	req, err := http.NewRequest("GET", h.url, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(downloaderTimeout)*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", h.url, nil)
 	if err != nil {
 		return err
 	}

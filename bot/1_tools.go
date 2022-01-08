@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 )
 
 func init() {
@@ -70,4 +71,11 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 
 func linkTest(text string) string {
 	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), "")
+}
+
+func isTimeout(err error) bool {
+	if strings.Contains(fmt.Sprintf("%v", err), "context deadline exceeded") {
+		return true
+	}
+	return false
 }

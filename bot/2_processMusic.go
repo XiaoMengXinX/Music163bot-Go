@@ -28,7 +28,13 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	var songInfo SongInfo
 	var msgResult tgbotapi.Message
 	sendFailed := func(err error) {
-		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploadFailed, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize/1024/1024), err))
+		var errText string
+		if strings.Contains(fmt.Sprintf("%v", err), md5VerFailed) || strings.Contains(fmt.Sprintf("%v", err), downloadTimeout) {
+			errText = "%v"
+		} else {
+			errText = uploadFailed
+		}
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+errText, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, err))
 		_, err = bot.Send(editMsg)
 		if err != nil {
 			logrus.Errorln(err)
@@ -185,10 +191,13 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	var isMD5Verified = false
-	for i := 0; i < maxRedownTimes; i++ {
+	for i := 0; i < maxRedownTimes && songURL.Data[0].Md5 != ""; i++ {
 		err = d.Download()
-		if err != nil {
+		if err != nil && !isTimeout(err) {
 			sendFailed(err)
+			return err
+		} else if err != nil && isTimeout(err) {
+			sendFailed(fmt.Errorf(downloadTimeout + "\n" + tryToRedown))
 			return err
 		}
 
@@ -199,7 +208,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 				logrus.Errorln(err)
 			}
 			if songUrl, _ := api.GetSongURL(data, api.SongURLConfig{Ids: []int{musicID}}); len(songUrl.Data) != 0 {
-				d, err = New(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(songUrl.Data[0].Url)), 8)
+				d, err = New(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(songUrl.Data[0].Url)), 2)
 				if err != nil {
 					sendFailed(err)
 					return err
@@ -209,13 +218,13 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			break
 		}
 	}
-	if !isMD5Verified {
+	if !isMD5Verified && songURL.Data[0].Md5 != "" {
 		sendFailed(fmt.Errorf("%s\n%s", md5VerFailed, tryToRedown))
 		return nil
 	}
 
 	var picPath, resizePicPath string
-	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStamp, path.Base(songDetail.Songs[0].Al.PicUrl)), 2)
+	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStamp, path.Base(songDetail.Songs[0].Al.PicUrl)), 8)
 	err = p.Download()
 	if err != nil {
 		logrus.Errorln(err)
@@ -235,14 +244,18 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	var musicPic string
-	picStat, _ := os.Stat(picPath)
-	if picStat.Size() > 2*1024*1024 {
-		musicPic = resizePicPath
-		embPicStat, _ := os.Stat(resizePicPath)
-		songInfo.EmbPicSize = int(embPicStat.Size())
+	picStat, err := os.Stat(picPath)
+	if picStat != nil && err == nil {
+		if picStat.Size() > 2*1024*1024 {
+			musicPic = resizePicPath
+			embPicStat, _ := os.Stat(resizePicPath)
+			songInfo.EmbPicSize = int(embPicStat.Size())
+		} else {
+			musicPic = picPath
+			songInfo.EmbPicSize = songInfo.PicSize
+		}
 	} else {
-		musicPic = picPath
-		songInfo.EmbPicSize = songInfo.PicSize
+		logrus.Errorln(err)
 	}
 
 	marker, _ := downloader.CreateMarker(songDetail.Songs[0], songURL.Data[0])

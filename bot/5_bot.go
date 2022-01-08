@@ -72,6 +72,9 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 	if maxRedownTimes, _ = strconv.Atoi(config["MaxRedownTimes"]); maxRedownTimes <= 0 {
 		maxRedownTimes = 3
 	}
+	if downloaderTimeout, _ = strconv.Atoi(config["DownloadTimeout"]); downloaderTimeout <= 0 {
+		downloaderTimeout = 60
+	}
 
 	logrus.Printf("%s 验证成功", bot.Self.UserName)
 	botName = bot.Self.UserName

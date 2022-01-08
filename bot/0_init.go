@@ -14,6 +14,7 @@ var data utils.RequestData
 var botName string
 var cacheDir = "./cache"
 var maxRedownTimes int
+var downloaderTimeout int
 
 var (
 	reg1 = regexp.MustCompile(`(.*)song\?id=`)
@@ -79,9 +80,10 @@ via @%s`
 	extSaved        = "插件源码已保存到 %s/%s"
 	updateBinVer    = `请更新主程序文件版本！
 详见: https://github.com/%s/releases`
-	isLatestVer   = "%s(%d) 已是最新版本"
-	fetchingLyric = "正在获取歌词中"
-	statusInfo    = `*\[统计信息\]*
+	isLatestVer     = "%s(%d) 已是最新版本"
+	fetchingLyric   = "正在获取歌词中"
+	downloadTimeout = `下载超时`
+	statusInfo      = `*\[统计信息\]*
 数据库中总缓存歌曲数量: %d
 当前对话 \[%s\] 缓存歌曲数量: %d
 当前用户 \[[%d](tg://user?id=%d)\] 缓存歌曲数量: %d
