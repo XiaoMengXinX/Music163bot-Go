@@ -1,11 +1,11 @@
 {
-  "version": "v2.2.10",
-  "version_code": 20210,
+  "version": "v2.2.11",
+  "version_code": 20211,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "51993c5f574cebc842b795a1a000318d"
+      "md5": "763d307204e4dce9eed458a1d2b1b141"
     },
     {
       "file": "bot/1_db.go",
@@ -41,11 +41,11 @@
     },
     {
       "file": "bot/3_modules.go",
-      "md5": "a2dfaba213c367fd06f6718aeeed0438"
+      "md5": "b935f10778863232c2d88e171a65c0ab"
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "6f1ca25d8c4c148e5e49840614799ae1"
+      "md5": "a104122b05af26586a71b4cd63f6c867"
     }
   ]
 }
