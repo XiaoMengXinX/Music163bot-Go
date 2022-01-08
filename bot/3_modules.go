@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func printAbout(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
@@ -178,4 +179,35 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	}
 	sendFailed()
 	return
+}
+
+var statusChan = make(chan bool, 1)
+
+func processStatus(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
+	statusChan <- true
+	defer func() {
+		time.Sleep(time.Millisecond * 500)
+		<-statusChan
+	}()
+	db := DB.Session(&gorm.Session{})
+	var fromCount, chatCount int64
+	var lastRecord SongInfo
+	db.Where("from_user_id = ?", message.From.ID).Count(&fromCount)
+	db.Where("from_chat_id = ?", message.Chat.ID).Count(&chatCount)
+	db.Last(&lastRecord)
+
+	var chatInfo string
+	if message.Chat.UserName != "" && message.Chat.Title == "" {
+		chatInfo = fmt.Sprintf("[%s](tg://user?id=%d)", mdV2Replacer.Replace(message.Chat.UserName), message.Chat.ID)
+	} else if message.Chat.UserName != "" {
+		chatInfo = fmt.Sprintf("[%s](https://t.me/%s)", mdV2Replacer.Replace(message.Chat.Title), message.Chat.UserName)
+	} else {
+		chatInfo = fmt.Sprintf("%s", mdV2Replacer.Replace(message.Chat.Title))
+	}
+	msgText := fmt.Sprintf(statusInfo, lastRecord.ID, chatInfo, chatCount, message.From.ID, message.From.ID, fromCount)
+	msg := tgbotapi.NewMessage(message.Chat.ID, msgText)
+	msg.ReplyToMessageID = message.MessageID
+	msg.ParseMode = tgbotapi.ModeMarkdownV2
+	_, err = bot.Send(msg)
+	return err
 }

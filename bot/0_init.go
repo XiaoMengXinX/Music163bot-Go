@@ -4,6 +4,7 @@ import (
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 	"gorm.io/gorm"
 	"regexp"
+	"strings"
 )
 
 // DB 全局数据库入口
@@ -20,6 +21,13 @@ var (
 	reg5 = regexp.MustCompile("/(.*)")
 	reg4 = regexp.MustCompile("&(.*)")
 	reg3 = regexp.MustCompile(`\?(.*)`)
+)
+
+var mdV2Replacer = strings.NewReplacer(
+	"_", "\\_", "*", "\\*", "[", "\\[", "]", "\\]", "(",
+	"\\(", ")", "\\)", "~", "\\~", "`", "\\`", ">", "\\>",
+	"#", "\\#", "+", "\\+", "-", "\\-", "=", "\\=", "|",
+	"\\|", "{", "\\{", "}", "\\}", ".", "\\.", "!", "\\!",
 )
 
 var (
@@ -73,4 +81,9 @@ via @%s`
 详见: https://github.com/%s/releases`
 	isLatestVer   = "%s(%d) 已是最新版本"
 	fetchingLyric = "正在获取歌词中"
+	statusInfo    = `*\[统计信息\]*
+数据库中总缓存歌曲数量: %d
+当前对话 \[%s\] 缓存歌曲数量: %d
+当前用户 \[[%d](tg://user?id=%d)\] 缓存歌曲数量: %d
+`
 )

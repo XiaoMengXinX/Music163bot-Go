@@ -156,6 +156,13 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							logrus.Errorln(err)
 						}
 					}()
+				case "status":
+					go func() {
+						err := processStatus(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
 				}
 				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
