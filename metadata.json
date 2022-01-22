@@ -1,27 +1,27 @@
 {
-  "version": "v2.2.12",
-  "version_code": 20212,
+  "version": "v2.2.13",
+  "version_code": 20213,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "ec0538cba64c5250dd2e47fb2066f512"
+      "md5": "62d6090ca4441869d092b9acbf110679"
     },
     {
       "file": "bot/1_db.go",
-      "md5": "82e381d30a101f5b98cd1d08a959fc91"
+      "md5": "83aff3ea596d46ce85851f45daa6828a"
     },
     {
       "file": "bot/1_downloader.go",
-      "md5": "de1040d7bae014a8f6e93b97593498ca"
+      "md5": "cd1618e4ed8a52db2ce3890f931c7fa3"
     },
     {
       "file": "bot/1_pic.go",
-      "md5": "7febcf61edb1185bb53ad689eec839f3"
+      "md5": "730f907dfa65d331787e6242200827ef"
     },
     {
       "file": "bot/1_tools.go",
-      "md5": "2911b0e658f7f9d06b6cd6253d1b11dc"
+      "md5": "dbd5f44248205bf170ae78fa6ce64714"
     },
     {
       "file": "bot/1_update.go",
@@ -29,11 +29,15 @@
     },
     {
       "file": "bot/2_processInline.go",
-      "md5": "60fa8e5c2dec844fd4995dbb00615465"
+      "md5": "370fcdd1617d310e06ba202b9a0f2c2f"
+    },
+    {
+      "file": "bot/2_processLyric.go",
+      "md5": "600a884b5a7def06a37c09cde75ba3bd"
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "e3bc89d6c85d8533226624b99de8a3ed"
+      "md5": "b626002628b6d7a7a155b69dd81b2d27"
     },
     {
       "file": "bot/2_processSearch.go",
@@ -41,11 +45,11 @@
     },
     {
       "file": "bot/3_modules.go",
-      "md5": "b935f10778863232c2d88e171a65c0ab"
+      "md5": "45e3cbb03e21ddf16aac8ee7032891f3"
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "83b7c45dae6198360dcc6546c2c11fe0"
+      "md5": "e9be50cd82cfaadcf63039dece35ffe1"
     }
   ]
 }
