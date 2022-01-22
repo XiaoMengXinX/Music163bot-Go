@@ -1,5 +1,10 @@
 [
   {
+    "version": "v2.2.13",
+    "version_code": 20213,
+    "commit_sha": "69fcdf35114f3baf2f6d5194da7912b8739f27c5"
+  },
+  {
     "version": "v2.2.12",
     "version_code": 20212,
     "commit_sha": "62ea4def344612f4a308d057cdbf541068634406"
