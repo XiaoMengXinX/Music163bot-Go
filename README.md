@@ -22,7 +22,6 @@
 - 歌曲快速分享
 - 下载无损flac音频 （需设置网易云VIP账号的MUSIC_U)
 - 动态更新（使用 [traefik/yaegi](https://github.com/traefik/yaegi) 作为动态扩展框架）
-- 扩展插件（需设置 `EnableExt = true `或加入 `-enable-ext` 参数，插件示例参考 [demo.go](https://github.com/XiaoMengXinX/Music163bot-Go/blob/v2/extension/demo.go) ）
 
 ## ⚙️ 构建
 
@@ -79,10 +78,13 @@ LogLevel = info
 AutoUpdate = true
  
 # 下载文件损坏是否自动重新下载 (默认为 true)
-AutoRedown = true
+AutoRetry = true
 
 # 最大自动重试次数 (默认为 3)
-MaxRedownTimes = 3
+MaxRetryTimes = 3
+
+# 下载超时时长 (单位秒, 默认为 60)
+DownloadTimeout = 60
 
 # 是否校验更新文件 md5 (默认开启）, 若设置为 false 相当于 -no-md5-check 参数
 CheckMD5 = true
@@ -92,15 +94,6 @@ SrcPath = ./src
 
 # 自定义 bot 函数入口 (默认为 bot.Start)
 BotEntry = bot.Start
-
-# 是否开启插件功能 (默认关闭)
-EnableExt = false
-
-# 自定义插件目录
-ExtPath = ./ext
-
-# 自定义插件函数入口 (默认为 ext.CustomScript)
-ExtEntry = ext.CustomScript
 ```
 
 **※ 修改配置后，将 `config_example.ini` 重命名为 `config.ini`**

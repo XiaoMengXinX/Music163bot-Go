@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -28,7 +27,7 @@ type SongInfo struct {
 	FromChatName string
 }
 
-func initDB(config map[string]string) {
+func initDB(config map[string]string) (err error) {
 	database := "cache.db"
 	if config["Database"] != "" {
 		database = config["Database"]
@@ -38,12 +37,13 @@ func initDB(config map[string]string) {
 		PrepareStmt: true,
 	})
 	if err != nil {
-		logrus.Fatal("Failed to connect database : ", err)
+		return err
 	}
 
 	err = db.Table("song_infos").AutoMigrate(&SongInfo{})
 	if err != nil {
-		logrus.Errorln(err)
+		return err
 	}
-	DB = db.Table("song_infos")
+	MusicDB = db.Table("song_infos")
+	return err
 }

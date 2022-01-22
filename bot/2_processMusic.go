@@ -16,7 +16,8 @@ import (
 	"time"
 )
 
-var limiter = make(chan bool, 4)
+// 限制并发任务数
+var musicLimiter = make(chan bool, 4)
 
 func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	defer func() {
@@ -41,7 +42,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		}
 	}
 
-	db := DB.Session(&gorm.Session{})
+	db := MusicDB.Session(&gorm.Session{})
 	err = db.Where("music_id = ?", musicID).First(&songInfo).Error
 	if err == nil {
 		msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf(musicInfoMsg+hitCache, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024))
@@ -72,9 +73,9 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
-	limiter <- true
+	musicLimiter <- true
 	defer func() {
-		<-limiter
+		<-musicLimiter
 	}()
 
 	err = db.Where("music_id = ?", musicID).First(&songInfo).Error
@@ -184,31 +185,31 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 
 	timeStamp := time.Now().UnixMicro()
 
-	d, err := New(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), 8)
+	d, err := newDownloader(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), 8)
 	if err != nil {
 		sendFailed(err)
 		return err
 	}
 
 	var isMD5Verified = false
-	for i := 0; i < maxRedownTimes && songURL.Data[0].Md5 != ""; i++ {
-		err = d.Download()
+	for i := 0; i < maxRetryTimes && songURL.Data[0].Md5 != ""; i++ {
+		err = d.download()
 		if err != nil && !isTimeout(err) {
 			sendFailed(err)
 			return err
 		} else if err != nil && isTimeout(err) {
-			sendFailed(fmt.Errorf(downloadTimeout + "\n" + tryToRedown))
+			sendFailed(fmt.Errorf(downloadTimeout + "\n" + retryLater))
 			return err
 		}
 
-		if isMD5Verified, err = verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), songURL.Data[0].Md5); !isMD5Verified && config["AutoRedown"] != "false" {
-			sendFailed(fmt.Errorf("%s\n"+redownlpading, err, i+1, maxRedownTimes))
+		if isMD5Verified, err = verifyMD5(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), songURL.Data[0].Md5); !isMD5Verified && config["AutoRetry"] != "false" {
+			sendFailed(fmt.Errorf("%s\n"+reTrying, err, i+1, maxRetryTimes))
 			err := os.Remove(cacheDir + "/" + fmt.Sprintf("%d-%s", timeStamp, path.Base(url)))
 			if err != nil {
 				logrus.Errorln(err)
 			}
 			if songUrl, _ := api.GetSongURL(data, api.SongURLConfig{Ids: []int{musicID}}); len(songUrl.Data) != 0 {
-				d, err = New(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(songUrl.Data[0].Url)), 2)
+				d, err = newDownloader(url, fmt.Sprintf("%d-%s", timeStamp, path.Base(songUrl.Data[0].Url)), 2)
 				if err != nil {
 					sendFailed(err)
 					return err
@@ -219,13 +220,13 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		}
 	}
 	if !isMD5Verified && songURL.Data[0].Md5 != "" {
-		sendFailed(fmt.Errorf("%s\n%s", md5VerFailed, tryToRedown))
+		sendFailed(fmt.Errorf("%s\n%s", md5VerFailed, retryLater))
 		return nil
 	}
 
 	var picPath, resizePicPath string
-	p, _ := New(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStamp, path.Base(songDetail.Songs[0].Al.PicUrl)), 8)
-	err = p.Download()
+	p, _ := newDownloader(songDetail.Songs[0].Al.PicUrl, fmt.Sprintf("%d-%s", timeStamp, path.Base(songDetail.Songs[0].Al.PicUrl)), 8)
+	err = p.download()
 	if err != nil {
 		logrus.Errorln(err)
 	} else {

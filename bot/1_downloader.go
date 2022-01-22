@@ -10,21 +10,21 @@ import (
 	"time"
 )
 
-const (
-	userAgent = `NeteaseMusic/6.5.0.1575377963(164);Dalvik/2.1.0 (Linux; U; Android 9; MIX 2 MIUI/V12.0.1.0.PDECNXM)`
-)
+const userAgent = `NeteaseMusic/6.5.0.1575377963(164);Dalvik/2.1.0 (Linux; U; Android 9; MIX 2 MIUI/V12.0.1.0.PDECNXM)`
 
 // HttpDownloader 下载数据
 type HttpDownloader struct {
 	url           string
 	filename      string
 	contentLength int
-	acceptRanges  bool // 是否支持断点续传
-	numThreads    int  // 同时下载线程数
+	// 是否支持断点续传
+	acceptRanges bool
+	// 同时下载线程数
+	numThreads int
 }
 
-// New 新建下载任务
-func New(url string, filename string, numThreads int) (*HttpDownloader, error) {
+// 新建下载任务
+func newDownloader(url string, filename string, numThreads int) (*HttpDownloader, error) {
 	res, err := http.Head(url)
 	if err != nil {
 		return nil, err
@@ -39,12 +39,11 @@ func New(url string, filename string, numThreads int) (*HttpDownloader, error) {
 	} else {
 		httpDownload.acceptRanges = false
 	}
-
 	return httpDownload, nil
 }
 
-// Download 下载综合调度
-func (h *HttpDownloader) Download() (err error) {
+// 下载综合调度
+func (h *HttpDownloader) download() (err error) {
 	f, err := os.Create(cacheDir + "/" + h.filename)
 	if err != nil {
 		return err
@@ -72,11 +71,13 @@ func (h *HttpDownloader) Download() (err error) {
 			return err
 		}
 	} else {
-		for _, ranges := range h.Split() {
+		// 启动协程开始多线程下载
+		for _, ranges := range h.split() {
 			go func(start, end int) {
-				errChan <- h.download(start, end)
+				errChan <- h.start(start, end)
 			}(ranges[0], ranges[1])
 		}
+		// 下载错误及超时检测
 		for i := 0; i < h.numThreads; i++ {
 			select {
 			case err := <-errChan:
@@ -89,8 +90,8 @@ func (h *HttpDownloader) Download() (err error) {
 	return nil
 }
 
-// Split 下载文件分段
-func (h *HttpDownloader) Split() [][]int {
+// 下载文件分段
+func (h *HttpDownloader) split() [][]int {
 	var ranges [][]int
 	blockSize := h.contentLength / h.numThreads
 	for i := 0; i < h.numThreads; i++ {
@@ -105,7 +106,7 @@ func (h *HttpDownloader) Split() [][]int {
 }
 
 // 多线程下载
-func (h *HttpDownloader) download(start, end int) (err error) {
+func (h *HttpDownloader) start(start, end int) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(downloaderTimeout)*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", h.url, nil)

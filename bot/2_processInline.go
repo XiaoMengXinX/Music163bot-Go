@@ -11,7 +11,7 @@ import (
 
 func processInlineMusic(musicid int, message tgbotapi.InlineQuery, bot *tgbotapi.BotAPI) (err error) {
 	var songInfo SongInfo
-	db := DB.Session(&gorm.Session{})
+	db := MusicDB.Session(&gorm.Session{})
 	err = db.Where("music_id = ?", musicid).First(&songInfo).Error // 查找是否有缓存数据
 	if err == nil {                                                // 从缓存数据回应 inlineQuery
 		if songInfo.FileID != "" && songInfo.SongName != "" {

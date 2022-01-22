@@ -5,7 +5,6 @@ import (
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,6 +25,10 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			actionCode = 1
 		}
 	}()
+	// 创建缓存文件夹
+	dirExists(cacheDir)
+
+	// 解析 bot 管理员配置
 	botAdminStr = strings.Split(config["BotAdmin"], ",")
 	if len(botAdminStr) == 0 && config["BotAdmin"] != "" {
 		botAdminStr = []string{config["BotAdmin"]}
@@ -39,7 +42,12 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		}
 	}
 
-	initDB(config)
+	// 初始化数据库
+	err := initDB(config)
+	if err != nil {
+		logrus.Errorln(err)
+		return 1
+	}
 
 	if config["MUSIC_U"] != "" {
 		data = utils.RequestData{
@@ -51,40 +59,12 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			},
 		}
 	}
-
-	err := tgbotapi.SetLogger(logrus.StandardLogger())
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	bot, err = tgbotapi.NewBotAPI(config["BOT_TOKEN"])
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
 	if config["BotAPI"] != "" {
-		bot.SetAPIEndpoint(config["BotAPI"] + "/bot%s/%s")
+		botAPI = config["BotAPI"]
 	}
-
-	if config["BotDebug"] == "true" {
-		bot.Debug = true
-	}
-
-	if maxRedownTimes, _ = strconv.Atoi(config["MaxRedownTimes"]); maxRedownTimes <= 0 {
-		maxRedownTimes = 3
-	}
-	if downloaderTimeout, _ = strconv.Atoi(config["DownloadTimeout"]); downloaderTimeout <= 0 {
-		downloaderTimeout = 60
-	}
-
-	logrus.Printf("%s 验证成功", bot.Self.UserName)
-	botName = bot.Self.UserName
-	defer bot.StopReceivingUpdates()
 
 	if config["AutoUpdate"] != "false" {
-		var isLatest bool
-		err := fmt.Errorf("")
-		var meta metadata
-		meta, isLatest, err = getUpdate()
+		meta, isLatest, err := getUpdate()
 		if err != nil {
 			logrus.Errorf("%s, 尝试重新下载更新中", err)
 			e := os.Remove(fmt.Sprintf("%s/version.json", config["SrcPath"]))
@@ -103,10 +83,37 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 		}
 	}
 
+	if maxRetryTimes, _ = strconv.Atoi(config["MaxRetryTimes"]); maxRetryTimes <= 0 {
+		maxRetryTimes = 3
+	}
+	if downloaderTimeout, _ = strconv.Atoi(config["DownloadTimeout"]); downloaderTimeout <= 0 {
+		downloaderTimeout = 60
+	}
+
+	// 设置 bot 日志接口
+	err = tgbotapi.SetLogger(logrus.StandardLogger())
+	if err != nil {
+		logrus.Errorln(err)
+		return 1
+	}
+	// 配置 token、api、debug
+	bot, err = tgbotapi.NewBotAPIWithAPIEndpoint(config["BOT_TOKEN"], botAPI+"/bot%s/%s")
+	if err != nil {
+		logrus.Errorln(err)
+		return 1
+	}
+	if config["BotDebug"] == "true" {
+		bot.Debug = true
+	}
+
+	logrus.Printf("%s 验证成功", bot.Self.UserName)
+	botName = bot.Self.UserName
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
+	defer bot.StopReceivingUpdates()
 
 	for update := range updates {
 		if update.Message == nil && update.CallbackQuery == nil && update.InlineQuery == nil { // ignore any non-Message Updates
@@ -122,11 +129,11 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						return
 					}
 					go func() {
-						musicid, _ := strconv.Atoi(updateMsg.CommandArguments())
-						if musicid == 0 {
+						musicID, _ := strconv.Atoi(updateMsg.CommandArguments())
+						if musicID == 0 {
 							return
 						}
-						err := processMusic(musicid, updateMsg, bot)
+						err := processMusic(musicID, updateMsg, bot)
 						if err != nil {
 							logrus.Errorln(err)
 						}
@@ -169,26 +176,9 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				}
 				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
-					case "loadext":
-						extFile := update.Message.CommandArguments()
-						extData := update.Message.ReplyToMessage.Text
-						err := ioutil.WriteFile(fmt.Sprintf("%s/%s", config["ExtPath"], extFile), []byte(extData), 0644)
-						if err != nil {
-							logrus.Errorln(err)
-						} else {
-							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(extSaved, config["ExtPath"], extFile))
-							msg.ReplyToMessageID = update.Message.MessageID
-							_, _ = bot.Send(msg)
-						}
 					case "rmcache":
 						go func() {
-							var replacer = strings.NewReplacer("\n", "", " ", "")
-							messageText := replacer.Replace(updateMsg.CommandArguments())
-							musicid, _ := strconv.Atoi(linkTest(messageText))
-							if musicid == 0 {
-								return
-							}
-							err := rmCache(musicid, updateMsg, bot)
+							err := processRmCache(updateMsg, bot)
 							if err != nil {
 								logrus.Errorln(err)
 							}
@@ -217,31 +207,23 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							_, _ = bot.Send(editMsg)
 							logrus.Errorln(err)
 						}
-					case "stop":
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, stopText)
-						msg.ReplyToMessageID = update.Message.MessageID
-						_, _ = bot.Send(msg)
-						return 0
 					}
 				}
 			} else if strings.Contains(update.Message.Text, "music.163.com") {
 				go func() {
-					var replacer = strings.NewReplacer("\n", "", " ", "")
-					messageText := replacer.Replace(updateMsg.Text) // 去除消息内空格和换行 避免不必要的麻烦（
-					musicid, _ := strconv.Atoi(linkTest(messageText))
-					if musicid == 0 {
-						return
-					}
-					err := processMusic(musicid, updateMsg, bot)
-					if err != nil {
-						logrus.Errorln(err)
+					musicID := parseID(updateMsg.Text)
+					if musicID != 0 {
+						err := processMusic(musicID, updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
 					}
 				}()
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery
 			go func() {
-				musicid, _ := strconv.Atoi(updateQuery.Data)
+				musicID, _ := strconv.Atoi(updateQuery.Data)
 				if updateQuery.Message.Chat.IsPrivate() {
 					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
 					_, err := bot.Request(callback)
@@ -249,13 +231,13 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 						logrus.Errorln(err)
 					}
 					message := *updateQuery.Message
-					err = processMusic(musicid, message, bot)
+					err = processMusic(musicID, message, bot)
 					if err != nil {
 						logrus.Errorln(err)
 					}
 				} else {
 					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
-					callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicid)
+					callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicID)
 					_, err := bot.Request(callback)
 					if err != nil {
 						logrus.Errorln(err)
@@ -281,9 +263,9 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				}()
 			default:
 				go func() {
-					musicid, _ := strconv.Atoi(linkTest(updateQuery.Query))
-					if musicid != 0 {
-						err = processInlineMusic(musicid, updateQuery, bot)
+					musicID, _ := strconv.Atoi(linkTest(updateQuery.Query))
+					if musicID != 0 {
+						err = processInlineMusic(musicID, updateQuery, bot)
 						if err != nil {
 							logrus.Errorln(err)
 						}
@@ -295,20 +277,6 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 					}
 				}()
 			}
-		}
-
-		if config["EnableExt"] == "true" && ext != nil {
-			func() {
-				defer func() {
-					if err := recover(); err != nil {
-						logrus.Errorln(err)
-					}
-				}()
-				err := ext(bot, update)
-				if err != nil {
-					logrus.Errorln(err)
-				}
-			}()
 		}
 	}
 	return 0

@@ -14,6 +14,7 @@ import (
 	"os"
 )
 
+// 缩放图片到 320x320px (黑底填充)
 func resizeImg(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {

@@ -32,11 +32,8 @@ var (
 	_ConfigPath *string
 	_NoUpdate   *bool
 	_NoMD5Check *bool
-	_EnableExt  *bool
 	_SrcPath    *string
 	_BotEntry   *string
-	_ExtEntry   *string
-	_ExtPath    *string
 )
 
 var (
@@ -104,11 +101,8 @@ func init() {
 	_ConfigPath = f.String("c", "config.ini", "配置文件")
 	_NoUpdate = f.Bool("no-update", false, "关闭更新检测")
 	_NoMD5Check = f.Bool("no-md5-check", false, "关闭 md5 效验")
-	_EnableExt = f.Bool("enable-ext", false, "启用插件加载")
 	_SrcPath = f.String("path", "./src", "自定义更新下载/加载路径")
-	_ExtPath = f.String("ext-path", "./ext", "自定义插件路径")
 	_BotEntry = f.String("bot-entry", "bot.Start", "自定义动态加载入口")
-	_ExtEntry = f.String("ext-entry", "ext.CustomScript", "自定义插件加载入口")
 	_ = f.Parse(os.Args[1:])
 
 	logrus.Printf("Music163bot-Go %s(%d)", _VersionName, _VersionCode)
@@ -144,7 +138,6 @@ func main() {
 			return err
 		}()
 
-		var ext func(*tgbotapi.BotAPI, tgbotapi.Update) error
 		if func() bool {
 			if err == nil {
 				if (!*_NoMD5Check && len(meta.Files) == 0) || (*_NoUpdate && len(meta.Files) == 0) {
@@ -152,12 +145,6 @@ func main() {
 				}
 				v, err := loadDyn(meta)
 				if err == nil {
-					if *_EnableExt {
-						ext, err = loadExt()
-						if err != nil {
-							logrus.Errorln(err)
-						}
-					}
 					start, ok := v.Interface().(func(map[string]string, func(*tgbotapi.BotAPI, tgbotapi.Update) error) int)
 					if ok {
 						config["VersionName"] = meta.Version
@@ -167,7 +154,7 @@ func main() {
 						} else {
 							logrus.Printf("加载版本 %s(%d) 中", meta.Version, meta.VersionCode)
 						}
-						actionCode = start(config, ext)
+						actionCode = start(config, nil)
 					} else {
 						return true
 					}
@@ -181,14 +168,8 @@ func main() {
 			}
 			return false
 		}() {
-			if *_EnableExt {
-				ext, err = loadExt()
-				if err != nil {
-					logrus.Errorln(err)
-				}
-			}
 			logrus.Printf("加载内置版本 %s(%d) 中", _VersionName, _VersionCode)
-			actionCode = bot.Start(config, ext)
+			actionCode = bot.Start(config, nil)
 		}
 		switch actionCode {
 		case 0:
@@ -254,46 +235,6 @@ func loadDyn(meta metadata) (res reflect.Value, err error) {
 		return reflect.Value{}, err
 	}
 	return res, err
-}
-
-func loadExt() (ext func(*tgbotapi.BotAPI, tgbotapi.Update) error, err error) {
-	dirExists(*_ExtPath)
-	defer func() {
-		e := recover()
-		if e != nil {
-			err = fmt.Errorf("%v", e)
-		}
-	}()
-	i := interp.New(interp.Options{})
-	_ = i.Use(unsafe.Symbols)
-	_ = i.Use(stdlib.Symbols)
-	_ = i.Use(syscall.Symbols)
-	_ = i.Use(symbols.Symbols)
-
-	files, _ := ioutil.ReadDir(*_ExtPath)
-	if len(files) == 0 {
-		return
-	}
-
-	for _, f := range files {
-		if strings.Contains(f.Name(), ".go") {
-			_, err := i.EvalPath(fmt.Sprintf("%s/%s", *_ExtPath, f.Name()))
-			if err != nil {
-				return ext, err
-			}
-		}
-	}
-
-	res, err := i.Eval(*_ExtEntry)
-	if err != nil {
-		return ext, err
-	}
-
-	ext, ok := res.Interface().(func(*tgbotapi.BotAPI, tgbotapi.Update) error)
-	if ok {
-		return ext, err
-	}
-	return ext, err
 }
 
 func getLocalVersion() (meta metadata, err error) {
@@ -414,22 +355,5 @@ func initConfig(config map[string]string) {
 	}
 	if config["BotEntry"] != "" {
 		*_BotEntry = config["BotEntry"]
-	}
-	if config["ExtPath"] != "" {
-		*_ExtPath = config["ExtPath"]
-	} else {
-		config["ExtPath"] = *_ExtPath
-	}
-	if config["ExtEntry"] != "" {
-		*_ExtEntry = config["ExtEntry"]
-	} else {
-		config["ExtEntry"] = *_ExtEntry
-	}
-	if config["EnableExt"] == "true" {
-		*_EnableExt = true
-	} else {
-		if *_EnableExt {
-			config["EnableExt"] = "true"
-		}
 	}
 }
