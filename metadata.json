@@ -1,6 +1,6 @@
 {
-  "version": "v2.2.14",
-  "version_code": 20214,
+  "version": "v2.2.15",
+  "version_code": 20215,
   "unsupported": false,
   "files": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "file": "bot/2_botSetting.go",
-      "md5": "73f4466bd48c68a1518cac1f88286469"
+      "md5": "bf02e201997a7d619c2102bdeeb02a37"
     },
     {
       "file": "bot/2_processInline.go",
