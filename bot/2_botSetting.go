@@ -11,7 +11,7 @@ func getSettings(sType int, ID int64) (settings Settings, err error) {
 	db := SettingDB.Session(&gorm.Session{})
 	err = db.Where("type = ? AND chat_id = ?", sType, ID).First(&settings).Error
 	if err != nil {
-		settings = Settings{
+		settings := Settings{
 			Type:       sType,
 			ChatID:     ID,
 			SourceInfo: true,
