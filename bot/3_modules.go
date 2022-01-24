@@ -28,6 +28,23 @@ func printAbout(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	return err
 }
 
+func processCallbackMusic(args []string, updateQuery tgbotapi.CallbackQuery, bot *tgbotapi.BotAPI) (err error) {
+	musicID, _ := strconv.Atoi(args[1])
+	if updateQuery.Message.Chat.IsPrivate() {
+		callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
+		_, err = bot.Request(callback)
+		if err != nil {
+			return err
+		}
+		message := *updateQuery.Message
+		return processMusic(musicID, message, bot)
+	}
+	callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
+	callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicID)
+	_, err = bot.Request(callback)
+	return err
+}
+
 func processRmCache(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	musicID := parseID(message.CommandArguments())
 	if musicID == 0 {

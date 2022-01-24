@@ -40,7 +40,7 @@ func processSearch(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 				songArtists = fmt.Sprintf("%s/%s", songArtists, artist.Name)
 			}
 		}
-		inlineButton = append(inlineButton, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d", i+1), fmt.Sprintf("%d", searchResult.Result.Songs[i].Id)))
+		inlineButton = append(inlineButton, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d", i+1), fmt.Sprintf("music %d", searchResult.Result.Songs[i].Id)))
 		textMessage = fmt.Sprintf("%s%d.「%s」 - %s\n", textMessage, i+1, searchResult.Result.Songs[i].Name, songArtists)
 	}
 	var numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(inlineButton)

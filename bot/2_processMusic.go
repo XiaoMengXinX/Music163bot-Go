@@ -292,9 +292,9 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 
-	dbResult := db.Create(&songInfo) // 写入歌曲缓存
-	if dbResult.Error != nil {
-		return dbResult.Error
+	err = db.Create(&songInfo).Error // 写入歌曲缓存
+	if err != nil {
+		return err
 	}
 
 	for _, f := range []string{cacheDir + "/" + fileName, resizePicPath, picPath} {
@@ -314,21 +314,46 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 }
 
 func sendMusic(songInfo SongInfo, musicPath, picPath string, message tgbotapi.Message, bot *tgbotapi.BotAPI) (audio tgbotapi.Message, err error) {
-	numericKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-		),
-	)
+	userSetting, err := getSettings(UserSetting, message.From.ID)
+	if err != nil {
+		return audio, err
+	}
+	chatSetting, err := getSettings(ChatSetting, message.Chat.ID)
+	if err != nil {
+		return audio, err
+	}
+	globalSetting, err := getSettings(GlobalSetting, 0)
+	if err != nil {
+		return audio, err
+	}
+	var numericKeyboard tgbotapi.InlineKeyboardMarkup
+	if userSetting.ShareKey && globalSetting.ShareKey && chatSetting.ShareKey {
+		numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+			),
+		)
+	} else {
+		numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+			),
+		)
+	}
 	var newAudio tgbotapi.AudioConfig
 	if songInfo.FileID != "" {
 		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
 	} else {
 		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FilePath(musicPath))
 	}
-	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
+	if userSetting.SourceInfo && globalSetting.SourceInfo && chatSetting.SourceInfo {
+		newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
+	} else {
+		newAudio.Caption = fmt.Sprintf(musicInfoNoVia, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000)
+	}
 	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
 	newAudio.Performer = songInfo.SongArtists
 	newAudio.Duration = songInfo.Duration

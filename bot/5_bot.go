@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-var bot *tgbotapi.BotAPI
-var botAdmin []int
-var botAdminStr []string
-
 // Start bot entry
 func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) error) (actionCode int) {
 	config = conf
@@ -173,6 +169,13 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							logrus.Errorln(err)
 						}
 					}()
+				case "setting":
+					go func() {
+						err := processSettings(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
 				}
 				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
@@ -222,28 +225,33 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery
-			go func() {
-				musicID, _ := strconv.Atoi(updateQuery.Data)
-				if updateQuery.Message.Chat.IsPrivate() {
-					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
-					_, err := bot.Request(callback)
+			args := strings.Split(updateQuery.Data, " ")
+			if len(args) < 2 {
+				continue
+			}
+			switch args[0] {
+			case "music":
+				go func() {
+					err := processCallbackMusic(args, updateQuery, bot)
 					if err != nil {
 						logrus.Errorln(err)
 					}
-					message := *updateQuery.Message
-					err = processMusic(musicID, message, bot)
+				}()
+			case "get":
+				go func() {
+					err := processSettingGet(args, updateQuery, bot)
 					if err != nil {
 						logrus.Errorln(err)
 					}
-				} else {
-					callback := tgbotapi.NewCallback(updateQuery.ID, callbackText)
-					callback.URL = fmt.Sprintf("t.me/%s?start=%d", botName, musicID)
-					_, err := bot.Request(callback)
+				}()
+			case "set":
+				go func() {
+					err := processSettingSet(args, updateQuery, bot)
 					if err != nil {
 						logrus.Errorln(err)
 					}
-				}
-			}()
+				}()
+			}
 		case update.InlineQuery != nil:
 			updateQuery := *update.InlineQuery
 			switch {

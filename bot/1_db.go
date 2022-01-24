@@ -27,6 +27,23 @@ type SongInfo struct {
 	FromChatName string
 }
 
+const (
+	// GlobalSetting 全局设置
+	GlobalSetting = iota + 1
+	// ChatSetting 对话设置
+	ChatSetting
+	// UserSetting 用户设置
+	UserSetting
+)
+
+// Settings bot 设置
+type Settings struct {
+	Type       int
+	ChatID     int64
+	SourceInfo bool
+	ShareKey   bool
+}
+
 func initDB(config map[string]string) (err error) {
 	database := "cache.db"
 	if config["Database"] != "" {
@@ -45,5 +62,11 @@ func initDB(config map[string]string) (err error) {
 		return err
 	}
 	MusicDB = db.Table("song_infos")
+
+	err = db.Table("bot_settings").AutoMigrate(&Settings{})
+	if err != nil {
+		return err
+	}
+	SettingDB = db.Table("bot_settings")
 	return err
 }
