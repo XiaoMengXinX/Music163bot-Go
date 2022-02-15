@@ -83,7 +83,7 @@ func processAnyMusic(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error)
 	}
 	searchResult, _ := api.SearchSong(data, api.SearchSongConfig{
 		Keyword: message.CommandArguments(),
-		Limit:   5,
+		Limit:   10,
 	})
 	if len(searchResult.Result.Songs) == 0 {
 		msg := tgbotapi.NewMessage(message.Chat.ID, noResults)
