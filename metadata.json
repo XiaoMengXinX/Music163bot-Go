@@ -1,6 +1,6 @@
 {
-  "version": "v2.2.16",
-  "version_code": 20216,
+  "version": "v2.2.17",
+  "version_code": 20217,
   "unsupported": false,
   "files": [
     {
@@ -41,7 +41,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "3cdb6f817d92cb794aafc43542a73b0e"
+      "md5": "875d3b481421a305131883f9c845588b"
     },
     {
       "file": "bot/2_processSearch.go",
