@@ -28,6 +28,15 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}()
 	var songInfo SongInfo
 	var msgResult tgbotapi.Message
+
+	// 寄
+	寄 := func() {
+		_, err = bot.Send(tgbotapi.NewSticker(message.Chat.ID, tgbotapi.FileID("CAACAgEAAxkBAAFKA59iE5tHwVtRSQ9mruwzzCKok9hVHgAC1gEAAvrUsEYzQLN-IIuSFyME")))
+		if err != nil {
+			logrus.Errorln(err)
+		}
+	}
+
 	sendFailed := func(err error) {
 		var errText string
 		if strings.Contains(fmt.Sprintf("%v", err), md5VerFailed) || strings.Contains(fmt.Sprintf("%v", err), downloadTimeout) {
@@ -35,11 +44,12 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		} else {
 			errText = uploadFailed
 		}
-		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+errText, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, err))
+		editMsg := tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+errText, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, strings.ReplaceAll(err.Error(), config["BOT_TOKEN"], "BOT_TOKEN")))
 		_, err = bot.Send(editMsg)
 		if err != nil {
 			logrus.Errorln(err)
 		}
+		寄()
 	}
 
 	db := MusicDB.Session(&gorm.Session{})
@@ -134,6 +144,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			logrus.Errorln(err)
 		}
+		寄()
 		return err
 	}
 	if songURL.Data[0].Url == "" {
@@ -142,6 +153,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			logrus.Errorln(err)
 		}
+		寄()
 		return err
 	}
 
@@ -277,8 +289,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	fileName := replacer.Replace(fmt.Sprintf("%v - %v.%v", strings.Replace(songInfo.SongArtists, "/", ",", -1), songInfo.SongName, songInfo.FileExt))
 	err = os.Rename(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), cacheDir+"/"+fileName)
 	if err != nil {
-		sendFailed(err)
-		return err
+		fileName = fmt.Sprintf("%d-%s", timeStamp, path.Base(url))
 	}
 
 	audio, err := sendMusic(songInfo, cacheDir+"/"+fileName, resizePicPath, message, bot)
