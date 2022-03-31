@@ -1,15 +1,15 @@
 {
-  "version": "v2.2.17",
-  "version_code": 20217,
+  "version": "v2.2.18",
+  "version_code": 20218,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "21213b10d5d7c531c36405e109adf914"
+      "md5": "91063051b9b22f7f5fee379c959e6d2c"
     },
     {
       "file": "bot/1_db.go",
-      "md5": "4fc6c7eed109751774292820a204ced2"
+      "md5": "e3c4c616523b4f3c2323ffe10369ce6f"
     },
     {
       "file": "bot/1_downloader.go",
@@ -21,7 +21,7 @@
     },
     {
       "file": "bot/1_tools.go",
-      "md5": "dbd5f44248205bf170ae78fa6ce64714"
+      "md5": "8cae6cb4d957640cb17a6ce00e91bfad"
     },
     {
       "file": "bot/1_update.go",
@@ -41,7 +41,7 @@
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "875d3b481421a305131883f9c845588b"
+      "md5": "45c2159a310ae2f2eedb2f5d768def45"
     },
     {
       "file": "bot/2_processSearch.go",
