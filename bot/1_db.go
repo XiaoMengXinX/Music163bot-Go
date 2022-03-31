@@ -27,6 +27,12 @@ type SongInfo struct {
 	FromChatName string
 }
 
+// UserInfo 用户信息
+type UserInfo struct {
+	UserID        int64
+	IsAprilFooled bool
+}
+
 const (
 	// GlobalSetting 全局设置
 	GlobalSetting = iota + 1
@@ -68,5 +74,12 @@ func initDB(config map[string]string) (err error) {
 		return err
 	}
 	SettingDB = db.Table("bot_settings")
+
+	err = db.Table("user_infos").AutoMigrate(&UserInfo{})
+	if err != nil {
+		return err
+	}
+	UserDB = db.Table("user_infos")
+
 	return err
 }

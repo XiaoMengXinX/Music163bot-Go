@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // 判断数组包含关系
@@ -89,4 +90,10 @@ func isTimeout(err error) bool {
 		return true
 	}
 	return false
+}
+
+// 判断是否是愚人节
+func isAprilFoolsDay() bool {
+	_, m, d := time.Now().Date()
+	return m == time.Month(4) && d == 1
 }

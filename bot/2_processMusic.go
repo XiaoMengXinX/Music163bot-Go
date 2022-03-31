@@ -157,6 +157,30 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		return err
 	}
 
+	var isAprilFool bool
+	var userInfo UserInfo
+	user := UserDB.Session(&gorm.Session{})
+	err = user.Where("user_id = ?", message.From.ID).First(&userInfo).Error
+	if err != nil {
+		if isAprilFoolsDay() {
+			userInfo.UserID = message.From.ID
+			userInfo.IsAprilFooled = true
+			fakeMusicDetail, _ := api.GetSongURL(data, api.SongURLConfig{
+				EncodeType: "mp3",
+				Level:      "standard",
+				Ids:        []int{29038398},
+			})
+			if len(fakeMusicDetail.Data) != 0 {
+				songURL.Data[0] = fakeMusicDetail.Data[0]
+				isAprilFool = true
+				err = user.Create(&userInfo).Error
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	songInfo.FromChatID = message.Chat.ID
 	if message.Chat.IsPrivate() {
 		songInfo.FromChatName = message.Chat.UserName
@@ -303,9 +327,11 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 
-	err = db.Create(&songInfo).Error // 写入歌曲缓存
-	if err != nil {
-		return err
+	if !isAprilFool {
+		err = db.Create(&songInfo).Error // 写入歌曲缓存
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, f := range []string{cacheDir + "/" + fileName, resizePicPath, picPath} {

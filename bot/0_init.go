@@ -14,6 +14,9 @@ var MusicDB *gorm.DB
 // SettingDB bot设置数据库入口
 var SettingDB *gorm.DB
 
+// UserDB 用户数据库入口
+var UserDB *gorm.DB
+
 // config 配置文件数据
 var config map[string]string
 
