@@ -1,11 +1,11 @@
 {
-  "version": "v2.2.18",
-  "version_code": 20218,
+  "version": "v2.3.0",
+  "version_code": 20300,
   "unsupported": false,
   "files": [
     {
       "file": "bot/0_init.go",
-      "md5": "91063051b9b22f7f5fee379c959e6d2c"
+      "md5": "28c8d15a0afd23dbcfcfcb30a5522027"
     },
     {
       "file": "bot/1_db.go",
@@ -17,43 +17,43 @@
     },
     {
       "file": "bot/1_pic.go",
-      "md5": "730f907dfa65d331787e6242200827ef"
+      "md5": "b594a115943f872c2d457edfc9c4525a"
     },
     {
       "file": "bot/1_tools.go",
-      "md5": "8cae6cb4d957640cb17a6ce00e91bfad"
+      "md5": "38db51af2f66b70cef4cd3c38ad29fe1"
     },
     {
       "file": "bot/1_update.go",
-      "md5": "f36e07f5fc9ce3b7866fb4c7b665be1c"
+      "md5": "2c32be54c9c3c44c4897da97a5be2d8b"
     },
     {
       "file": "bot/2_botSetting.go",
-      "md5": "bf02e201997a7d619c2102bdeeb02a37"
+      "md5": "e88d48e74b0abda157ee666cd5ac154f"
     },
     {
       "file": "bot/2_processInline.go",
-      "md5": "f4a7d0e87cbedbad8899823e33012a72"
+      "md5": "7e4b2511909cc99709d1d67f7bf7d4c4"
     },
     {
       "file": "bot/2_processLyric.go",
-      "md5": "600a884b5a7def06a37c09cde75ba3bd"
+      "md5": "e5e9310dba230e77a22724ce491fff33"
     },
     {
       "file": "bot/2_processMusic.go",
-      "md5": "45c2159a310ae2f2eedb2f5d768def45"
+      "md5": "7f6ea8abe04a24de2d08d68a44eb5f20"
     },
     {
       "file": "bot/2_processSearch.go",
-      "md5": "a55a0fec2ac399524847f2bc1f1bd162"
+      "md5": "d33115732dd6a229653b249fad1d6761"
     },
     {
       "file": "bot/3_modules.go",
-      "md5": "0ff1c0bbab220791d7779563fe031ec2"
+      "md5": "7ac6d13877dcb8935dc54787d53bb02c"
     },
     {
       "file": "bot/5_bot.go",
-      "md5": "146255567e57bfc1c72f536c9c8844dd"
+      "md5": "dfd3c4ff94a8ebca9055b827202a4e77"
     }
   ]
 }
