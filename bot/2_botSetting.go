@@ -2,9 +2,10 @@ package bot
 
 import (
 	"fmt"
+	"strconv"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
-	"strconv"
 )
 
 func getSettings(sType int, ID int64) (settings Settings, err error) {

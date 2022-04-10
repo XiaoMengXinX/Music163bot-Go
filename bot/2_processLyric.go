@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
-	"os"
-	"strings"
 )
 
 func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
@@ -43,7 +44,7 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 		return err
 	}
 
-	musicID := parseID(message.CommandArguments())
+	musicID := parseMusicID(message.CommandArguments())
 	if musicID == 0 {
 		searchResult, _ := api.SearchSong(data, api.SearchSongConfig{
 			Keyword: message.CommandArguments(),

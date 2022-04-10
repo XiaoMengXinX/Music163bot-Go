@@ -4,14 +4,16 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/XiaoMengXinX/Music163Api-Go/types"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/XiaoMengXinX/Music163Api-Go/api"
+	"github.com/XiaoMengXinX/Music163Api-Go/types"
+	"github.com/sirupsen/logrus"
 )
 
 // 判断数组包含关系
@@ -72,16 +74,28 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 }
 
 // 解析 MusicID
-func parseID(text string) int {
+func parseMusicID(text string) int {
 	var replacer = strings.NewReplacer("\n", "", " ", "")
 	messageText := replacer.Replace(text)
-	musicid, _ := strconv.Atoi(linkTest(messageText))
+	musicid, _ := strconv.Atoi(linkTestMusic(messageText))
 	return musicid
 }
 
+// 解析 ProgramID
+func parseProgramID(text string) int {
+	var replacer = strings.NewReplacer("\n", "", " ", "")
+	messageText := replacer.Replace(text)
+	programid, _ := strconv.Atoi(linkTestProgram(messageText))
+	return programid
+}
+
 // 解析分享链接
-func linkTest(text string) string {
+func linkTestMusic(text string) string {
 	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), "")
+}
+
+func linkTestProgram(text string) string {
+	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), "")
 }
 
 // 判断 error 是否为超时错误
@@ -96,4 +110,16 @@ func isTimeout(err error) bool {
 func isAprilFoolsDay() bool {
 	_, m, d := time.Now().Date()
 	return m == time.Month(4) && d == 1
+}
+
+// 获取电台节目的 MusicID
+func getProgramRealID(programID int) int {
+	programDetail, err := api.GetProgramDetail(data, programID)
+	if err != nil {
+		return 0
+	}
+	if programDetail.Program.MainSong.ID != 0 {
+		return programDetail.Program.MainSong.ID
+	}
+	return 0
 }

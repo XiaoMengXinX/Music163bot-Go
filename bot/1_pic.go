@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/nfnt/resize"
-	"github.com/sirupsen/logrus"
 	"image"
 	"image/draw"
 	"image/jpeg"
 	"image/png"
 	"io/ioutil"
 	"os"
+
+	"github.com/nfnt/resize"
+	"github.com/sirupsen/logrus"
 )
 
 // 缩放图片到 320x320px (黑底填充)

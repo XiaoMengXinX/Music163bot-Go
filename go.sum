@@ -1,8 +1,9 @@
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/XiaoMengXinX/CloudMusicDownloader v1.2.0 h1:re0xAoxfAwG1x3bXL1X++qVCEnzppgJsLg2bE7lekPg=
 github.com/XiaoMengXinX/CloudMusicDownloader v1.2.0/go.mod h1:tTGKbdf5kLJxE4NiRaVhMTC1c4Vk+yTwYqW+QI4sQN8=
-github.com/XiaoMengXinX/Music163Api-Go v0.1.17 h1:iO4nZeYkyWHSvTH3PnQBNxGcOEZaK9EzK849HfH8y8A=
 github.com/XiaoMengXinX/Music163Api-Go v0.1.17/go.mod h1:4lcWLPwXMsTiwcyM6JBEAHkU7NUvYJOMPtfiUj9X0Jw=
+github.com/XiaoMengXinX/Music163Api-Go v0.1.26 h1:Nybor5okI8C0jzAiRvGfpLHdDrPqUbjx5kXWIZDX6pw=
+github.com/XiaoMengXinX/Music163Api-Go v0.1.26/go.mod h1:kLU/CkLxKnEJFCge0URvQ0lHt6ImoG1/2aVeNbgV2RQ=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/bogem/id3v2 v1.2.0 h1:hKDF+F1gOgQ5r1QmBCEZUk4MveJbKxCeIDSBU7CQ4oI=
 github.com/bogem/id3v2 v1.2.0/go.mod h1:t78PK5AQ56Q47kizpYiV6gtjj3jfxlz87oFpty8DYs8=
@@ -43,6 +44,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/traefik/yaegi v0.11.1 h1:MJpYUnRc/wNOQcdywGd/q2mCznZAiAch1V+Ae+XFVzc=
 github.com/traefik/yaegi v0.11.1/go.mod h1:RuCwD8/wsX7b6KoQHOaIFUfuH3gQIK4KWnFFmJMw5VA=
+github.com/traefik/yaegi v0.11.3 h1:TuuIc0TC4oaWkVngjVAKkFd4fH35B0B95DmbS76uqs8=
+github.com/traefik/yaegi v0.11.3/go.mod h1:RuCwD8/wsX7b6KoQHOaIFUfuH3gQIK4KWnFFmJMw5VA=
 github.com/vbauerster/mpb/v5 v5.4.0/go.mod h1:fi4wVo7BVQ22QcvFObm+VwliQXlV1eBT8JDaKXR4JGI=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201218084310-7d0127a74742/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

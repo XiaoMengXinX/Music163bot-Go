@@ -4,11 +4,11 @@ go 1.17
 
 require (
 	github.com/XiaoMengXinX/CloudMusicDownloader v1.2.0
-	github.com/XiaoMengXinX/Music163Api-Go v0.1.17
+	github.com/XiaoMengXinX/Music163Api-Go v0.1.26
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sirupsen/logrus v1.8.1
-	github.com/traefik/yaegi v0.11.1
+	github.com/traefik/yaegi v0.11.3
 	gorm.io/driver/sqlite v1.1.6
 	gorm.io/gorm v1.21.16
 )

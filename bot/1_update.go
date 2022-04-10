@@ -3,13 +3,14 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
 )
 
 type metadata struct {
@@ -108,7 +109,7 @@ func checkUpdate(versionData []versions) (meta metadata, isLatest bool, err erro
 }
 
 func getVersions() (versionData []versions, err error) {
-	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions_v2.2.json", config["rawRepoPath"]))
+	updateData, err := getFile(fmt.Sprintf("https://raw.githubusercontent.com/%s/versions_v2.3.json", config["rawRepoPath"]))
 	if err != nil {
 		return versionData, err
 	}

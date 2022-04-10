@@ -2,11 +2,12 @@ package bot
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
-	"strings"
-	"time"
 )
 
 func processInlineMusic(musicid int, query tgbotapi.InlineQuery, bot *tgbotapi.BotAPI) (err error) {

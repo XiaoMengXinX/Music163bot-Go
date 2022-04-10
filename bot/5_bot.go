@@ -2,17 +2,18 @@ package bot
 
 import (
 	"fmt"
-	"github.com/XiaoMengXinX/Music163Api-Go/utils"
-	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/XiaoMengXinX/Music163Api-Go/utils"
+	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/sirupsen/logrus"
 )
 
 // Start bot entry
-func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) error) (actionCode int) {
+func Start(conf map[string]string) (actionCode int) {
 	config = conf
 	defer func() {
 		e := recover()
@@ -141,6 +142,17 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 							logrus.Errorln(err)
 						}
 					}()
+				case "program":
+					go func() {
+						id, _ := strconv.Atoi(updateMsg.CommandArguments())
+						musicID := getProgramRealID(id)
+						if musicID != 0 {
+							err := processMusic(musicID, updateMsg, bot)
+							if err != nil {
+								logrus.Errorln(err)
+							}
+						}
+					}()
 				case "lyric":
 					go func() {
 						err := processLyric(updateMsg, bot)
@@ -214,11 +226,18 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				}
 			} else if strings.Contains(update.Message.Text, "music.163.com") {
 				go func() {
-					musicID := parseID(updateMsg.Text)
-					if musicID != 0 {
-						err := processMusic(musicID, updateMsg, bot)
+					id := parseMusicID(updateMsg.Text)
+					if id != 0 {
+						err := processMusic(id, updateMsg, bot)
 						if err != nil {
 							logrus.Errorln(err)
+						}
+					} else if id = parseProgramID(updateMsg.Text); id != 0 {
+						if id = getProgramRealID(id); id != 0 {
+							err := processMusic(id, updateMsg, bot)
+							if err != nil {
+								logrus.Errorln(err)
+							}
 						}
 					}
 				}()
@@ -271,7 +290,7 @@ func Start(conf map[string]string, ext func(*tgbotapi.BotAPI, tgbotapi.Update) e
 				}()
 			default:
 				go func() {
-					musicID, _ := strconv.Atoi(linkTest(updateQuery.Query))
+					musicID, _ := strconv.Atoi(linkTestMusic(updateQuery.Query))
 					if musicID != 0 {
 						err = processInlineMusic(musicID, updateQuery, bot)
 						if err != nil {

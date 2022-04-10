@@ -3,12 +3,13 @@ package bot
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"strconv"
-	"time"
 )
 
 // 限制查询速度及并发
@@ -46,9 +47,12 @@ func processCallbackMusic(args []string, updateQuery tgbotapi.CallbackQuery, bot
 }
 
 func processRmCache(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
-	musicID := parseID(message.CommandArguments())
+	musicID := parseMusicID(message.CommandArguments())
 	if musicID == 0 {
-		return err
+		musicID = parseProgramID(message.CommandArguments())
+		if musicID = getProgramRealID(musicID); musicID == 0 {
+			return err
+		}
 	}
 	db := MusicDB.Session(&gorm.Session{})
 	var songInfo SongInfo

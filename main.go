@@ -7,14 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/bot"
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/symbols"
-	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/sirupsen/logrus"
-	"github.com/traefik/yaegi/interp"
-	"github.com/traefik/yaegi/stdlib"
-	"github.com/traefik/yaegi/stdlib/syscall"
-	"github.com/traefik/yaegi/stdlib/unsafe"
 	"io"
 	"io/ioutil"
 	"os"
@@ -24,6 +16,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/XiaoMengXinX/Music163bot-Go/v2/bot"
+	"github.com/XiaoMengXinX/Music163bot-Go/v2/symbols"
+	"github.com/sirupsen/logrus"
+	"github.com/traefik/yaegi/interp"
+	"github.com/traefik/yaegi/stdlib"
+	"github.com/traefik/yaegi/stdlib/syscall"
+	"github.com/traefik/yaegi/stdlib/unsafe"
 )
 
 var config map[string]string
@@ -145,7 +145,7 @@ func main() {
 				}
 				v, err := loadDyn(meta)
 				if err == nil {
-					start, ok := v.Interface().(func(map[string]string, func(*tgbotapi.BotAPI, tgbotapi.Update) error) int)
+					start, ok := v.Interface().(func(map[string]string) int)
 					if ok {
 						config["VersionName"] = meta.Version
 						config["VersionCode"] = fmt.Sprintf("%d", meta.VersionCode)
@@ -154,7 +154,7 @@ func main() {
 						} else {
 							logrus.Printf("加载版本 %s(%d) 中", meta.Version, meta.VersionCode)
 						}
-						actionCode = start(config, nil)
+						actionCode = start(config)
 					} else {
 						return true
 					}
@@ -169,7 +169,7 @@ func main() {
 			return false
 		}() {
 			logrus.Printf("加载内置版本 %s(%d) 中", _VersionName, _VersionCode)
-			actionCode = bot.Start(config, nil)
+			actionCode = bot.Start(config)
 		}
 		switch actionCode {
 		case 0:

@@ -14,6 +14,7 @@ func init() {
 		"CacheKeyEncrypt":  reflect.ValueOf(utils.CacheKeyEncrypt),
 		"ChooseUserAgent":  reflect.ValueOf(utils.ChooseUserAgent),
 		"CreateNewRequest": reflect.ValueOf(utils.CreateNewRequest),
+		"DEBUG":            reflect.ValueOf(&utils.DEBUG).Elem(),
 		"DetectFileType":   reflect.ValueOf(utils.DetectFileType),
 		"EapiDecrypt":      reflect.ValueOf(utils.EapiDecrypt),
 		"EapiEncrypt":      reflect.ValueOf(utils.EapiEncrypt),
@@ -25,11 +26,30 @@ func init() {
 		"RandHex":          reflect.ValueOf(utils.RandHex),
 		"RawRequest":       reflect.ValueOf(utils.RawRequest),
 		"ReadFile":         reflect.ValueOf(utils.ReadFile),
+		"SetLogger":        reflect.ValueOf(utils.SetLogger),
 		"SpliceStr":        reflect.ValueOf(utils.SpliceStr),
 
 		// type definitions
 		"EapiOption":  reflect.ValueOf((*utils.EapiOption)(nil)),
 		"Headers":     reflect.ValueOf((*utils.Headers)(nil)),
+		"Logger":      reflect.ValueOf((*utils.Logger)(nil)),
 		"RequestData": reflect.ValueOf((*utils.RequestData)(nil)),
+
+		// interface wrapper definitions
+		"_Logger": reflect.ValueOf((*_github_com_XiaoMengXinX_Music163Api_Go_utils_Logger)(nil)),
 	}
+}
+
+// _github_com_XiaoMengXinX_Music163Api_Go_utils_Logger is an interface wrapper for Logger type
+type _github_com_XiaoMengXinX_Music163Api_Go_utils_Logger struct {
+	IValue   interface{}
+	WPrintf  func(format string, v ...interface{})
+	WPrintln func(v ...interface{})
+}
+
+func (W _github_com_XiaoMengXinX_Music163Api_Go_utils_Logger) Printf(format string, v ...interface{}) {
+	W.WPrintf(format, v...)
+}
+func (W _github_com_XiaoMengXinX_Music163Api_Go_utils_Logger) Println(v ...interface{}) {
+	W.WPrintln(v...)
 }

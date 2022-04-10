@@ -1,11 +1,12 @@
 package bot
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
-	"regexp"
-	"strings"
 )
 
 // MusicDB 音乐缓存数据库入口
@@ -34,11 +35,13 @@ var botAPI = "https://api.telegram.org"
 var maxRetryTimes, downloaderTimeout int
 
 var (
-	reg1 = regexp.MustCompile(`(.*)song\?id=`)
-	reg2 = regexp.MustCompile("(.*)song/")
-	reg5 = regexp.MustCompile("/(.*)")
-	reg4 = regexp.MustCompile("&(.*)")
-	reg3 = regexp.MustCompile(`\?(.*)`)
+	reg1  = regexp.MustCompile(`(.*)song\?id=`)
+	reg2  = regexp.MustCompile("(.*)song/")
+	regP1 = regexp.MustCompile(`(.*)program\?id=`)
+	regP2 = regexp.MustCompile("(.*)program/")
+	reg5  = regexp.MustCompile("/(.*)")
+	reg4  = regexp.MustCompile("&(.*)")
+	reg3  = regexp.MustCompile(`\?(.*)`)
 )
 
 var mdV2Replacer = strings.NewReplacer(
