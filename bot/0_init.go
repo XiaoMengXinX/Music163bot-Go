@@ -39,6 +39,8 @@ var (
 	reg2  = regexp.MustCompile("(.*)song/")
 	regP1 = regexp.MustCompile(`(.*)program\?id=`)
 	regP2 = regexp.MustCompile("(.*)program/")
+	regP3 = regexp.MustCompile(`(.*)dj\?id=`)
+	regP4 = regexp.MustCompile("(.*)dj/")
 	reg5  = regexp.MustCompile("/(.*)")
 	reg4  = regexp.MustCompile("&(.*)")
 	reg3  = regexp.MustCompile(`\?(.*)`)

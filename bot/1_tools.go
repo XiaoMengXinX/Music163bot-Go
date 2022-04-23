@@ -95,7 +95,7 @@ func linkTestMusic(text string) string {
 }
 
 func linkTestProgram(text string) string {
-	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), "")
+	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP4.ReplaceAllString(regP3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), ""), ""), "")
 }
 
 // 判断 error 是否为超时错误
