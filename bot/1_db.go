@@ -42,7 +42,7 @@ const (
 	UserSetting
 )
 
-// Settings bot 设置
+// Settings bot设置
 type Settings struct {
 	Type       int
 	ChatID     int64
