@@ -1,6 +1,6 @@
 {
-  "version": "v2.3.2",
-  "version_code": 20302,
+  "version": "v2.3.3",
+  "version_code": 20303,
   "unsupported": false,
   "files": [
     {
@@ -9,7 +9,7 @@
     },
     {
       "file": "bot/1_db.go",
-      "md5": "e8918d29d3531202c060ebb4225bac35"
+      "md5": "e3c4c616523b4f3c2323ffe10369ce6f"
     },
     {
       "file": "bot/1_downloader.go",
