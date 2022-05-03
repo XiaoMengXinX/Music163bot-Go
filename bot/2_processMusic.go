@@ -404,5 +404,9 @@ func sendMusic(songInfo SongInfo, musicPath, picPath string, message tgbotapi.Me
 		newAudio.Thumb = tgbotapi.FilePath(picPath)
 	}
 	audio, err = bot.Send(newAudio)
+	if strings.Contains(err.Error(), "replied message not found") {
+		audio.ReplyToMessage = nil
+		audio, err = bot.Send(newAudio)
+	}
 	return audio, err
 }
