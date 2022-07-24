@@ -28,3 +28,4 @@ config.ini
 /test
 *.mp3
 *.flac
+/symbols/
