@@ -346,7 +346,7 @@ func getRemoteModuleInfo(module Module) (moduleInfo ModuleInfo, err error) {
 	}()
 	content, _ := ioutil.ReadAll(resp.Body)
 	moduleInfo = ModuleInfo{}
-	err = json.Unmarshal(content, moduleInfo)
+	err = json.Unmarshal(content, &moduleInfo)
 	if err != nil {
 		return moduleInfo, err
 	}
