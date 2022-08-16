@@ -1,0 +1,31 @@
+name: Debug build
+
+on:
+  push:
+    branches:
+      - v2
+    paths:
+      - '**.go'
+  workflow_dispatch: ~
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17'
+          check-latest: true
+          cache: true
+      - name: Build
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          bash build.sh
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Music163bot-Go
+          path: Music163bot-Go

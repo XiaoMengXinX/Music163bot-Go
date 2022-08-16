@@ -35,15 +35,16 @@ var botAPI = "https://api.telegram.org"
 var maxRetryTimes, downloaderTimeout int
 
 var (
-	reg1  = regexp.MustCompile(`(.*)song\?id=`)
-	reg2  = regexp.MustCompile("(.*)song/")
-	regP1 = regexp.MustCompile(`(.*)program\?id=`)
-	regP2 = regexp.MustCompile("(.*)program/")
-	regP3 = regexp.MustCompile(`(.*)dj\?id=`)
-	regP4 = regexp.MustCompile("(.*)dj/")
-	reg5  = regexp.MustCompile("/(.*)")
-	reg4  = regexp.MustCompile("&(.*)")
-	reg3  = regexp.MustCompile(`\?(.*)`)
+	reg1   = regexp.MustCompile(`(.*)song\?id=`)
+	reg2   = regexp.MustCompile("(.*)song/")
+	regP1  = regexp.MustCompile(`(.*)program\?id=`)
+	regP2  = regexp.MustCompile("(.*)program/")
+	regP3  = regexp.MustCompile(`(.*)dj\?id=`)
+	regP4  = regexp.MustCompile("(.*)dj/")
+	reg5   = regexp.MustCompile("/(.*)")
+	reg4   = regexp.MustCompile("&(.*)")
+	reg3   = regexp.MustCompile(`\?(.*)`)
+	regInt = regexp.MustCompile(`\d+`)
 )
 
 var mdV2Replacer = strings.NewReplacer(
