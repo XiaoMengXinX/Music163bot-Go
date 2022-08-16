@@ -89,13 +89,22 @@ func parseProgramID(text string) int {
 	return programid
 }
 
+// 提取数字
+func extractInt(text string) string {
+	matchArr := regInt.FindStringSubmatch(text)
+	if len(matchArr) == 0 {
+		return ""
+	}
+	return matchArr[0]
+}
+
 // 解析分享链接
 func linkTestMusic(text string) string {
-	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), "")
+	return extractInt(reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), ""))
 }
 
 func linkTestProgram(text string) string {
-	return reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP4.ReplaceAllString(regP3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), ""), ""), "")
+	return extractInt(reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP4.ReplaceAllString(regP3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), ""), ""), ""))
 }
 
 // 判断 error 是否为超时错误
