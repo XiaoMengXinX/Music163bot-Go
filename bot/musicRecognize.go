@@ -79,7 +79,7 @@ func recognizeMusic(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) 
 	var result RecognizeResultData
 	err = json.Unmarshal(resp, &result)
 
-	if err != nil && len(result.Data.Result) == 0 {
+	if err != nil || len(result.Data.Result) == 0 {
 		msg := tgbotapi.NewMessage(message.Chat.ID, "识别失败，可能是录音时间太短")
 		msg.ReplyToMessageID = message.ReplyToMessage.MessageID
 		_, _ = bot.Send(msg)
@@ -87,16 +87,10 @@ func recognizeMusic(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) 
 	}
 
 	musicID := result.Data.Result[0].Song.Id
-	if musicID == 0 {
-		msg := tgbotapi.NewMessage(message.Chat.ID, "识别失败，未知错误")
-		msg.ReplyToMessageID = message.ReplyToMessage.MessageID
-		_, err = bot.Send(msg)
-		return err
-	}
-
 	msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("https://music.163.com/song/%d", musicID))
 	msg.ReplyToMessageID = message.ReplyToMessage.MessageID
 	_, _ = bot.Send(msg)
+
 	return processMusic(musicID, *message.ReplyToMessage, bot)
 }
 
