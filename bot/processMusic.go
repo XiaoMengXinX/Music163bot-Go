@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMengXinX/CloudMusicDownloader/downloader"
+	marker "github.com/XiaoMengXinX/163KeyMarker"
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -30,14 +30,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	var songInfo SongInfo
 	var msgResult tgbotapi.Message
 
-	// 寄
-	寄 := func() {
-		_, err = bot.Send(tgbotapi.NewSticker(message.Chat.ID, tgbotapi.FileID("CAACAgEAAxkBAAFKA59iE5tHwVtRSQ9mruwzzCKok9hVHgAC1gEAAvrUsEYzQLN-IIuSFyME")))
-		if err != nil {
-			logrus.Errorln(err)
-		}
-	}
-
 	sendFailed := func(err error) {
 		var errText string
 		if strings.Contains(fmt.Sprintf("%v", err), md5VerFailed) || strings.Contains(fmt.Sprintf("%v", err), downloadTimeout) {
@@ -50,7 +42,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			logrus.Errorln(err)
 		}
-		寄()
 	}
 
 	db := MusicDB.Session(&gorm.Session{})
@@ -145,7 +136,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			logrus.Errorln(err)
 		}
-		寄()
 		return err
 	}
 	if songURL.Data[0].Url == "" {
@@ -154,32 +144,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			logrus.Errorln(err)
 		}
-		寄()
 		return err
-	}
-
-	var isAprilFool bool
-	var userInfo UserInfo
-	user := UserDB.Session(&gorm.Session{})
-	err = user.Where("user_id = ?", message.From.ID).First(&userInfo).Error
-	if err != nil {
-		if isAprilFoolsDay() {
-			userInfo.UserID = message.From.ID
-			userInfo.IsAprilFooled = true
-			fakeMusicDetail, _ := api.GetSongURL(data, api.SongURLConfig{
-				EncodeType: "mp3",
-				Level:      "standard",
-				Ids:        []int{29038398},
-			})
-			if len(fakeMusicDetail.Data) != 0 {
-				songURL.Data[0] = fakeMusicDetail.Data[0]
-				isAprilFool = true
-				err = user.Create(&userInfo).Error
-				if err != nil {
-					return err
-				}
-			}
-		}
 	}
 
 	songInfo.FromChatID = message.Chat.ID
@@ -275,12 +240,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		}
 	}
 
-	editMsg = tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024))
-	_, err = bot.Send(editMsg)
-	if err != nil {
-		return err
-	}
-
 	var musicPic string
 	picStat, err := os.Stat(picPath)
 	if picStat != nil && err == nil {
@@ -296,25 +255,31 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		logrus.Errorln(err)
 	}
 
-	marker, _ := downloader.CreateMarker(songDetail.Songs[0], songURL.Data[0])
-	switch path.Ext(path.Base(url)) {
-	case ".mp3":
-		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
-	case ".flac":
-		err = downloader.AddFlacId3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
-	default:
-		err = downloader.AddMp3Id3v2(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), musicPic, marker, songDetail.Songs[0])
-	}
-	if err != nil {
-		sendFailed(err)
-		return err
-	}
-
 	var replacer = strings.NewReplacer("/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ")
 	fileName := replacer.Replace(fmt.Sprintf("%v - %v.%v", strings.Replace(songInfo.SongArtists, "/", ",", -1), songInfo.SongName, songInfo.FileExt))
 	err = os.Rename(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), cacheDir+"/"+fileName)
 	if err != nil {
 		fileName = fmt.Sprintf("%d-%s", timeStamp, path.Base(url))
+	}
+
+	mark := marker.CreateMarker(songDetail.Songs[0], songURL.Data[0])
+
+	file, _ := os.Open(cacheDir + "/" + fileName)
+	defer file.Close()
+
+	pic, _ := os.Open(musicPic)
+	defer pic.Close()
+
+	err = marker.AddMusicID3V2(file, pic, mark)
+	if err != nil {
+		sendFailed(err)
+		return err
+	}
+
+	editMsg = tgbotapi.NewEditMessageText(message.Chat.ID, msgResult.MessageID, fmt.Sprintf(musicInfoMsg+uploading, songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024))
+	_, err = bot.Send(editMsg)
+	if err != nil {
+		return err
 	}
 
 	audio, err := sendMusic(songInfo, cacheDir+"/"+fileName, resizePicPath, message, bot)
@@ -326,13 +291,6 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	songInfo.FileID = audio.Audio.FileID
 	if audio.Audio.Thumbnail != nil {
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
-	}
-
-	if !isAprilFool {
-		err = db.Create(&songInfo).Error // 写入歌曲缓存
-		if err != nil {
-			return err
-		}
 	}
 
 	for _, f := range []string{cacheDir + "/" + fileName, resizePicPath, picPath} {
@@ -352,46 +310,23 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 }
 
 func sendMusic(songInfo SongInfo, musicPath, picPath string, message tgbotapi.Message, bot *tgbotapi.BotAPI) (audio tgbotapi.Message, err error) {
-	userSetting, err := getSettings(UserSetting, message.From.ID)
-	if err != nil {
-		return audio, err
-	}
-	chatSetting, err := getSettings(ChatSetting, message.Chat.ID)
-	if err != nil {
-		return audio, err
-	}
-	globalSetting, err := getSettings(GlobalSetting, 0)
-	if err != nil {
-		return audio, err
-	}
+
 	var numericKeyboard tgbotapi.InlineKeyboardMarkup
-	if userSetting.ShareKey && globalSetting.ShareKey && chatSetting.ShareKey {
-		numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-			),
-		)
-	} else {
-		numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-			),
-		)
-	}
+	numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+		),
+	)
 	var newAudio tgbotapi.AudioConfig
 	if songInfo.FileID != "" {
 		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FileID(songInfo.FileID))
 	} else {
 		newAudio = tgbotapi.NewAudio(message.Chat.ID, tgbotapi.FilePath(musicPath))
 	}
-	if userSetting.SourceInfo && globalSetting.SourceInfo && chatSetting.SourceInfo {
-		newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
-	} else {
-		newAudio.Caption = fmt.Sprintf(musicInfoNoVia, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000)
-	}
+	newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
 	newAudio.Title = fmt.Sprintf("%s", songInfo.SongName)
 	newAudio.Performer = songInfo.SongArtists
 	newAudio.Duration = songInfo.Duration

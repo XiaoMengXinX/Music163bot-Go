@@ -8,7 +8,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/nfnt/resize"
@@ -22,7 +22,7 @@ func resizeImg(filePath string) (string, error) {
 		return "", err
 	}
 
-	buffer, err := ioutil.ReadAll(bufio.NewReader(file))
+	buffer, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
 		return "", err
 	}

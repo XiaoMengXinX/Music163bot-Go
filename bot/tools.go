@@ -4,12 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
@@ -58,16 +57,16 @@ func dirExists(path string) bool {
 
 // 校验 md5
 func verifyMD5(filePath string, md5str string) (bool, error) {
-	file, err := ioutil.ReadFile(filePath)
+	f, err := os.Open(filePath)
 	if err != nil {
 		return false, err
 	}
-	md5data := md5.Sum(file)
-	var md5buffer []byte
-	for _, j := range md5data[:] {
-		md5buffer = append(md5buffer, j)
+	defer f.Close()
+	md5hash := md5.New()
+	if _, err := io.Copy(md5hash, f); err != nil {
+		return false, err
 	}
-	if hex.EncodeToString(md5buffer) != md5str {
+	if hex.EncodeToString(md5hash.Sum(nil)) != md5str {
 		return false, fmt.Errorf(md5VerFailed)
 	}
 	return true, nil
@@ -113,12 +112,6 @@ func isTimeout(err error) bool {
 		return true
 	}
 	return false
-}
-
-// 判断是否是愚人节
-func isAprilFoolsDay() bool {
-	_, m, d := time.Now().Date()
-	return m == time.Month(4) && d == 1
 }
 
 // 获取电台节目的 MusicID

@@ -8,7 +8,6 @@ LDFlags="\
     -s -w \
     -extldflags '-static -fpic' \
     -X 'main._VersionName=${VERSION}' \
-    -X 'main._VersionCodeStr=${1}' \
     -X 'main.commitSHA=${COMMIT_SHA}' \
     -X 'main.buildTime=${BUILD_TIME}' \
     -X 'main.repoPath=XiaoMengXinX/Music163bot-Go'\

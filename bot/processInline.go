@@ -12,43 +12,22 @@ import (
 
 func processInlineMusic(musicid int, query tgbotapi.InlineQuery, bot *tgbotapi.BotAPI) (err error) {
 	var songInfo SongInfo
-	userSetting, err := getSettings(UserSetting, query.From.ID)
-	if err != nil {
-		return err
-	}
-	globalSetting, err := getSettings(GlobalSetting, 0)
-	if err != nil {
-		return err
-	}
 	db := MusicDB.Session(&gorm.Session{})
 	err = db.Where("music_id = ?", musicid).First(&songInfo).Error // 查找是否有缓存数据
 	if err == nil {                                                // 从缓存数据回应 inlineQuery
 		if songInfo.FileID != "" && songInfo.SongName != "" {
 			var numericKeyboard tgbotapi.InlineKeyboardMarkup
-			if userSetting.ShareKey && globalSetting.ShareKey {
-				numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-					),
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-					),
-				)
-			} else {
-				numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
-					),
-				)
-			}
+			numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL(fmt.Sprintf("%s- %s", songInfo.SongName, songInfo.SongArtists), fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+				),
+				tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonSwitch(sendMeTo, fmt.Sprintf("https://music.163.com/song?id=%d", songInfo.MusicID)),
+				),
+			)
 
 			newAudio := tgbotapi.NewInlineQueryResultCachedDocument(query.ID, songInfo.FileID, fmt.Sprintf("%s - %s", songInfo.SongArtists, songInfo.SongName))
-			if userSetting.SourceInfo && globalSetting.SourceInfo {
-				newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
-			} else {
-				newAudio.Caption = fmt.Sprintf(musicInfoNoVia, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000)
-			}
-
+			newAudio.Caption = fmt.Sprintf(musicInfo, songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, botName)
 			newAudio.ReplyMarkup = &numericKeyboard
 			newAudio.Description = songInfo.SongAlbum
 

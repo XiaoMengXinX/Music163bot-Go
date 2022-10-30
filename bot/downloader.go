@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -149,7 +148,7 @@ func save2file(filename string, offset int64, resp *http.Response) error {
 			err = fmt.Errorf("%v", e)
 		}
 	}(f)
-	content, err := ioutil.ReadAll(resp.Body)
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

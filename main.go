@@ -2,28 +2,17 @@ package main
 
 import (
 	"bufio"
-	"crypto/md5"
-	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
-	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/XiaoMengXinX/Music163bot-Go/v2/bot"
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/symbols"
 	"github.com/sirupsen/logrus"
-	"github.com/traefik/yaegi/interp"
-	"github.com/traefik/yaegi/stdlib"
-	"github.com/traefik/yaegi/stdlib/syscall"
-	"github.com/traefik/yaegi/stdlib/unsafe"
 )
 
 var config map[string]string
@@ -37,25 +26,14 @@ var (
 )
 
 var (
-	runtimeVer      = fmt.Sprintf(runtime.Version()) // 编译环境
-	_VersionName    = ""                             // 程序版本
-	_VersionCodeStr = ""
-	_VersionCode    = 0
-	commitSHA       = ""                                                 // 编译哈希
-	buildTime       = ""                                                 // 编译日期
-	buildArch       = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
-	repoPath        = ""                                                 // 项目地址
-	rawRepoPath     = ""
+	runtimeVer   = fmt.Sprintf(runtime.Version())                     // 编译环境
+	_VersionName = ""                                                 // 程序版本
+	commitSHA    = ""                                                 // 编译哈希
+	buildTime    = ""                                                 // 编译日期
+	buildArch    = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
+	repoPath     = ""                                                 // 项目地址
+	rawRepoPath  = ""
 )
-
-type metadata struct {
-	Version     string `json:"version"`
-	VersionCode int    `json:"version_code"`
-	Files       []struct {
-		File string `json:"file"`
-		Md5  string `json:"md5"`
-	} `json:"files"`
-}
 
 // LogFormatter 自定义 log 格式
 type LogFormatter struct{}
@@ -69,8 +47,6 @@ func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func init() {
-	_VersionCode, _ = strconv.Atoi(_VersionCodeStr)
-
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors:          false,
 		FullTimestamp:          true,
@@ -105,7 +81,7 @@ func init() {
 	_BotEntry = f.String("bot-entry", "bot.Start", "自定义动态加载入口")
 	_ = f.Parse(os.Args[1:])
 
-	logrus.Printf("Music163bot-Go %s(%d)", _VersionName, _VersionCode)
+	logrus.Printf("Music163bot-Go %s", _VersionName)
 
 	conf, err := readConfig(*_ConfigPath)
 	if err != nil {
@@ -117,60 +93,11 @@ func init() {
 }
 
 func main() {
-	var meta metadata
 	var actionCode = -1 // actionCode: 0 exit, 1 error exit, 2 reload src, 3 update src
 
 	for true {
-		err := func() (err error) {
-			data, err := getLocalVersion()
-			if err != nil {
-				return err
-			}
-			meta = data
-			if !*_NoMD5Check && data.VersionCode != 0 {
-				logrus.Println("正在校验文件MD5")
-				err := checkMD5(data)
-				if err != nil {
-					return err
-				}
-				logrus.Println("MD5校验成功")
-			}
-			return err
-		}()
-
-		if func() bool {
-			if err == nil {
-				if (!*_NoMD5Check && len(meta.Files) == 0) || (*_NoUpdate && len(meta.Files) == 0) {
-					return true
-				}
-				v, err := loadDyn(meta)
-				if err == nil {
-					start, ok := v.Interface().(func(map[string]string) int)
-					if ok {
-						config["VersionName"] = meta.Version
-						config["VersionCode"] = fmt.Sprintf("%d", meta.VersionCode)
-						if *_NoUpdate && *_NoMD5Check {
-							logrus.Printf("加载自定义源码中")
-						} else {
-							logrus.Printf("加载版本 %s(%d) 中", meta.Version, meta.VersionCode)
-						}
-						actionCode = start(config)
-					} else {
-						return true
-					}
-				} else {
-					logrus.Errorln(err)
-					return true
-				}
-			} else {
-				logrus.Errorln(err)
-				return true
-			}
-			return false
-		}() {
-			logrus.Printf("加载内置版本 %s(%d) 中", _VersionName, _VersionCode)
-			actionCode = bot.Start(config)
-		}
+		logrus.Printf("加载内置版本 %s 中", _VersionName)
+		actionCode = bot.Start(config)
 		switch actionCode {
 		case 0:
 			os.Exit(0)
@@ -192,75 +119,6 @@ func main() {
 			continue
 		}
 	}
-}
-
-func loadDyn(meta metadata) (res reflect.Value, err error) {
-	defer func() {
-		e := recover()
-		if e != nil {
-			err = fmt.Errorf("%v", e)
-		}
-	}()
-	i := interp.New(interp.Options{})
-	_ = i.Use(unsafe.Symbols)
-	_ = i.Use(stdlib.Symbols)
-	_ = i.Use(syscall.Symbols)
-	_ = i.Use(symbols.Symbols)
-
-	if *_NoUpdate && *_NoMD5Check {
-		files, err := ioutil.ReadDir(*_SrcPath)
-		if err != nil {
-			return reflect.Value{}, err
-		}
-		for _, f := range files {
-			if strings.Contains(f.Name(), ".go") {
-				_, err := i.EvalPath(fmt.Sprintf("%s/%s", *_SrcPath, f.Name()))
-				if err != nil {
-					return reflect.Value{}, err
-				}
-			}
-		}
-	} else {
-		for _, f := range meta.Files {
-			if strings.Contains(path.Base(f.File), ".go") {
-				_, err := i.EvalPath(fmt.Sprintf("%s/%s", *_SrcPath, path.Base(f.File)))
-				if err != nil {
-					return reflect.Value{}, err
-				}
-			}
-		}
-	}
-	res, err = i.Eval(*_BotEntry)
-	if err != nil {
-		return reflect.Value{}, err
-	}
-	return res, err
-}
-
-func getLocalVersion() (meta metadata, err error) {
-	if fileExists(fmt.Sprintf("%s/version.json", *_SrcPath)) {
-		content, err := ioutil.ReadFile(fmt.Sprintf("%s/version.json", *_SrcPath))
-		if err != nil {
-			return meta, err
-		}
-		err = json.Unmarshal(content, &meta)
-		return meta, err
-	}
-	return meta, err
-}
-
-func checkMD5(data metadata) (err error) {
-	for _, f := range data.Files {
-		file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", *_SrcPath, path.Base(f.File)))
-		if err != nil {
-			return err
-		}
-		md5Data := md5.Sum(file)
-		if hex.EncodeToString(md5Data[:]) != f.Md5 {
-			return fmt.Errorf("文件: %s/%s MD5效验失败 ", *_SrcPath, path.Base(f.File))
-		}
-	}
-	return err
 }
 
 func readConfig(path string) (config map[string]string, err error) {
@@ -302,17 +160,6 @@ func readConfig(path string) (config map[string]string, err error) {
 	return config, err
 }
 
-func fileExists(path string) bool {
-	_, err := os.Stat(path) //os.Stat获取文件信息
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
 func dirExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -331,7 +178,6 @@ func dirExists(path string) bool {
 
 func initConfig(config map[string]string) {
 	config["BinVersionName"] = _VersionName
-	config["BinVersionCode"] = fmt.Sprintf("%d", _VersionCode)
 	config["runtimeVer"] = runtimeVer
 	config["buildTime"] = buildTime
 	config["commitSHA"] = commitSHA
