@@ -6,7 +6,6 @@ BUILD_TIME=$(date +'%Y-%m-%d %T')
 
 LDFlags="\
     -s -w \
-    -extldflags '-static -fpic' \
     -X 'main._VersionName=${VERSION}' \
     -X 'main.commitSHA=${COMMIT_SHA}' \
     -X 'main.buildTime=${BUILD_TIME}' \
@@ -14,4 +13,4 @@ LDFlags="\
     -X 'main.rawRepoPath=XiaoMengXinX/Music163bot-Go/v2'\
 "
 
-go build -trimpath -ldflags "${LDFlags}"
+CGO_ENABLED=0 go build -trimpath -ldflags "${LDFlags}"
