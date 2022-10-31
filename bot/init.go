@@ -39,6 +39,7 @@ var (
 	reg4   = regexp.MustCompile("&(.*)")
 	reg3   = regexp.MustCompile(`\?(.*)`)
 	regInt = regexp.MustCompile(`\d+`)
+	regUrl = regexp.MustCompile("(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?")
 )
 
 var mdV2Replacer = strings.NewReplacer(

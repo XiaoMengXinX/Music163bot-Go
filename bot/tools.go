@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -76,6 +77,16 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 func parseMusicID(text string) int {
 	var replacer = strings.NewReplacer("\n", "", " ", "")
 	messageText := replacer.Replace(text)
+	musicUrl := regUrl.FindStringSubmatch(messageText)
+	if len(musicUrl) != 0 {
+		if strings.Contains(musicUrl[0], "song") {
+			ur, _ := url.Parse(musicUrl[0])
+			id := ur.Query().Get("id")
+			if musicid, _ := strconv.Atoi(id); musicid != 0 {
+				return musicid
+			}
+		}
+	}
 	musicid, _ := strconv.Atoi(linkTestMusic(messageText))
 	return musicid
 }
