@@ -293,6 +293,11 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 
+	err = db.Create(&songInfo).Error // 写入歌曲缓存
+	if err != nil {
+		return err
+	}
+
 	for _, f := range []string{cacheDir + "/" + fileName, resizePicPath, picPath} {
 		err := os.Remove(f)
 		if err != nil {
