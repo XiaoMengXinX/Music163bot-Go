@@ -5,8 +5,8 @@
 <p align="center">演示bot：<a href="https://t.me/Music163bot">https://t.me/Music163bot</a></p>
 
 <p align="center">
-	<a href="https://goreportcard.com/report/github.com/XiaoMengXinX/Music163bot-Go">
-      <img src="https://goreportcard.com/badge/github.com/XiaoMengXinX/Music163bot-Go?style=flat-square">
+	<a href="https://goreportcard.com/report/github.com/XiaoMengXinX/Music163bot-Go/v2">
+      <img src="https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat">
 	</a>
 	<a href="https://github.com/XiaoMengXinX/Music163bot-Go/releases">
     <img src="https://img.shields.io/github/v/release/XiaoMengXinX/Music163bot-Go?include_prereleases&style=flat-square">
