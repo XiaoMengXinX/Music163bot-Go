@@ -1,0 +1,48 @@
+{
+  "general": {
+    "MUSIC_U": "YOUR_COOKIE_HERE",
+    "log_level": "info",
+    "log_path": "./logs"
+  },
+  "bot": {
+    "token": "YOUR_TOKEN_HERE",
+    "api_url": "https://api.telegram.org",
+    "ignore_invalid_certs": false,
+    "proxy": "default",
+    "admin": [
+      114514,
+      1919810
+    ],
+    "debug": false
+  },
+  "sqlite": {
+    "path": "cache.db",
+    "log_level": "silent"
+  },
+  "download": [
+    {
+      "name": "default",
+      "timeout": 60,
+      "proxy": "default",
+      "cdn": "none",
+      "reverse_proxy": "none",
+      "scheme": "https"
+    },
+    {
+      "name": "CDN",
+      "timeout": 60,
+      "proxy": "default",
+      "cdn": "120.241.238.244",
+      "reverse_proxy": "none",
+      "scheme": "https"
+    },
+    {
+      "name": "ReverseProxy",
+      "timeout": 60,
+      "proxy": "default",
+      "cdn": "none",
+      "reverse_proxy": "127.0.0.1:8080",
+      "scheme": "http"
+    }
+  ]
+}
