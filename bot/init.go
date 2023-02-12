@@ -90,6 +90,8 @@ via @%s`
 	fetchInfoFailed  = `获取歌曲信息失败`
 	waitForDown      = `等待下载中...`
 	downloading      = `下载中...`
+	downloadStatus   = " %s\n%.2fMB/%.2fMB %d%%"
+	redownloading    = `下载失败，尝试重新下载中...`
 	uploading        = `下载完成, 发送中...`
 	md5VerFailed     = "MD5校验失败"
 	reTrying         = "尝试重新下载中 (%d/%d)"
