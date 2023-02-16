@@ -60,7 +60,7 @@ Github: https://github.com/XiaoMengXinX/Music163bot-Go
 \[运行环境] %s`
 	musicInfo = `「%s」- %s
 专辑: %s
-#网易云音乐 #%s %.2fMB %.2fkpbs
+#网易云音乐 #%s %.2fMB %.2fkbps
 via @%s`
 	musicInfoMsg = `%s
 专辑: %s
