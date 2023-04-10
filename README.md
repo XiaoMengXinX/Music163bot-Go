@@ -54,7 +54,7 @@ GOOS=windows GOARCH=amd64 bash build.sh
 # 你的 Bot Token
 BOT_TOKEN = YOUR_BOT_TOKEN
 
-# 你的网易云 cookie （用于下载无损歌曲）
+# 你的网易云 cookie 中 MUSIC_U 项的值（用于下载无损歌曲）
 MUSIC_U = YOUR_MUSIC_U
 
 
