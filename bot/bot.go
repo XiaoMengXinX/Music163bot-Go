@@ -208,6 +208,16 @@ func Start(conf map[string]string) (actionCode int) {
 						}
 					}
 				}()
+			} else {
+				// 私聊无需 /music 前缀
+				if updateMsg.Chat.IsPrivate() && update.Message.Command() == "" && updateMsg.Text != "" {
+					go func() {
+						err := processAnyMusic(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
+				}
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery

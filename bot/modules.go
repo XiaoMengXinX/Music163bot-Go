@@ -74,19 +74,28 @@ func processRmCache(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) 
 }
 
 func processAnyMusic(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
-	if message.CommandArguments() == "" {
+	var keyword string
+	if message.Chat.IsPrivate() && !message.IsCommand() {
+		keyword = message.Text
+	} else {
+		keyword = message.CommandArguments()
+	}
+
+	if keyword == "" {
 		msg := tgbotapi.NewMessage(message.Chat.ID, inputIDorKeyword)
 		msg.ReplyToMessageID = message.MessageID
 		_, err = bot.Send(msg)
 		return
 	}
-	musicID, _ := strconv.Atoi(message.CommandArguments())
+
+	musicID, _ := strconv.Atoi(keyword)
 	if musicID != 0 {
 		err = processMusic(musicID, message, bot)
 		return err
 	}
+
 	searchResult, _ := api.SearchSong(data, api.SearchSongConfig{
-		Keyword: message.CommandArguments(),
+		Keyword: keyword,
 		Limit:   10,
 	})
 	if len(searchResult.Result.Songs) == 0 {
