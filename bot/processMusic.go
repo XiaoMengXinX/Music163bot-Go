@@ -173,7 +173,12 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	songInfo.SongArtists = parseArtist(songDetail.Songs[0])
 	songInfo.SongAlbum = songDetail.Songs[0].Al.Name
 	url := songURL.Data[0].Url
-	switch path.Ext(path.Base(url)) {
+	// 从 URL 中移除查询参数以正确获取扩展名
+	baseURL := url
+	if queryIndex := strings.Index(url, "?"); queryIndex != -1 {
+		baseURL = url[:queryIndex]
+	}
+	switch path.Ext(path.Base(baseURL)) {
 	case ".mp3":
 		songInfo.FileExt = "mp3"
 	case ".flac":
