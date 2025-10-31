@@ -127,3 +127,37 @@ func processStatus(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 	_, err = bot.Send(msg)
 	return err
 }
+
+func processMyStats(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
+	userID := message.From.ID
+	userName := message.From.UserName
+	if userName == "" {
+		userName = message.From.FirstName
+	}
+
+	userStats, err := getUserStats(userID)
+	if err != nil {
+		// 用户没有统计信息，创建默认记录
+		userStats = &UserStats{
+			UserID:        userID,
+			UserName:      userName,
+			TotalDownload: 0,
+			TodayDownload: 0,
+			LastResetDate: time.Now().Format("2006-01-02"),
+		}
+	}
+
+	msgText := fmt.Sprintf(myStatsInfo,
+		mdV2Replacer.Replace(userName),
+		userID,
+		userStats.TodayDownload,
+		dailyLimit,
+		userStats.TotalDownload,
+	)
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, msgText)
+	msg.ReplyToMessageID = message.MessageID
+	msg.ParseMode = tgbotapi.ModeMarkdownV2
+	_, err = bot.Send(msg)
+	return err
+}

@@ -28,6 +28,16 @@ type SongInfo struct {
 	FromChatName string
 }
 
+// UserStats 用户统计信息
+type UserStats struct {
+	gorm.Model
+	UserID        int64 `gorm:"uniqueIndex"`
+	UserName      string
+	TotalDownload int    // 累计下载数
+	TodayDownload int    // 今日下载数
+	LastResetDate string // 最后重置日期 (格式: YYYY-MM-DD)
+}
+
 func initDB(config map[string]string) (err error) {
 	database := "cache.db"
 	if config["Database"] != "" {
@@ -44,6 +54,11 @@ func initDB(config map[string]string) (err error) {
 	if err != nil {
 		return err
 	}
+	err = db.Table("user_stats").AutoMigrate(&UserStats{})
+	if err != nil {
+		return err
+	}
 	MusicDB = db.Table("song_infos")
+	UserStatsDB = db.Table("user_stats")
 	return err
 }

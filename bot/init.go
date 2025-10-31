@@ -12,6 +12,9 @@ import (
 // MusicDB 音乐缓存数据库入口
 var MusicDB *gorm.DB
 
+// UserStatsDB 用户统计数据库入口
+var UserStatsDB *gorm.DB
+
 // config 配置文件数据
 var config map[string]string
 
@@ -102,4 +105,15 @@ via @%s`
 
 	fetchingLyric   = "正在获取歌词中"
 	downloadTimeout = `下载超时`
+
+	// 频道订阅和限制相关消息
+	needSubscribe   = `请先订阅频道 @%s 后才能使用本Bot`
+	subscribeButton = `订阅频道`
+	checkSubscribe  = `检查订阅状态`
+	dailyLimitMsg   = `您今日的下载次数已达上限 (%d/%d)，请明天再来`
+	myStatsInfo     = `*\[我的统计\]*
+用户: [%s](tg://user?id=%d)
+今日已下载: %d/%d
+累计下载: %d
+`
 )

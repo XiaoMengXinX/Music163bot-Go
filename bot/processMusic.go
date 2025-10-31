@@ -23,6 +23,32 @@ import (
 var musicLimiter = make(chan bool, 4)
 
 func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
+	// 检查频道订阅
+	userID := message.From.ID
+	userName := message.From.UserName
+	if userName == "" {
+		userName = message.From.FirstName
+	}
+
+	subscribed, err := checkChannelSubscription(userID)
+	if err != nil {
+		logrus.Errorln("检查订阅状态失败:", err)
+	}
+	if !subscribed {
+		sendSubscribeMessage(message.Chat.ID, message.MessageID)
+		return nil
+	}
+
+	// 检查每日限制
+	allowed, currentCount, err := checkDailyLimit(userID, userName)
+	if err != nil {
+		logrus.Errorln("检查每日限制失败:", err)
+	}
+	if !allowed {
+		sendDailyLimitMessage(message.Chat.ID, message.MessageID, currentCount)
+		return nil
+	}
+
 	d := downloader.NewDownloader().SetSavePath(cacheDir).SetBreakPoint(true)
 
 	timeout, _ := strconv.Atoi(config["DownloadTimeout"])
@@ -69,6 +95,12 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		if err != nil {
 			sendFailed(err)
 			return err
+		}
+
+		// 成功发送后增加用户下载计数
+		err = incrementUserDownload(userID, userName)
+		if err != nil {
+			logrus.Errorln("增加用户下载计数失败:", err)
 		}
 
 		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
@@ -295,17 +327,17 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	}
 
 	var replacer = strings.NewReplacer("/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ")
-	var newDir = cacheDir+"/"+fmt.Sprintf("%d", timeStamp)
+	var newDir = cacheDir + "/" + fmt.Sprintf("%d", timeStamp)
 	fileName := replacer.Replace(fmt.Sprintf("%v - %v.%v", strings.Replace(songInfo.SongArtists, "/", ",", -1), songInfo.SongName, songInfo.FileExt))
-	var filePath = newDir+"/"+fileName
-	err	= os.Mkdir(newDir, os.ModePerm)
+	var filePath = newDir + "/" + fileName
+	err = os.Mkdir(newDir, os.ModePerm)
 	if err != nil {
 		sendFailed(err)
 		return err
-    }
+	}
 	err = os.Rename(cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url)), filePath)
 	if err != nil {
-		filePath = cacheDir+"/"+fmt.Sprintf("%d-%s", timeStamp, path.Base(url))
+		filePath = cacheDir + "/" + fmt.Sprintf("%d-%s", timeStamp, path.Base(url))
 	}
 
 	mark := marker.CreateMarker(songDetail.Songs[0], songURL.Data[0])
@@ -344,6 +376,12 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 	err = db.Create(&songInfo).Error // 写入歌曲缓存
 	if err != nil {
 		return err
+	}
+
+	// 成功发送后增加用户下载计数
+	err = incrementUserDownload(userID, userName)
+	if err != nil {
+		logrus.Errorln("增加用户下载计数失败:", err)
 	}
 
 	for _, f := range []string{filePath, resizePicPath, picPath} {

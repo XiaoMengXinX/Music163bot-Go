@@ -48,6 +48,9 @@ func Start(conf map[string]string) (actionCode int) {
 	db.SetMaxOpenConns(1)
 	defer db.Close()
 
+	// 初始化用户限制配置
+	initUserLimit(config)
+
 	if config["MUSIC_U"] != "" {
 		data = utils.RequestData{
 			Cookies: []*http.Cookie{
@@ -170,6 +173,13 @@ func Start(conf map[string]string) (actionCode int) {
 							logrus.Errorln(err)
 						}
 					}()
+				case "my":
+					go func() {
+						err := processMyStats(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
 				}
 				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
@@ -211,6 +221,27 @@ func Start(conf map[string]string) (actionCode int) {
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery
+
+			// 处理订阅检查回调
+			if updateQuery.Data == "check_subscription" {
+				go func() {
+					userID := updateQuery.From.ID
+					subscribed, err := checkChannelSubscription(userID)
+					if err != nil {
+						bot.Send(tgbotapi.NewCallback(updateQuery.ID, "检查失败，请稍后重试"))
+						return
+					}
+					if subscribed {
+						bot.Send(tgbotapi.NewCallback(updateQuery.ID, "订阅验证成功！"))
+						// 删除原消息
+						bot.Send(tgbotapi.NewDeleteMessage(updateQuery.Message.Chat.ID, updateQuery.Message.MessageID))
+					} else {
+						bot.Send(tgbotapi.NewCallback(updateQuery.ID, "您还未订阅频道"))
+					}
+				}()
+				continue
+			}
+
 			args := strings.Split(updateQuery.Data, " ")
 			if len(args) < 2 {
 				continue
