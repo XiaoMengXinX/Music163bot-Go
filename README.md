@@ -9,8 +9,11 @@
       <img src="https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat">
 	</a>
 	<a href="https://github.com/XiaoMengXinX/Music163bot-Go/releases">
-    <img src="https://img.shields.io/github/v/release/XiaoMengXinX/Music163bot-Go?include_prereleases&style=flat-square">
-  </a>
+      <img src="https://img.shields.io/github/v/release/XiaoMengXinX/Music163bot-Go?include_prereleases&style=flat-square">
+  	</a>
+	<a href="https://tgbotmau.quoi.dev/?bot=Music163bot" target="_blank">
+		<img alt="@Music163bot MAU" title="@Music163bot MAU" src="https://tgbotmau.quoi.dev/api/bot/Music163bot/mau/badge?style=flat">
+	</a>
 </p>
 
 ## ✨ 特性
@@ -116,3 +119,4 @@ $ ./Music163bot-Go
 - `/musicid` 或 `/netease` + `音乐ID`  —— 从 MusicID 获取歌曲
 - `/search` + `关键词` —— 搜索歌曲
 - `/about` —— 关于本 bot
+
