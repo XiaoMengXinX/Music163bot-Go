@@ -78,7 +78,7 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 
 	if lyric.Lrc.Lyric != "" && len(detail.Songs) != 0 {
 		var replacer = strings.NewReplacer("/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ")
-		lrcPath := fmt.Sprintf("%s/%s - %s.lrc", cacheDir, replacer.Replace(parseArtist(detail.Songs[0])), replacer.Replace(detail.Songs[0].Name))
+		lrcPath := fmt.Sprintf("%s/%s - %s.lrc", cacheDir, replacer.Replace(strings.Replace(parseArtist(detail.Songs[0]), "/", ",", -1)), replacer.Replace(detail.Songs[0].Name))
 		file, err := os.OpenFile(lrcPath, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			sendFailed()
