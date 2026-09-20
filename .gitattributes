@@ -1,0 +1,5 @@
+# 统一换行符为 LF，避免在 Windows 上克隆后 shell 脚本带 CRLF 无法执行
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

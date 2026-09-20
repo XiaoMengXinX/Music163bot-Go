@@ -28,3 +28,9 @@ config.ini
 /test
 *.mp3
 *.flac
+
+# local build artifacts of this bot (stats panel)
+Nilou_bot*
+stats.db*
+/nilou-src.tgz
+.buildinfo

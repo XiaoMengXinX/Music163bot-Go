@@ -48,6 +48,18 @@ func Start(conf map[string]string) (actionCode int) {
 	db.SetMaxOpenConns(1)
 	defer db.Close()
 
+	// 初始化点播统计数据库（独立文件，失败不影响 bot 主功能）
+	if err = initStats(config); err != nil {
+		logrus.Errorln("初始化统计数据库失败:", err)
+	}
+
+	// PanelOnly = true：只启动统计面板（不连接 Telegram），用于离线调试面板与回填
+	if strings.EqualFold(strings.TrimSpace(config["PanelOnly"]), "true") {
+		statsPanelStart(config)
+		logrus.Infoln("PanelOnly 模式：仅运行统计面板与统计库，不连接 Telegram")
+		select {}
+	}
+
 	if config["MUSIC_U"] != "" {
 		data = utils.RequestData{
 			Cookies: []*http.Cookie{
@@ -88,6 +100,9 @@ func Start(conf map[string]string) (actionCode int) {
 	logrus.Printf("%s 验证成功", bot.Self.UserName)
 	botName = bot.Self.UserName
 
+	// 启动统计面板（可在 config.ini 中用 PanelEnable = false 关闭）
+	statsPanelStart(config)
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -95,12 +110,14 @@ func Start(conf map[string]string) (actionCode int) {
 	defer bot.StopReceivingUpdates()
 
 	for update := range updates {
-		if update.Message == nil && update.CallbackQuery == nil && update.InlineQuery == nil { // ignore any non-Message Updates
+		if update.Message == nil && update.CallbackQuery == nil && update.InlineQuery == nil &&
+			update.MyChatMember == nil && update.ChosenInlineResult == nil { // ignore any non-Message Updates
 			continue
 		}
 		switch {
 		case update.Message != nil:
 			updateMsg := *update.Message
+			recordChatSeen(updateMsg.Chat) // 统计：收到消息即证明 bot 在该会话内
 			if atStr := strings.ReplaceAll(update.Message.CommandWithAt(), update.Message.Command(), ""); update.Message.Command() != "" && (atStr == "" || atStr == "@"+botName) {
 				switch update.Message.Command() {
 				case "start":
@@ -170,6 +187,14 @@ func Start(conf map[string]string) (actionCode int) {
 							logrus.Errorln(err)
 						}
 					}()
+				case "panel":
+					// 管理员私聊申请统计面板的一次性访问令牌
+					go func() {
+						err := processPanelCommand(updateMsg, bot)
+						if err != nil {
+							logrus.Errorln(err)
+						}
+					}()
 				}
 				if in(fmt.Sprintf("%d", update.Message.From.ID), botAdminStr) {
 					switch update.Message.Command() {
@@ -211,6 +236,9 @@ func Start(conf map[string]string) (actionCode int) {
 			}
 		case update.CallbackQuery != nil:
 			updateQuery := *update.CallbackQuery
+			if updateQuery.Message != nil {
+				recordChatSeen(updateQuery.Message.Chat)
+			}
 			args := strings.Split(updateQuery.Data, " ")
 			if len(args) < 2 {
 				continue
@@ -256,6 +284,19 @@ func Start(conf map[string]string) (actionCode int) {
 						}
 					}
 				}()
+			}
+		case update.ChosenInlineResult != nil:
+			// inline 模式下用户选用了 bot 的歌曲：可统计曲目，但拿不到所在会话
+			updateResult := *update.ChosenInlineResult
+			go recordChosenInline(updateResult.ResultID, updateResult.From)
+		case update.MyChatMember != nil:
+			// bot 自身被加入/移出群：判断「在哪些群」最准确的依据
+			updateMember := *update.MyChatMember
+			status := updateMember.NewChatMember.Status
+			inChat := status == "member" || status == "administrator" || status == "creator" || status == "restricted"
+			recordChatStatus(&updateMember.Chat, inChat)
+			if !inChat {
+				logrus.Infof("bot 已离开会话 %v (%s)", updateMember.Chat.ID, chatTitleOf(&updateMember.Chat))
 			}
 		}
 	}

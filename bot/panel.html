@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>统计面板</title>
+<style>
+  :root{
+    --bg:#f3f5fa; --bg2:#ffffff; --bg3:#eaeef7; --line:#dde3ee;
+    --fg:#1a1f2b; --fg2:#69728a; --acc:#3b62e0; --acc2:#0e9f8a;
+    --ok:#0f9d58; --bad:#d6414f; --warn:#b5761a;
+    --bar1:#6f95ee; --bar2:#3b62e0;
+    --shadow:0 1px 2px rgba(24,32,64,.06),0 6px 18px rgba(24,32,64,.05);
+  }
+  html[data-theme="dark"]{
+    --bg:#12141a; --bg2:#181b23; --bg3:#1f2430; --line:#2b3242;
+    --fg:#e6e9f0; --fg2:#9aa4b8; --acc:#7aa2ff; --acc2:#5ee0c0;
+    --ok:#5ee0a0; --bad:#ff6b81; --warn:#ffb454;
+    --bar1:#5f86e6; --bar2:#3a5bb0;
+    --shadow:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 "Segoe UI",system-ui,"Microsoft YaHei",sans-serif}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;flex-wrap:wrap;box-shadow:var(--shadow)}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .sub{color:var(--fg2);font-size:12px}
+  nav{display:flex;gap:6px;flex-wrap:wrap}
+  nav button{background:transparent;border:1px solid transparent;color:var(--fg2);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+  nav button:hover{background:var(--bg3);color:var(--fg)}
+  nav button.on{background:var(--bg3);color:var(--fg);border-color:var(--line);font-weight:600}
+  main{padding:20px;max-width:1400px;margin:0 auto}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+  .card .k{color:var(--fg2);font-size:12px;margin-bottom:6px}
+  .card .v{font-size:24px;font-weight:600;letter-spacing:.5px}
+  .card .v small{font-size:12px;color:var(--fg2);font-weight:400;margin-left:4px}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .panel h2{font-size:14px;margin:0 0 12px;font-weight:600;color:var(--fg)}
+  .panel h2 span{color:var(--fg2);font-weight:400;font-size:12px;margin-left:8px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--fg2);font-weight:500;position:sticky;top:0;background:var(--bg2);cursor:pointer;user-select:none}
+  tbody tr:hover{background:var(--bg3)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;border:1px solid color-mix(in srgb, currentColor 35%, transparent);background:color-mix(in srgb, currentColor 10%, transparent);color:var(--fg2)}
+  .tag.g{color:var(--acc)}
+  .tag.p{color:var(--fg2)}
+  .tag.in{color:var(--ok)}
+  .tag.out{color:var(--bad)}
+  .tag.unk{color:var(--warn)}
+  input,select,button.btn{background:var(--bg2);border:1px solid var(--line);color:var(--fg);padding:7px 10px;border-radius:8px;font-size:13px;font-family:inherit}
+  input:focus,select:focus{outline:2px solid color-mix(in srgb, var(--acc) 45%, transparent);outline-offset:0}
+  button.btn{cursor:pointer}
+  button.btn:hover{border-color:var(--acc);color:var(--acc)}
+  button.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.btn.pri:hover{color:#fff;opacity:.9}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  .icon-btn{background:transparent;border:1px solid var(--line);color:var(--fg);cursor:pointer;border-radius:8px;padding:6px 10px;font-size:15px;line-height:1}
+  .icon-btn:hover{border-color:var(--acc)}
+  .scroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .bars{display:flex;align-items:flex-end;gap:10px;height:140px;padding:8px 4px;overflow-x:auto}
+  .bars .b{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:46px;flex:1}
+  .bars .b .bar{width:100%;max-width:44px;background:linear-gradient(180deg,var(--bar1),var(--bar2));border-radius:6px 6px 2px 2px;min-height:2px}
+  .bars .b .lbl{font-size:11px;color:var(--fg2)}
+  .bars .b .val{font-size:11px;color:var(--fg)}
+  .toplist{display:flex;flex-direction:column;gap:8px}
+  .toplist .t{display:grid;grid-template-columns:28px 1fr 90px 54px;gap:10px;align-items:center}
+  .toplist .t .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toplist .t .name small{color:var(--fg2);display:block;overflow:hidden;text-overflow:ellipsis}
+  .toplist .t .meter{background:var(--bg3);border-radius:6px;height:8px;overflow:hidden}
+  .toplist .t .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc))}
+  .toplist .t .cnt{text-align:right;font-variant-numeric:tabular-nums}
+  .rank{color:var(--fg2);font-variant-numeric:tabular-nums;text-align:right}
+  .rank.r1{color:#d9a100;font-weight:700}.rank.r2{color:#8d95a6;font-weight:700}.rank.r3{color:#c07a3a;font-weight:700}
+  .muted{color:var(--fg2)}
+  .err{color:var(--bad)}
+  .ok{color:var(--ok)}
+  dialog{background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:0;max-width:760px;width:92%;box-shadow:0 20px 60px rgba(20,26,50,.25)}
+  dialog::backdrop{background:rgba(18,22,38,.45)}
+  dialog .dh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  dialog .dh h3{margin:0;font-size:15px}
+  dialog .db{padding:16px 18px;max-height:70vh;overflow:auto}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}.toplist .t{grid-template-columns:22px 1fr 60px 44px}}
+  .hint{font-size:12px;color:var(--fg2);margin-top:8px}
+  code{background:var(--bg3);padding:1px 5px;border-radius:5px;font-size:12px}
+  #gate{min-height:100vh;display:flex;align-items:center;justify-content:center}
+  #gate[hidden]{display:none}
+  #gate .box{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:26px;width:400px;box-shadow:var(--shadow)}
+  #gate h1{font-size:17px;margin:0 0 6px}
+  #gate p{color:var(--fg2);font-size:12px;margin:0 0 16px;line-height:1.7}
+  #gate input{width:100%;margin-bottom:10px}
+  #gate button{width:100%}
+</style>
+</head>
+<body>
+
+<div id="gate" hidden>
+  <div class="box">
+    <h1>统计面板</h1>
+    <p>需要一次性访问令牌：在 Telegram 里用管理员账号私聊 bot 发送 <code>/panel</code> 获取，令牌只能用一次且很快过期。</p>
+    <input id="tok" type="password" placeholder="粘贴一次性访问令牌" autocomplete="one-time-code">
+    <button class="btn pri" id="tokBtn">进入面板</button>
+    <div class="hint err" id="tokMsg"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <h1>统计面板</h1>
+  <nav>
+    <button data-v="overview" class="on">概览</button>
+    <button data-v="chats">群列表</button>
+    <button data-v="weeks">周榜</button>
+    <button data-v="tracks">曲目</button>
+    <button data-v="maint">维护</button>
+  </nav>
+  <span class="sub" id="hdrInfo"></span>
+  <span style="flex:1"></span>
+  <button class="icon-btn" id="themeBtn" title="切换明暗">☾</button>
+  <button class="btn" id="reloadBtn" title="重新拉取数据">刷新</button>
+  <button class="btn" id="logoutBtn" title="退出登录" hidden>退出</button>
+</header>
+
+<main>
+  <section id="v-overview">
+    <div class="cards" id="ovCards"></div>
+    <div class="panel"><h2>最近 12 周点播量 <span id="ovWeeksHint"></span></h2><div class="bars" id="ovBars"></div></div>
+    <div class="grid2">
+      <div class="panel"><h2>本周点播 TOP 10 <span id="ovWeekHint"></span></h2><div class="toplist" id="ovTop"></div></div>
+      <div class="panel"><h2>最近有点播的群</h2><div id="ovRecent"></div></div>
+    </div>
+  </section>
+
+  <section id="v-chats" hidden>
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <select id="chatOnly"><option value="">全部会话</option><option value="group">只要群</option><option value="private">只要私聊</option></select>
+        <label class="muted"><input type="checkbox" id="chatWithPlays"> 只看有点播</label>
+        <input id="chatQ" placeholder="搜索群名 / ID" style="min-width:220px">
+        <button class="btn" id="chatReload">刷新</button>
+        <span class="muted" id="chatCount"></span>
+      </div>
+      <div class="scroll"><table id="chatTable"><thead><tr>
+        <th data-s="title">群名 / 标题</th><th data-s="id">Chat ID</th><th data-s="type">类型</th>
+        <th data-s="memberCount" class="num">人数</th><th data-s="inChat">在群</th>
+        <th data-s="msgCount" class="num">消息数</th><th data-s="plays" class="num">点播</th>
+        <th data-s="playsWeek" class="num">本周</th><th data-s="lastSeen">最后活跃</th><th data-s="lastPlay">最后点播</th>
+      </tr></thead><tbody></tbody></table></div>
+      <div class="hint">「在群」来自 bot 实际收到的消息与 my_chat_member 事件；「状态未知」表示只有历史缓存记录、尚未校验。点某一行可按该群查看周榜。</div>
+    </div>
+  </section>
+
+  <section id="v-weeks" hidden>
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="wPrev">← 上一周</button>
+        <input id="wKey" placeholder="2026-W38" style="width:120px">
+        <button class="btn pri" id="wGo">查看</button>
+        <button class="btn" id="wNext">下一周 →</button>
+        <button class="btn" id="wCur">本周</button>
+        <button class="btn" id="wAll">全部时间</button>
+        <select id="wScope"><option value="all">全部会话</option><option value="group">仅群聊</option><option value="private">仅私聊</option><option value="inline">inline 选用</option></select>
+        <input id="wChatId" placeholder="按 Chat ID 过滤（可空）" style="width:200px">
+        <button class="btn" id="wReload">刷新</button>
+        <span class="muted" id="wRange"></span>
+      </div>
+      <div class="hint" id="wHint" style="margin:-4px 0 10px"></div>
+      <div id="wList"></div>
+    </div>
+  </section>
+
+  <section id="v-tracks" hidden>
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <input id="tQ" placeholder="搜索歌曲名 / 歌手，或直接输入 MusicID" style="min-width:280px">
+        <button class="btn pri" id="tGo">搜索</button>
+        <button class="btn" id="tTop">全部时间点播排行</button>
+        <span class="muted" id="tHint"></span>
+      </div>
+      <div class="scroll"><table id="tTable"><thead><tr>
+        <th class="num">#</th><th>歌曲</th><th>歌手</th><th>MusicID</th><th class="num">点播</th><th>最近</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="v-maint" hidden>
+    <div class="panel"><h2>历史回填 <span>从 cache.db 导入已有的点播记录</span></h2>
+      <p class="muted">歌曲缓存库只保存每首歌<strong>首次</strong>缓存的记录，因此回填数据是历史点播的下限，重复点播无法还原；实时记录从面板启用后开始累计。</p>
+      <button class="btn pri" id="bfBtn">开始回填</button>
+      <div class="hint" id="bfMsg"></div>
+    </div>
+    <div class="panel"><h2>校验群状态 <span>向 Telegram 查询每个群的标题、人数与是否仍在群</span></h2>
+      <p class="muted">逐群调用 getChat / getChatMemberCount，约每 0.35 秒一个，会话较多时需要一点时间。</p>
+      <div class="row"><button class="btn pri" id="syncBtn">开始校验</button><button class="btn" id="syncPoll">查看进度</button></div>
+      <div class="hint" id="syncMsg"></div>
+    </div>
+    <div class="panel"><h2>面板信息</h2><div id="maintInfo" class="muted"></div></div>
+  </section>
+</main>
+</div>
+
+<dialog id="dlg">
+  <div class="dh"><h3 id="dlgTitle">详情</h3><button class="btn" onclick="document.getElementById('dlg').close()">关闭</button></div>
+  <div class="db" id="dlgBody"></div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let state = { weeks: [], chatId: 0, scope: 'all', chatRows: [], chatSort: 'plays', chatDir: -1 };
+
+/* ---------- 明暗主题 ---------- */
+const THEME_KEY = 'stats_panel_theme';
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const b = $('themeBtn');
+  if (b) {
+    b.textContent = t === 'dark' ? '☀' : '☾';
+    b.title = t === 'dark' ? '切换为亮色' : '切换为暗色';
+  }
+}
+applyTheme(localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light');
+$('themeBtn').onclick = () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+};
+$('reloadBtn').onclick = () => {
+  const cur = document.querySelector('nav button.on').dataset.v;
+  if (cur === 'overview') loadOverview();
+  if (cur === 'chats') loadChats();
+  if (cur === 'weeks') loadWeeks();
+  if (cur === 'tracks') loadTracks($('tQ').value.trim());
+  if (cur === 'maint') loadMaint();
+};
+
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
+  let data = null;
+  try { data = await r.json(); } catch (e) { data = {}; }
+  if (r.status === 401) { showGate('登录已过期，请在 Telegram 里重新发送 /panel 获取令牌'); throw new Error(data.error || '未授权'); }
+  if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+  return data;
+}
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  ['overview', 'chats', 'weeks', 'tracks', 'maint'].forEach(v => $('v-' + v).hidden = (v !== b.dataset.v));
+  if (b.dataset.v === 'overview') loadOverview();
+  if (b.dataset.v === 'chats') loadChats();
+  if (b.dataset.v === 'weeks') loadWeeks();
+  if (b.dataset.v === 'tracks' && !$('tTable').querySelector('tbody tr[data-id]')) loadTracks('');
+  if (b.dataset.v === 'maint') loadMaint();
+});
+
+/* ---------- 概览 ---------- */
+async function loadOverview() {
+  const d = await api('/api/summary');
+  const s = d.summary;
+  $('hdrInfo').textContent = `统计时区 ${s.statsTimeZone} · 本周 ${s.weekKey}（${s.weekStart} ~ ${s.weekEnd}）`;
+  $('ovCards').innerHTML = [
+    card('在群数量', s.groupsIn, `共见过 ${s.groups} 个群`),
+    card('群成员合计', s.membersSum, '已校验的群'),
+    card('已退出/不可见', s.groupsLeft, s.groupsUnknown ? `另有 ${s.groupsUnknown} 个未校验` : ''),
+    card('本周点播', s.playsWeek, `累计 ${s.playsTotal} 次`),
+    card('曲目数', s.songsTotal, `其中 inline 选用 ${s.playsInline}`),
+    card('私聊会话', s.privates, s.playsBackfill ? `历史回填 ${s.playsBackfill} 条` : '')
+  ].join('');
+  $('ovWeeksHint').textContent = s.dbFile + ' · ' + (s.dbBytes / 1024).toFixed(1) + ' KB';
+  const max = Math.max(1, ...d.weeks.map(w => w.plays));
+  $('ovBars').innerHTML = d.weeks.slice().reverse().map(w => `
+    <div class="b" title="${w.week} ${w.weekStart}~${w.weekEnd}">
+      <div class="val">${w.plays}</div>
+      <div class="bar" style="height:${Math.max(2, w.plays / max * 110)}px"></div>
+      <div class="lbl">${w.week.replace(/^\d\d/, '')}${w.isCurrent ? '<br>本周' : ''}</div>
+    </div>`).join('') || '<span class="muted">暂无数据</span>';
+  $('ovWeekHint').textContent = s.weekKey;
+  $('ovTop').innerHTML = renderTop(d.topThisWeek, false) || '<span class="muted">本周还没有点播</span>';
+  $('ovRecent').innerHTML = d.recentGroups.length ? '<div class="scroll"><table><thead><tr><th>群</th><th class="num">点播</th><th>最后点播</th></tr></thead><tbody>' +
+    d.recentGroups.map(c => `<tr><td>${esc(c.title || c.userName)} ${statusTag(c)}</td><td class="num">${c.plays}</td><td class="muted">${esc(c.lastPlay)}</td></tr>`).join('') +
+    '</tbody></table></div>' : '<span class="muted">暂无</span>';
+}
+
+function card(k, v, sub) {
+  return `<div class="card"><div class="k">${esc(k)}</div><div class="v">${v}${sub ? `<small>${esc(sub)}</small>` : ''}</div></div>`;
+}
+function statusTag(c) {
+  if (c.type === 'private') return '<span class="tag p">私聊</span>';
+  if (!c.verified) return '<span class="tag unk">状态未知</span>';
+  return c.inChat ? '<span class="tag in">在群</span>' : '<span class="tag out">已退出</span>';
+}
+function renderTop(rows, clickable) {
+  if (!rows || !rows.length) return '';
+  const max = Math.max(1, ...rows.map(r => r.plays));
+  return '<div class="toplist">' + rows.map(r => `
+    <div class="t" ${clickable ? `data-id="${r.musicId}" style="cursor:pointer"` : ''}>
+      <div class="rank ${r.rank <= 3 ? 'r' + r.rank : ''}">${r.rank}</div>
+      <div class="name" title="${esc(r.songName)} - ${esc(r.artists)}">${esc(r.songName)}
+        <small>${esc(r.artists || '')}${r.chats ? ' · ' + r.chats + ' 个会话' : ''}</small></div>
+      <div class="meter"><i style="width:${r.plays / max * 100}%"></i></div>
+      <div class="cnt">${r.plays}</div>
+    </div>`).join('') + '</div>';
+}
+
+/* ---------- 群列表 ---------- */
+async function loadChats() {
+  const q = '?only=' + encodeURIComponent($('chatOnly').value) + ($('chatWithPlays').checked ? '&withPlays=1' : '');
+  const d = await api('/api/chats' + q);
+  state.chatRows = d.rows;
+  renderChats();
+}
+function renderChats() {
+  const kw = $('chatQ').value.trim().toLowerCase();
+  let rows = state.chatRows.filter(r => !kw || (r.title || '').toLowerCase().includes(kw) || (r.userName || '').toLowerCase().includes(kw) || String(r.id).includes(kw));
+  const k = state.chatSort, dir = state.chatDir;
+  rows.sort((a, b) => {
+    const va = a[k], vb = b[k];
+    if (typeof va === 'boolean') return ((va ? 1 : 0) - (vb ? 1 : 0)) * -dir;
+    if (typeof va === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb), 'zh') * dir;
+  });
+  $('chatCount').textContent = `显示 ${rows.length} / 共 ${state.chatRows.length}`;
+  $('chatTable').querySelector('tbody').innerHTML = rows.map(r => `
+    <tr data-id="${r.id}" data-title="${esc(r.title || r.userName)}" style="cursor:pointer">
+      <td>${esc(r.title || r.userName || '(无标题)')}${r.userName && r.title ? ` <span class="muted">@${esc(r.userName)}</span>` : ''}
+        ${r.source === 'backfill' ? ' <span class="tag unk">历史</span>' : ''}</td>
+      <td class="muted">${r.id}</td>
+      <td>${esc(r.type)}</td>
+      <td class="num">${r.memberCount || '-'}</td>
+      <td>${statusTag(r)}</td>
+      <td class="num">${r.msgCount}</td>
+      <td class="num">${r.plays}</td>
+      <td class="num">${r.playsWeek}</td>
+      <td class="muted">${esc(r.lastSeen)}</td>
+      <td class="muted">${esc(r.lastPlay)}</td>
+    </tr>`).join('') || '<tr><td colspan="10" class="muted">没有匹配的会话</td></tr>';
+  $('chatTable').querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => {
+    state.chatId = Number(tr.dataset.id); state.scope = 'all';
+    $('wChatId').value = tr.dataset.id; $('wScope').value = 'all';
+    document.querySelector('nav button[data-v="weeks"]').click();
+    loadTop();
+  });
+}
+document.querySelectorAll('#chatTable th').forEach(th => th.onclick = () => {
+  const s = th.dataset.s; if (!s) return;
+  if (state.chatSort === s) state.chatDir *= -1; else { state.chatSort = s; state.chatDir = (s === 'title' || s === 'type') ? 1 : -1; }
+  renderChats();
+});
+$('chatReload').onclick = loadChats;
+$('chatOnly').onchange = loadChats;
+$('chatWithPlays').onchange = loadChats;
+$('chatQ').oninput = renderChats;
+
+/* ---------- 周榜 ---------- */
+async function loadWeeks() {
+  const d = await api('/api/weeks?limit=52');
+  state.weeks = d.weeks;
+  if (!$('wKey').value) $('wKey').value = (d.weeks.some(w => w.week === d.current) || !d.weeks.length) ? d.current : d.weeks[0].week;
+  $('wHint').textContent = d.weeks.length ? `有记录的周：${d.weeks.slice(0, 6).map(w => w.week + '(' + w.plays + ')').join('、')}` : '暂无任何点播记录';
+  loadTop();
+}
+async function loadTop() {
+  const week = $('wKey').value.trim() || 'current';
+  const chatId = Number($('wChatId').value.trim() || 0) || 0;
+  const scope = $('wScope').value;
+  const d = await api(`/api/top?week=${encodeURIComponent(week)}&scope=${scope}&chatId=${chatId}&limit=50`);
+  const r = d.range;
+  $('wRange').textContent = (r.start ? `${r.week}（${r.start} ~ ${r.end}，含首尾）` : '全部时间') + (chatId ? ` · 会话 ${chatId}` : '');
+  $('wKey').value = r.week || $('wKey').value;
+  $('wList').innerHTML = d.rows.length ? renderTop(d.rows, true) :
+    '<span class="muted">该范围内没有点播记录' + (week === 'current' && state.weeks.length ? '（可切换到有记录的周）' : '') + '</span>';
+  $('wList').querySelectorAll('.t[data-id]').forEach(el => el.onclick = () => showTrack(el.dataset.id));
+}
+$('wGo').onclick = loadTop;
+$('wReload').onclick = loadTop;
+$('wScope').onchange = loadTop;
+$('wChatId').onchange = loadTop;
+$('wCur').onclick = () => { $('wKey').value = 'current'; $('wChatId').value = ''; loadTop(); };
+$('wAll').onclick = () => { $('wKey').value = 'all'; loadTop(); };
+$('wPrev').onclick = () => stepWeek(-1);
+$('wNext').onclick = () => stepWeek(1);
+function stepWeek(d) {
+  const cur = $('wKey').value.trim() || 'current';
+  const idx = state.weeks.findIndex(w => w.week === cur);
+  if (idx < 0) { $('wKey').value = 'current'; loadTop(); return; }
+  const next = state.weeks[idx + (d > 0 ? -1 : 1)];
+  if (next) { $('wKey').value = next.week; loadTop(); }
+}
+
+/* ---------- 曲目 ---------- */
+async function loadTracks(q) {
+  const d = await api('/api/tracks' + (q ? '?q=' + encodeURIComponent(q) : ''));
+  $('tHint').textContent = `${d.rows.length} 条结果（按点播次数排序）`;
+  $('tTable').querySelector('tbody').innerHTML = d.rows.map((r, i) => `
+    <tr data-id="${r.musicId}" style="cursor:pointer">
+      <td class="num">${i + 1}</td>
+      <td>${esc(r.songName)}</td><td class="muted">${esc(r.artists || '')}</td>
+      <td class="muted">${r.musicId}</td><td class="num">${r.plays}</td>
+      <td class="muted">${esc(String(r.lastPlayed || '').slice(0, 16))}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">没有结果</td></tr>';
+  $('tTable').querySelectorAll('tbody tr[data-id]').forEach(tr => tr.onclick = () => showTrack(tr.dataset.id));
+}
+$('tGo').onclick = () => loadTracks($('tQ').value.trim());
+$('tTop').onclick = () => { $('tQ').value = ''; loadTracks(''); };
+$('tQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('tGo').click(); });
+
+async function showTrack(id) {
+  const d = await api('/api/track?id=' + encodeURIComponent(id));
+  $('dlgTitle').textContent = `${d.songName} - ${d.artists}`;
+  const maxW = Math.max(1, ...d.weeks.map(w => w.plays));
+  const maxC = Math.max(1, ...d.chats.map(c => c.plays));
+  const maxU = Math.max(1, ...(d.users || []).map(c => c.plays));
+  $('dlgBody').innerHTML = `
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
+      ${card('累计点播', d.playsTotal, '')}${card('涉及会话', d.chats.length, '')}${card('点播用户', (d.users || []).length, '')}${card('最近点播', esc(d.lastPlayed || '-'), '')}
+    </div>
+    <div class="panel"><h2>按周分布</h2><div class="bars">${d.weeks.map(w => `
+      <div class="b" title="${w.week}">
+        <div class="val">${w.plays}</div>
+        <div class="bar" style="height:${Math.max(2, w.plays / maxW * 90)}px"></div>
+        <div class="lbl">${w.week.replace(/^\d\d/, '')}</div></div>`).join('') || '<span class="muted">暂无</span>'}</div></div>
+    <div class="grid2">
+      <div class="panel"><h2>会话分布</h2><div class="toplist">${d.chats.map(c => `
+        <div class="t"><div class="rank">${c.plays}</div>
+          <div class="name">${esc(c.chatTitle || c.chatId)}<small>${esc(c.chatType)} ${c.chatId || ''}</small></div>
+          <div class="meter"><i style="width:${c.plays / maxC * 100}%"></i></div><div class="cnt"></div></div>`).join('') || '<span class="muted">暂无</span>'}</div></div>
+      <div class="panel"><h2>用户分布</h2><div class="toplist">${(d.users || []).map(c => `
+        <div class="t"><div class="rank">${c.plays}</div>
+          <div class="name">${esc(c.chatTitle || c.chatId)}<small>${c.chatId}</small></div>
+          <div class="meter"><i style="width:${c.plays / maxU * 100}%"></i></div><div class="cnt"></div></div>`).join('') || '<span class="muted">暂无</span>'}</div></div>
+    </div>
+    <p class="hint">MusicID ${d.musicId} · <a href="https://music.163.com/song?id=${d.musicId}" target="_blank" rel="noreferrer">网易云页面</a></p>`;
+  $('dlg').showModal();
+}
+
+/* ---------- 维护 ---------- */
+async function loadMaint() {
+  const s = await api('/api/summary');
+  $('maintInfo').innerHTML = `统计库：<code>${esc(s.summary.dbFile)}</code>（${(s.summary.dbBytes / 1024).toFixed(1)} KB） ·
+    统计时区：${esc(s.summary.statsTimeZone)} · 当前时间：${esc(s.summary.now)}<br>
+    最近一次点播：${esc(s.summary.lastPlay || '无')} · 累计点播 ${s.summary.playsTotal} 次（回填 ${s.summary.playsBackfill} 条）`;
+  pollSync(false);
+}
+$('bfBtn').onclick = async () => {
+  $('bfBtn').disabled = true; $('bfMsg').textContent = '回填中…';
+  try { const d = await api('/api/backfill', { method: 'POST' }); $('bfMsg').textContent = d.message || ('已回填 ' + d.songs + ' 条'); }
+  catch (e) { $('bfMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+  $('bfBtn').disabled = false;
+};
+$('syncBtn').onclick = async () => {
+  $('syncMsg').textContent = '已开始校验，请稍候…';
+  try { await api('/api/sync', { method: 'POST' }); } catch (e) { $('syncMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; return; }
+  pollSync(true);
+};
+$('syncPoll').onclick = () => pollSync(false);
+async function pollSync(watch) {
+  const d = await api('/api/sync/status');
+  const pct = d.total ? Math.round(d.done / d.total * 100) : 0;
+  $('syncMsg').innerHTML = d.running
+    ? `校验中… ${d.done}/${d.total}（${pct}%） 在群 ${d.inChat} · 已退出 ${d.left}`
+    : (d.total ? `上次校验：${d.startedAt} → ${d.endedAt || '-'}，共 ${d.total} 个群，在群 ${d.inChat}，已退出 ${d.left}` : '尚未校验过') +
+      (d.errors && d.errors.length ? '<br><span class="err">' + d.errors.slice(0, 3).map(esc).join('<br>') + '</span>' : '');
+  if (d.running && watch) setTimeout(() => pollSync(true), 1500);
+}
+
+/* ---------- 启动与登录 ---------- */
+function showGate(msg) {
+  $('gate').hidden = false;
+  $('app').hidden = true;
+  $('tokMsg').textContent = msg || '';
+}
+function showApp() {
+  $('gate').hidden = true;
+  $('app').hidden = false;
+}
+async function loginWithToken(t) {
+  const r = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: t }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  showApp();
+  await loadOverview();
+}
+$('tokBtn').onclick = async () => {
+  $('tokMsg').textContent = '';
+  const t = $('tok').value.trim();
+  if (!t) { $('tokMsg').textContent = '请输入令牌'; return; }
+  try { await loginWithToken(t); $('tok').value = ''; } catch (e) { $('tokMsg').textContent = e.message; }
+};
+$('tok').addEventListener('keydown', e => { if (e.key === 'Enter') $('tokBtn').click(); });
+$('logoutBtn').onclick = async () => {
+  try { await api('/api/logout', { method: 'POST' }); } catch (e) { /* 忽略 */ }
+  showGate('已退出登录');
+};
+
+(async () => {
+  const session = await api('/api/session');
+  if (session.auth !== 'none') $('logoutBtn').hidden = false;
+  const urlToken = new URLSearchParams(location.search).get('token');
+  if (urlToken) {
+    history.replaceState(null, '', location.pathname); // 令牌不留在地址栏/历史里
+    if (session.authed) { showApp(); loadOverview(); return; }
+    try { await loginWithToken(urlToken); } catch (e) { showGate('链接无效或已过期：' + e.message); }
+    return;
+  }
+  if (session.authed) { showApp(); loadOverview(); } else { showGate(''); }
+})();
+</script>
+</body>
+</html>

@@ -70,6 +70,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			sendFailed(err)
 			return err
 		}
+		recordPlay(songInfo, message, sourceLive) // 统计：缓存命中也是一次点播
 
 		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
 		_, err = bot.Request(deleteMsg)
@@ -104,6 +105,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 			sendFailed(err)
 			return err
 		}
+		recordPlay(songInfo, message, sourceLive) // 统计：缓存命中也是一次点播
 
 		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
 		_, err = bot.Request(deleteMsg)
@@ -335,6 +337,7 @@ func processMusic(musicID int, message tgbotapi.Message, bot *tgbotapi.BotAPI) (
 		sendFailed(err)
 		return err
 	}
+	recordPlay(songInfo, message, sourceLive) // 统计：新下载并成功发送
 
 	songInfo.FileID = audio.Audio.FileID
 	if audio.Audio.Thumbnail != nil {
