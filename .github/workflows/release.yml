@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Build
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          VERSION=${GITHUB_REF_NAME}
+          COMMIT_SHA=$(git rev-parse HEAD)
+          BUILD_TIME=$(date +'%Y-%m-%d %T')
+          LDFlags="\
+            -s -w \
+            -X 'main.versionName=${VERSION}' \
+            -X 'main.commitSHA=${COMMIT_SHA}' \
+            -X 'main.buildTime=${BUILD_TIME}'\
+          "
+          mkdir dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            GOOS=${target%/*}
+            GOARCH=${target#*/}
+            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -ldflags "${LDFlags}" \
+              -o "dist/Music163bot-Go_${GOOS}_${GOARCH}" ./cmd/music163bot
+          done
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
