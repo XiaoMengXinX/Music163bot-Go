@@ -1,16 +1,14 @@
 #!/bin/bash
 
 COMMIT_SHA=$(git rev-parse HEAD)
-VERSION=$(git describe --tags)
+VERSION=$(git describe --tags 2>/dev/null || echo "v3-dev")
 BUILD_TIME=$(date +'%Y-%m-%d %T')
 
 LDFlags="\
     -s -w \
-    -X 'main._VersionName=${VERSION}' \
+    -X 'main.versionName=${VERSION}' \
     -X 'main.commitSHA=${COMMIT_SHA}' \
-    -X 'main.buildTime=${BUILD_TIME}' \
-    -X 'main.repoPath=XiaoMengXinX/Music163bot-Go'\
-    -X 'main.rawRepoPath=XiaoMengXinX/Music163bot-Go/v2'\
+    -X 'main.buildTime=${BUILD_TIME}'\
 "
 
-CGO_ENABLED=0 go build -trimpath -ldflags "${LDFlags}"
+CGO_ENABLED=0 go build -trimpath -ldflags "${LDFlags}" -o Music163bot-Go ./cmd/music163bot

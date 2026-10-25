@@ -1,0 +1,26 @@
+# Music163bot-Go v3 配置示例
+# 所有配置项都可用环境变量覆盖，如 MUSIC163BOT_BOT_TOKEN、MUSIC163BOT_DOWNLOAD_TIMEOUT
+
+[bot]
+token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ" # 必填，BotFather 给的 token
+api_url = "https://api.telegram.org"          # 自建 Bot API 时修改
+admin = [115414, 1919810]                     # 管理员用户 ID，可用 /rmcache /reload
+debug = false                                 # 输出 SDK 调试日志
+
+[netease]
+music_u = "你的 MUSIC_U cookie" # 可留空：留空或失效时启动会在终端显示二维码，扫码后自动写入；运行中可用管理员命令 /login 重新登录
+level = "hires"                 # 优先音质: standard/higher/lossless/hires/jyeffect(高清环绕声)/sky(沉浸环绕声)/jymaster(超清母带)，账号无权限时自动降级
+
+[database]
+path = "cache.db" # SQLite 数据库路径，v2 的 cache.db 可直接沿用
+
+[download]
+timeout = "120s"       # 单次下载请求超时
+retries = 3           # 下载失败后的重试次数（v2 的 MaxRetryTimes，v3 真正生效）
+concurrency = 4       # 同时下载任务数
+reverse_proxy = ""    # 反代地址（host:port），下载失败时经此重试
+auto_retry = true     # 失败后是否经反代重试（v2 的 AutoRetry，v3 真正生效）
+
+[log]
+level = "info" # trace/debug/info/warn/error
+path = "./log" # 日志目录，按日期切分

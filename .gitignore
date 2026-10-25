@@ -21,6 +21,7 @@ log
 # vendor/
 /.idea/
 config.ini
+config.toml
 /Music163bot-Go*
 /src
 /ext
@@ -28,3 +29,7 @@ config.ini
 /test
 *.mp3
 *.flac
+cache.db*
+
+# 个人维护文档
+/docs

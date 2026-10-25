@@ -1,11 +1,12 @@
-name: Debug build
+name: Build
 
 on:
   push:
     branches:
-      - v2
-    paths:
-      - '**.go'
+      - v3
+  pull_request:
+    branches:
+      - v3
   workflow_dispatch:
 
 jobs:
@@ -17,13 +18,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
-          check-latest: true
+          go-version-file: go.mod
           cache: true
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
       - name: Build
         run: |
           sudo timedatectl set-timezone Asia/Shanghai
-          go mod tidy
           bash build.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
