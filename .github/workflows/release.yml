@@ -36,11 +36,15 @@ jobs:
             -X 'main.buildTime=${BUILD_TIME}'\
           "
           mkdir dist
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
             GOOS=${target%/*}
             GOARCH=${target#*/}
+            suffix=""
+            if [ "$GOOS" = "windows" ]; then
+              suffix=".exe"
+            fi
             CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -ldflags "${LDFlags}" \
-              -o "dist/Music163bot-Go_${GOOS}_${GOARCH}" ./cmd/music163bot
+              -o "dist/Music163bot-Go_${GOOS}_${GOARCH}${suffix}" ./cmd/music163bot
           done
       - name: Create release
         uses: softprops/action-gh-release@v2
