@@ -126,6 +126,33 @@ func (a *App) musicFromText(text string) (int, *types.ProgramDetailData, error) 
 	return prog.Program.MainSong.ID, &prog, nil
 }
 
+// messageMusic 依次从正文、说明、文字链接和按钮中解析分享链接
+func (a *App) messageMusic(m *models.Message) (int, *types.ProgramDetailData, error) {
+	links := []string{m.Text, m.Caption}
+	for _, entities := range [][]models.MessageEntity{m.Entities, m.CaptionEntities} {
+		for _, e := range entities {
+			if e.Type == models.MessageEntityTypeTextLink {
+				links = append(links, e.URL)
+			}
+		}
+	}
+	if m.ReplyMarkup != nil {
+		for _, row := range m.ReplyMarkup.InlineKeyboard {
+			for _, button := range row {
+				if button.URL != "" {
+					links = append(links, button.URL)
+				}
+			}
+		}
+	}
+	for _, link := range links {
+		if musicID, prog, err := a.musicFromText(link); err != nil || musicID != 0 {
+			return musicID, prog, err
+		}
+	}
+	return 0, nil, nil
+}
+
 // prog 非 nil 时用节目详情补全元数据
 func (a *App) processMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData, onInfo func(store.SongInfo)) error {
 	chatID := message.Chat.ID

@@ -6,12 +6,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"gorm.io/gorm/logger"
 
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
 )
 
 func TestSetCacheChat(t *testing.T) {
@@ -95,6 +98,65 @@ func TestSetCacheChat(t *testing.T) {
 				if sent[i] != tt.wantSent[i] {
 					t.Errorf("sent[%d] = %q, want %q", i, sent[i], tt.wantSent[i])
 				}
+			}
+		})
+	}
+}
+
+func TestRmCacheFromReply(t *testing.T) {
+	audioKeyboard := musicKeyboard("<Song>", "Artist", 123)
+	for _, tt := range []struct {
+		name      string
+		text      string
+		reply     *models.Message
+		wantReply string
+		wantGone  bool
+	}{
+		{name: "reply audio button", text: "/rmcache", reply: &models.Message{Audio: &models.Audio{FileID: "audio"}, ReplyMarkup: &audioKeyboard},
+			wantReply: render.RmcacheReport("<Song>"), wantGone: true},
+		{name: "reply text link", text: "/rmcache", reply: &models.Message{Text: "https://music.163.com/song?id=123"},
+			wantReply: render.RmcacheReport("<Song>"), wantGone: true},
+		{name: "reply without link", text: "/rmcache", reply: &models.Message{Text: "123"}, wantReply: render.InputIDorLink},
+		{name: "argument before reply", text: "/rmcache 456", reply: &models.Message{ReplyMarkup: &audioKeyboard}, wantReply: render.NoCache},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var replies []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if err := r.ParseMultipartForm(1 << 20); err != nil {
+					t.Error(err)
+				}
+				replies = append(replies, r.FormValue("text"))
+				_, _ = io.WriteString(w, `{"ok":true,"result":{"message_id":1,"chat":{"id":42,"type":"private"}}}`)
+			}))
+			t.Cleanup(srv.Close)
+			tg, err := tgb.New("1:test", tgb.WithServerURL(srv.URL), tgb.WithSkipGetMe(), tgb.WithNotAsyncHandlers())
+			if err != nil {
+				t.Fatal(err)
+			}
+			a := newTestApp(tg)
+			st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = st.Close() })
+			a.store = st
+			if err := st.Save(&store.SongInfo{MusicID: 123, SongName: "<Song>", FileID: "audio"}); err != nil {
+				t.Fatal(err)
+			}
+			a.handleRmCache(t.Context(), tg, &models.Update{Message: &models.Message{
+				ID:             2,
+				Text:           tt.text,
+				Chat:           models.Chat{ID: 42, Type: models.ChatTypePrivate},
+				From:           &models.User{ID: 42},
+				Entities:       []models.MessageEntity{{Type: models.MessageEntityTypeBotCommand, Length: len("/rmcache")}},
+				ReplyToMessage: tt.reply,
+			}})
+			if strings.Join(replies, "\n") != tt.wantReply {
+				t.Errorf("replies = %q, want %q", replies, tt.wantReply)
+			}
+			if _, ok := st.GetByMusicID(123); ok == tt.wantGone {
+				t.Errorf("cached = %v, want removed = %v", ok, tt.wantGone)
 			}
 		})
 	}

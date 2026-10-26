@@ -149,12 +149,12 @@ bot 必须能读取 `getFile` 返回的绝对路径。同机直接运行时确�
 - `/music <ID>` 或 `/netease <关键词>` —— 按 ID 或关键词点歌
 - `/search <关键词>` —— 搜索歌曲，点数字按钮选择
 - `/program <ID>` —— 电台节目
-- `/lyric <关键词/ID>`（或回复一条消息）—— 发送歌词文件
+- `/lyric <关键词/ID>`（或回复一条含分享链接、歌曲按钮的消息）—— 发送歌词文件
 - `/recognize`（回复一条语音）—— 语音识别搜歌
 - `/status` —— 缓存统计
 - `/about` —— 关于本 bot
 - `/start <ID>` —— 深链点歌（inline 未缓存引导）
-- 管理员：`/rmcache <ID/链接>` 清除缓存、`/reload` 重载配置、`/login` 网易云扫码登录、`/setcachechat [群 ID]` 设置 Guest Mode 缓存群
+- 管理员：`/rmcache <ID/链接>`（或回复歌曲消息）清除缓存、`/reload` 重载配置、`/login` 网易云扫码登录、`/setcachechat [群 ID]` 设置 Guest Mode 缓存群
 - 直接发送网易云分享链接即可嗅探点歌；inline 输入 `help` 查看用法
 
 **Guest Mode**：在 @BotFather 的 Mini App 中为机器人开启 Guest Mode 后，

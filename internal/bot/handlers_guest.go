@@ -36,22 +36,13 @@ func (a *App) handleGuest(ctx context.Context, tg *tgb.Bot, update *models.Updat
 
 // guestMusic 访客模式无法上传文件，未缓存的歌曲须先上传到缓存群
 func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQueryResult {
-	texts := []string{m.Text}
-	if m.ReplyToMessage != nil {
-		texts = append(texts, m.ReplyToMessage.Text, m.ReplyToMessage.Caption)
+	musicID, prog, err := a.musicFromText(m.Text)
+	if err == nil && musicID == 0 && m.ReplyToMessage != nil {
+		musicID, prog, err = a.messageMusic(m.ReplyToMessage)
 	}
-	var musicID int
-	var prog *types.ProgramDetailData
-	for _, text := range texts {
-		id, p, err := a.musicFromText(text)
-		if err != nil {
-			a.log.Errorln(err)
-			return guestArticle("网易云音乐", render.FetchInfoFailed, nil)
-		}
-		if id != 0 {
-			musicID, prog = id, p
-			break
-		}
+	if err != nil {
+		a.log.Errorln(err)
+		return guestArticle("网易云音乐", render.FetchInfoFailed, nil)
 	}
 	if musicID == 0 {
 		return guestArticle("使用帮助", render.GuestUsage, nil)
@@ -59,7 +50,6 @@ func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQu
 
 	songInfo, ok := a.store.GetByMusicID(musicID)
 	if chatID := a.cacheChat.Load(); !ok && chatID != 0 && a.cookieOK.Load() {
-		var err error
 		if songInfo, err = a.cacheMusic(ctx, musicID, m, prog, chatID); err != nil {
 			a.log.Errorln(err)
 		}

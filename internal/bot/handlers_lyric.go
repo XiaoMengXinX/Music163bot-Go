@@ -40,7 +40,17 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		}
 	}
 
-	musicID := textx.ParseMusicID(args)
+	var musicID int
+	if source != m {
+		if musicID, _, err = a.messageMusic(source); err != nil {
+			a.log.Errorln(err)
+			sendFailed()
+			return
+		}
+	}
+	if musicID == 0 {
+		musicID = textx.ParseMusicID(args)
+	}
 	if musicID == 0 {
 		searchResult, err := a.api.SearchSong(args, 5)
 		if err != nil {

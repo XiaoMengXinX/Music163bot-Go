@@ -40,10 +40,23 @@ func (a *App) handleStatus(ctx context.Context, tg *tgb.Bot, update *models.Upda
 func (a *App) handleRmCache(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	args := commandArguments(m)
-	musicID := textx.ParseMusicID(args)
-	if musicID == 0 {
-		if pid := textx.ParseProgramID(args); pid != 0 {
-			musicID = a.api.ProgramRealID(pid)
+	var musicID int
+	if args == "" && m.ReplyToMessage != nil {
+		id, _, err := a.messageMusic(m.ReplyToMessage)
+		if err != nil {
+			a.log.Errorln(err)
+			if _, err := a.reply(ctx, m, render.FetchInfoFailed); err != nil {
+				a.log.Errorln(err)
+			}
+			return
+		}
+		musicID = id
+	} else {
+		musicID = textx.ParseMusicID(args)
+		if musicID == 0 {
+			if pid := textx.ParseProgramID(args); pid != 0 {
+				musicID = a.api.ProgramRealID(pid)
+			}
 		}
 	}
 	if musicID == 0 {
