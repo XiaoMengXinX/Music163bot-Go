@@ -47,17 +47,7 @@ func (a *App) answerInline(ctx context.Context, queryID string, results []models
 func (a *App) answerInlineMusic(ctx context.Context, query *models.InlineQuery, musicID int) error {
 	songInfo, ok := a.store.GetByMusicID(musicID)
 	if ok && songInfo.FileID != "" && songInfo.SongName != "" {
-		return a.answerInline(ctx, query.ID, []models.InlineQueryResult{
-			&models.InlineQueryResultCachedDocument{
-				ID:             query.ID,
-				DocumentFileID: songInfo.FileID,
-				Title:          fmt.Sprintf("%s - %s", songInfo.SongArtists, songInfo.SongName),
-				Description:    songInfo.SongAlbum,
-				Caption:        a.musicCaption(songInfo),
-				ParseMode:      models.ParseModeHTML,
-				ReplyMarkup:    musicKeyboard(songInfo, nil),
-			},
-		}, 3600, nil)
+		return a.answerInline(ctx, query.ID, []models.InlineQueryResult{a.cachedMusicResult(query.ID, songInfo, nil)}, 3600, nil)
 	}
 	return a.answerInline(ctx, query.ID, []models.InlineQueryResult{
 		&models.InlineQueryResultArticle{

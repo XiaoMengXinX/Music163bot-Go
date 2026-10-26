@@ -37,7 +37,7 @@ type guestAnswer struct {
 		Type                string                         `json:"type"`
 		ID                  string                         `json:"id"`
 		Title               string                         `json:"title"`
-		AudioFileID         string                         `json:"audio_file_id"`
+		DocumentFileID      string                         `json:"document_file_id"`
 		Caption             string                         `json:"caption"`
 		ParseMode           models.ParseMode               `json:"parse_mode"`
 		InputMessageContent models.InputTextMessageContent `json:"input_message_content"`
@@ -413,7 +413,7 @@ func TestGuestMusic(t *testing.T) {
 				return
 			}
 			result := fake.answers[0].result
-			if result.Type != "audio" || result.AudioFileID != "cached-audio" || result.ParseMode != models.ParseModeHTML {
+			if result.Type != "document" || result.DocumentFileID != "cached-audio" || result.Title != "A&B - <Song>" || result.ParseMode != models.ParseModeHTML {
 				t.Errorf("invalid cached audio: %+v", result)
 			}
 			if result.Caption != a.musicCaption(cachedInfo) {
@@ -518,7 +518,7 @@ func TestGuestMusicCacheChat(t *testing.T) {
 				t.Errorf("cached info = %+v, %v", info, cached)
 			}
 			result := fake.answers[0].result
-			if result.Type != "audio" || result.AudioFileID != "uploaded-audio" || result.Caption != a.musicCaption(info) {
+			if result.Type != "document" || result.DocumentFileID != "uploaded-audio" || result.Caption != a.musicCaption(info) {
 				t.Errorf("invalid cached audio: %+v", result)
 			}
 			wantLink := "https://music.163.com/song?id=123"

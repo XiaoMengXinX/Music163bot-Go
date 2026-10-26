@@ -56,13 +56,7 @@ func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQu
 		}
 	}
 	if songInfo.FileID != "" {
-		return &models.InlineQueryResultCachedAudio{
-			ID:          "music",
-			AudioFileID: songInfo.FileID,
-			Caption:     a.musicCaption(songInfo),
-			ParseMode:   models.ParseModeHTML,
-			ReplyMarkup: musicKeyboard(songInfo, prog),
-		}
+		return a.cachedMusicResult("music", songInfo, prog)
 	}
 	text := render.GuestNoCache
 	if songInfo.SongName != "" {

@@ -421,6 +421,19 @@ func (a *App) musicCaption(songInfo store.SongInfo) string {
 		float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, a.me.Username)
 }
 
+// cachedMusicResult 缓存歌曲用 CachedAudio 会被拒绝（AUDIO_CONTENT_TYPE_INVALID），须以文档形式发送
+func (a *App) cachedMusicResult(id string, songInfo store.SongInfo, prog *types.ProgramDetailData) *models.InlineQueryResultCachedDocument {
+	return &models.InlineQueryResultCachedDocument{
+		ID:             id,
+		DocumentFileID: songInfo.FileID,
+		Title:          fmt.Sprintf("%s - %s", songInfo.SongArtists, songInfo.SongName),
+		Description:    songInfo.SongAlbum,
+		Caption:        a.musicCaption(songInfo),
+		ParseMode:      models.ParseModeHTML,
+		ReplyMarkup:    musicKeyboard(songInfo, prog),
+	}
+}
+
 func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, prog *types.ProgramDetailData, musicPath, picPath string, chatID int64, reply *models.ReplyParameters) (*models.Message, error) {
 	params := &tgb.SendAudioParams{
 		ChatID:          chatID,
