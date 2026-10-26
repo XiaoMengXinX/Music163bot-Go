@@ -35,13 +35,17 @@ const (
 	FetchingLyric    = "正在获取歌词中"
 	DownloadTimeout  = "下载超时"
 
-	ReplyVoiceFirst    = "请回复一条语音留言"
-	RecognizeFailed    = "识别失败，可能是录音时间太短"
-	InlineHelpHint     = "输入 help 获取帮助"
-	InlineHelpStep1    = "1.粘贴音乐分享URL或输入MusicID"
-	InlineHelpStep2    = "2.输入 search+关键词 搜索歌曲"
-	InlineInputKeyword = "请输入关键词"
-	BotName            = "Music163bot-Go v3"
+	ReplyVoiceFirst     = "请先发送一条包含音乐片段的语音，再回复该语音发送 /recognize。"
+	Recognizing         = "正在识别音乐，请稍候..."
+	RecognizeNoResult   = "暂未识别到歌曲\n请尝试录制更清晰、稍长一些的音乐片段，再试一次。"
+	RecognizeFailed     = "音乐识别暂时失败，请稍后重试。"
+	RecognizeReadFailed = "暂时无法读取这条语音\n请稍后重试，或重新发送语音。"
+	RecognizeSuccess    = "已识别到歌曲"
+	InlineHelpHint      = "输入 help 获取帮助"
+	InlineHelpStep1     = "1.粘贴音乐分享URL或输入MusicID"
+	InlineHelpStep2     = "2.输入 search+关键词 搜索歌曲"
+	InlineInputKeyword  = "请输入关键词"
+	BotName             = "Music163bot-Go v3"
 
 	LoginBusy        = "已有扫码登录会话进行中"
 	LoginKeyFailed   = "获取二维码失败，请稍后重试"
@@ -123,10 +127,14 @@ func DownloadFailed(errText string) string {
 	return "下载/发送失败\n" + Escape(errText)
 }
 
+func SongInfo(name, artists, album string) string {
+	return fmt.Sprintf("🎵 识别成功\n「%s」- %s\n专辑: %s", Escape(name), Escape(artists), Escape(album))
+}
+
 // MusicCaption 音频文件的 caption
 func MusicCaption(name, artists, album, ext string, sizeMB, kbps float64, botName string) string {
-	return fmt.Sprintf("「%s」- %s\n专辑: %s\n#网易云音乐 #%s %.2fMB %.2fkbps\nvia @%s",
-		Escape(name), Escape(artists), Escape(album), Escape(ext), sizeMB, kbps, Escape(botName))
+	return fmt.Sprintf("%s\n#网易云音乐 #%s %.2fMB %.2fkbps\nvia @%s",
+		SongInfo(name, artists, album), Escape(ext), sizeMB, kbps, Escape(botName))
 }
 
 // About /about 文案

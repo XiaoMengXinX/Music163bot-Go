@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	ncm "github.com/XiaoMengXinX/Music163-Audio-Recognize-Api"
+	ncm "github.com/XiaoMengXinX/NeteaseCloudMusic-Audio-Recognize-Reverse"
 )
 
 var ErrNoResult = errors.New("识别失败，可能是录音时间太短")

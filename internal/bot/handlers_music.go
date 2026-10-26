@@ -31,7 +31,7 @@ func (a *App) handleStart(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	if musicID == 0 {
 		return
 	}
-	if err := a.processMusic(ctx, musicID, m, nil); err != nil {
+	if err := a.processMusic(ctx, musicID, m, nil, nil); err != nil {
 		a.log.Errorln(err)
 	}
 }
@@ -47,7 +47,7 @@ func (a *App) handleMusic(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		return
 	}
 	if musicID, _ := strconv.Atoi(args); musicID != 0 {
-		if err := a.processMusic(ctx, musicID, m, nil); err != nil {
+		if err := a.processMusic(ctx, musicID, m, nil, nil); err != nil {
 			a.log.Errorln(err)
 		}
 		return
@@ -62,7 +62,7 @@ func (a *App) handleMusic(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		}
 		return
 	}
-	if err := a.processMusic(ctx, result.Result.Songs[0].Id, m, nil); err != nil {
+	if err := a.processMusic(ctx, result.Result.Songs[0].Id, m, nil, nil); err != nil {
 		a.log.Errorln(err)
 	}
 }
@@ -80,7 +80,7 @@ func (a *App) handleProgram(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	if musicID == 0 {
 		return
 	}
-	if err := a.processMusic(ctx, musicID, m, &prog); err != nil {
+	if err := a.processMusic(ctx, musicID, m, &prog, nil); err != nil {
 		a.log.Errorln(err)
 	}
 }
@@ -103,7 +103,7 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 		return
 	}
 	if id := textx.ParseMusicID(text); id != 0 {
-		if err := a.processMusic(ctx, id, m, nil); err != nil {
+		if err := a.processMusic(ctx, id, m, nil, nil); err != nil {
 			a.log.Errorln(err)
 		}
 		return
@@ -115,7 +115,7 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 			return
 		}
 		if rid := prog.Program.MainSong.ID; rid != 0 {
-			if err := a.processMusic(ctx, rid, m, &prog); err != nil {
+			if err := a.processMusic(ctx, rid, m, &prog, nil); err != nil {
 				a.log.Errorln(err)
 			}
 		}
@@ -124,10 +124,13 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 
 // processMusic 点歌主流程：缓存命中直接发送，否则下载、打标、上传、入库。
 // prog 非 nil 表示来自电台节目，用节目详情补全稀疏的歌曲元数据
-func (a *App) processMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData) error {
+func (a *App) processMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData, onInfo func(store.SongInfo)) error {
 	chatID := message.Chat.ID
 
 	if songInfo, ok := a.store.GetByMusicID(musicID); ok {
+		if onInfo != nil {
+			onInfo(songInfo)
+		}
 		msgResult, err := a.reply(ctx, message, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.HitCache))
 		if err != nil {
 			return err
@@ -159,6 +162,9 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 
 	// 等待下载位期间可能有并发任务已把这首歌下载进缓存，再查一次
 	if songInfo, ok := a.store.GetByMusicID(musicID); ok {
+		if onInfo != nil {
+			onInfo(songInfo)
+		}
 		if err := a.editMessage(ctx, chatID, msgResult.ID, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.HitCache), nil); err != nil {
 			return err
 		}
@@ -213,6 +219,9 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	songInfo.MusicSize = urlData.Data[0].Size
 	if songInfo.Duration > 0 {
 		songInfo.BitRate = 8 * urlData.Data[0].Size / songInfo.Duration
+	}
+	if onInfo != nil {
+		onInfo(songInfo)
 	}
 	if picRes, err := a.http.Head(detail.Songs[0].Al.PicUrl); err == nil {
 		_ = picRes.Body.Close()

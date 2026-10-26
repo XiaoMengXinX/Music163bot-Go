@@ -14,6 +14,7 @@ import (
 
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/recognize"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
 )
 
 // handleRecognize /recognize：识别回复的语音留言并发歌
@@ -33,14 +34,27 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		return
 	}
 
+	status, err := a.reply(ctx, voice, render.Recognizing)
+	if err != nil {
+		a.log.Errorln(err)
+		return
+	}
+	setStatus := func(text string) {
+		if err := a.editMessage(ctx, voice.Chat.ID, status.ID, text, nil); err != nil {
+			a.log.Errorln(err)
+		}
+	}
+
 	file, err := a.tg.GetFile(ctx, &tgb.GetFileParams{FileID: voice.Voice.FileID})
 	if err != nil {
 		a.log.Errorln(err)
+		setStatus(render.RecognizeReadFailed)
 		return
 	}
 	dir, err := os.MkdirTemp(a.cacheDir, "recognize-")
 	if err != nil {
 		a.log.Errorln(err)
+		setStatus(render.RecognizeFailed)
 		return
 	}
 	defer func() {
@@ -52,28 +66,39 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 
 	if err := a.downloadVoice(ctx, oggPath, file); err != nil {
 		a.log.Errorln(err)
+		setStatus(render.RecognizeReadFailed)
 		return
 	}
 	audio, err := os.ReadFile(oggPath)
 	if err != nil {
 		a.log.Errorln(err)
+		setStatus(render.RecognizeReadFailed)
 		return
 	}
 	musicID, err := a.recog.Recognize(ctx, audio)
 	if err != nil {
-		if _, sendErr := a.reply(ctx, voice, render.RecognizeFailed); sendErr != nil {
-			a.log.Errorln(sendErr)
-		}
-		if !errors.Is(err, recognize.ErrNoResult) {
+		if errors.Is(err, recognize.ErrNoResult) {
+			setStatus(render.RecognizeNoResult)
+		} else {
 			a.log.Errorln(err)
+			setStatus(render.RecognizeFailed)
 		}
 		return
 	}
 
-	if _, err := a.reply(ctx, voice, render.SongLink(musicID)); err != nil {
-		a.log.Errorln(err)
+	keyboard := models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{{{
+		Text: "在网易云音乐中打开",
+		URL:  render.SongLink(musicID),
+	}}}}
+	showResult := func(text string) {
+		if err := a.editMessage(ctx, voice.Chat.ID, status.ID, text, keyboard); err != nil {
+			a.log.Errorln(err)
+		}
 	}
-	if err := a.processMusic(ctx, musicID, voice, nil); err != nil {
+	showResult(render.RecognizeSuccess)
+	if err := a.processMusic(ctx, musicID, voice, nil, func(info store.SongInfo) {
+		showResult(render.SongInfo(info.SongName, info.SongArtists, info.SongAlbum))
+	}); err != nil {
 		a.log.Errorln(err)
 	}
 }

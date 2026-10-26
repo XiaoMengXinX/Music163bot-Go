@@ -1,9 +1,9 @@
 github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936 h1:to5zIst65bM0aYtqsUU97yE6kuHKUB078F2z+G4ZQH4=
 github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936/go.mod h1:L6oR/uZwUSBO7o57qbul/zwUuuKpP4EVnFKmTBscvLY=
-github.com/XiaoMengXinX/Music163-Audio-Recognize-Api v0.0.0-20261026090511-1a943aa33cbf h1:BHdCvoCFZ+ubj7fcOf9+nfxKLwRecNjf1pVFI/au1UY=
-github.com/XiaoMengXinX/Music163-Audio-Recognize-Api v0.0.0-20261026090511-1a943aa33cbf/go.mod h1:GmLzf4UfwXSuZw7yz+vgwdFLnSEyf3GTl3hBCEqX0Fc=
 github.com/XiaoMengXinX/Music163Api-Go v0.1.32-0.20261026151159-9167996e9052 h1:kBd77+g6hy4/LBtjAj3UOam4Nj0Z+7WzJDaoG7UtRws=
 github.com/XiaoMengXinX/Music163Api-Go v0.1.32-0.20261026151159-9167996e9052/go.mod h1:kLU/CkLxKnEJFCge0URvQ0lHt6ImoG1/2aVeNbgV2RQ=
+github.com/XiaoMengXinX/NeteaseCloudMusic-Audio-Recognize-Reverse v0.0.0-20261026185148-480f5eaddeda h1:72DvtFgFJWSn6OOBC/2xxeGJh36I67UlqsvxkAH6z7Q=
+github.com/XiaoMengXinX/NeteaseCloudMusic-Audio-Recognize-Reverse v0.0.0-20261026185148-480f5eaddeda/go.mod h1:XGFgG4Kny5tOkvaM/+cO+aDUG2Jv8PGFlXabyO2BcL4=
 github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20261025221656-fa61ae8f8717 h1:3yEdzNpDXYofpl6Coo+DcAPHC70ONrkPfHeoAF5gcys=
 github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20261025221656-fa61ae8f8717/go.mod h1:Fh8cPEMvudeU3D+sBG4FAoC4iOH8aGI7Z39oaN6/2iA=
 github.com/bogem/id3v2 v1.2.0 h1:hKDF+F1gOgQ5r1QmBCEZUk4MveJbKxCeIDSBU7CQ4oI=
@@ -73,6 +73,8 @@ github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
+github.com/pion/opus v0.1.0 h1:GgK/a3DNDrffKjUFsK39rZKqfv7bQ2S2eqRKt0BnqAE=
+github.com/pion/opus v0.1.0/go.mod h1:t5Xog2n682JnawoykACE6nKVmupFvmJvkpM7x6bTv6g=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pressly/goose/v3 v3.29.0 h1:dtEnBCT7CqkHIUCdgrXsrmeisaN8gFkRU4Y5OEwif4o=
 github.com/pressly/goose/v3 v3.29.0/go.mod h1:plA4aP4+u+Q3FMTgbFbhF8TuAWpAdfWpoFGkJsIFWh0=
@@ -88,8 +90,6 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
-github.com/tetratelabs/wazero v1.12.0 h1:DuWcpNu/FzgEXgGBDp8J1Spc+CWOvvtvVyjKlaZopYU=
-github.com/tetratelabs/wazero v1.12.0/go.mod h1:LvKtzl2RqO4gyF27BiXU+nKAjcV8f38U+kP/q2vgxh0=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=

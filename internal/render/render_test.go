@@ -15,6 +15,14 @@ func TestEscapeInTemplates(t *testing.T) {
 		t.Errorf("caption 转义结果错误: %s", caption)
 	}
 
+	info := SongInfo("雨き声残響", "ゆめこ & <歌手>", "最新热歌慢摇92")
+	if info != "🎵 识别成功\n「雨き声残響」- ゆめこ &amp; &lt;歌手&gt;\n专辑: 最新热歌慢摇92" {
+		t.Errorf("歌曲信息格式错误: %s", info)
+	}
+	if !strings.HasPrefix(caption, SongInfo("<b>歌名&</b>", "歌手", "专辑")+"\n") {
+		t.Errorf("caption 与歌曲信息格式不一致: %s", caption)
+	}
+
 	status := MusicStatus("a<b", "c&d", "mp3", 1.0, Downloading)
 	if !strings.Contains(status, "a&lt;b") || !strings.Contains(status, "c&amp;d") {
 		t.Errorf("状态消息未转义: %s", status)
@@ -25,7 +33,7 @@ func TestEscapeInTemplates(t *testing.T) {
 		t.Errorf("about 未转义: %s", about)
 	}
 
-	info := StatusInfo("群<名>", "group_link", 1, 2, 3, 4, 5)
+	info = StatusInfo("群<名>", "group_link", 1, 2, 3, 4, 5)
 	if strings.Contains(info, "群<名>") {
 		t.Errorf("status 未转义: %s", info)
 	}

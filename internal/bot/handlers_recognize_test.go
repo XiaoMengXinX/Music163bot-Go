@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,11 @@ import (
 
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/recognize"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
+	"gorm.io/gorm/logger"
 )
 
 func TestDownloadVoiceLocal(t *testing.T) {
@@ -103,9 +109,15 @@ func TestDownloadVoiceHTTP(t *testing.T) {
 	}
 }
 
-func TestRecognizeDownloadFailureCleansTempDir(t *testing.T) {
+func TestProcessMusicCachedInfo(t *testing.T) {
+	rec := &requestRecorder{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"ok":true,"result":{"file_id":"voice","file_path":"relative.ogg"}}`))
+		rec.add(r.URL.Path)
+		if strings.HasSuffix(r.URL.Path, "/deleteMessage") {
+			_, _ = w.Write([]byte(`{"ok":true,"result":true}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"ok":true,"result":{}}`))
 	}))
 	defer srv.Close()
 	tg, err := tgb.New("1:test", tgb.WithServerURL(srv.URL), tgb.WithSkipGetMe())
@@ -113,13 +125,93 @@ func TestRecognizeDownloadFailureCleansTempDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := newTestApp(tg)
-	a.cfg.Bot.LocalMode = true
-	a.cacheDir = t.TempDir()
-	a.handleRecognize(context.Background(), tg, &models.Update{Message: &models.Message{
-		ReplyToMessage: &models.Message{Voice: &models.Voice{FileID: "voice"}},
-	}})
-	entries, err := os.ReadDir(a.cacheDir)
-	if err != nil || len(entries) != 0 {
-		t.Fatalf("temporary directory left after failed download: %v, %v", entries, err)
+	st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	a.store = st
+	info := store.SongInfo{
+		MusicID: 123, SongName: "雨き声残響", SongArtists: "ゆめこ",
+		SongAlbum: "最新热歌慢摇92", FileID: "cached-audio",
+	}
+	if err := st.Save(&info); err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	err = a.processMusic(context.Background(), info.MusicID, &models.Message{ID: 1, Chat: models.Chat{ID: 42}}, nil, func(got store.SongInfo) {
+		called = true
+		if got.SongName != info.SongName || got.SongArtists != info.SongArtists || got.SongAlbum != info.SongAlbum {
+			t.Errorf("unexpected song info: %+v", got)
+		}
+		if rec.has("/sendAudio") {
+			t.Error("song info should be available before sending audio")
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !called || !rec.has("/sendAudio") {
+		t.Fatal("cached song should provide metadata and send audio")
+	}
+}
+
+func TestRecognizeFailureStatus(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		want string
+	}{
+		{name: "get file", want: render.RecognizeReadFailed},
+		{name: "download", want: render.RecognizeReadFailed},
+		{name: "invalid audio", want: render.RecognizeFailed},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "voice.ogg")
+			if err := os.WriteFile(path, []byte("invalid audio"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			var texts []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/getFile") {
+					if tt.name == "get file" {
+						_, _ = w.Write([]byte(`{"ok":false,"error_code":400,"description":"file unavailable"}`))
+						return
+					}
+					filePath := path
+					if tt.name == "download" {
+						filePath = "relative.ogg"
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": models.File{FileID: "voice", FilePath: filePath}})
+					return
+				}
+				if err := r.ParseMultipartForm(1 << 20); err != nil {
+					t.Error(err)
+				}
+				if strings.HasSuffix(r.URL.Path, "/editMessageText") && r.FormValue("message_id") != "10" {
+					t.Errorf("status message ID = %s, want 10", r.FormValue("message_id"))
+				}
+				texts = append(texts, r.FormValue("text"))
+				_, _ = w.Write([]byte(`{"ok":true,"result":{"message_id":10,"chat":{"id":42,"type":"private"}}}`))
+			}))
+			defer srv.Close()
+			tg, err := tgb.New("1:test", tgb.WithServerURL(srv.URL), tgb.WithSkipGetMe())
+			if err != nil {
+				t.Fatal(err)
+			}
+			a := newTestApp(tg)
+			a.cfg.Bot.LocalMode = true
+			a.cacheDir = t.TempDir()
+			a.recog = recognize.New(&http.Client{})
+			a.handleRecognize(context.Background(), tg, &models.Update{Message: &models.Message{
+				ReplyToMessage: &models.Message{ID: 1, Chat: models.Chat{ID: 42}, Voice: &models.Voice{FileID: "voice"}},
+			}})
+			if len(texts) != 2 || texts[0] != render.Recognizing || texts[1] != tt.want {
+				t.Errorf("unexpected status messages: %q", texts)
+			}
+			entries, err := os.ReadDir(a.cacheDir)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("temporary directory left after failure: %v, %v", entries, err)
+			}
+		})
 	}
 }

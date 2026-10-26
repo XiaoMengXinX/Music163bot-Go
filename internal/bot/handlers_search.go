@@ -82,7 +82,7 @@ func (a *App) handleCallbackMusic(ctx context.Context, tg *tgb.Bot, update *mode
 		}); err != nil {
 			a.log.Errorln(err)
 		}
-		if err := a.processMusic(ctx, musicID, msg, nil); err != nil {
+		if err := a.processMusic(ctx, musicID, msg, nil, nil); err != nil {
 			a.log.Errorln(err)
 		}
 		return

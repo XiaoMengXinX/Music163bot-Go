@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	github.com/XiaoMengXinX/Music163-Audio-Recognize-Api v0.0.0-20261026090511-1a943aa33cbf
+	github.com/XiaoMengXinX/NeteaseCloudMusic-Audio-Recognize-Reverse v0.0.0-20261026185148-480f5eaddeda
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 )
 
@@ -33,7 +33,7 @@ require (
 	github.com/mewkiz/flac v1.0.14 // indirect
 	github.com/mewkiz/pkg v0.0.0-20250417130911-3f050ff8c56d // indirect
 	github.com/mewpkg/term v0.0.0-20241026122259-37a80af23985 // indirect
-	github.com/tetratelabs/wazero v1.12.0 // indirect
+	github.com/pion/opus v0.1.0 // indirect
 )
 
 require (

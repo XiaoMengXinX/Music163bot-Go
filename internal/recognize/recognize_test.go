@@ -15,9 +15,9 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-func testAudio() []byte {
+func testAudio(seconds int) []byte {
 	const sampleRate = 8000
-	const samples = sampleRate * 6
+	samples := sampleRate * seconds
 	audio := make([]byte, 44+samples*2)
 	copy(audio, "RIFF")
 	binary.LittleEndian.PutUint32(audio[4:], uint32(len(audio)-8))
@@ -30,7 +30,7 @@ func testAudio() []byte {
 	binary.LittleEndian.PutUint16(audio[32:], 2)
 	binary.LittleEndian.PutUint16(audio[34:], 16)
 	copy(audio[36:], "data")
-	binary.LittleEndian.PutUint32(audio[40:], samples*2)
+	binary.LittleEndian.PutUint32(audio[40:], uint32(samples*2))
 	for i := range samples {
 		sample := int16(16000 * math.Sin(2*math.Pi*440*float64(i)/sampleRate))
 		binary.LittleEndian.PutUint16(audio[44+i*2:], uint16(sample))
@@ -39,7 +39,7 @@ func testAudio() []byte {
 }
 
 func TestRecognize(t *testing.T) {
-	audio := testAudio()
+	audio := testAudio(6)
 	for _, tt := range []struct {
 		name     string
 		body     string
@@ -89,6 +89,37 @@ func TestRecognize(t *testing.T) {
 	}
 }
 
+func TestRecognizeAdaptiveDuration(t *testing.T) {
+	for _, tt := range []struct {
+		seconds  int
+		duration string
+	}{
+		{seconds: 2, duration: "2"},
+		{seconds: 20, duration: "15"},
+	} {
+		t.Run(tt.duration, func(t *testing.T) {
+			called := false
+			c := New(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				called = true
+				if err := r.ParseForm(); err != nil {
+					t.Fatal(err)
+				}
+				if got := r.Form.Get("duration"); got != tt.duration {
+					t.Errorf("duration = %q, want %q", got, tt.duration)
+				}
+				if r.Form.Get("rawdata") == "" || r.Form.Get("algorithmCode") != "shazam_v2" {
+					t.Error("missing fingerprint or algorithm")
+				}
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"code":200,"data":{"result":[{"song":{"id":123}}]}}`))}, nil
+			})})
+			id, err := c.Recognize(t.Context(), testAudio(tt.seconds))
+			if err != nil || id != 123 || !called {
+				t.Fatalf("song ID = %d, called = %v, error = %v", id, called, err)
+			}
+		})
+	}
+}
+
 func TestRecognizeInvalidAudio(t *testing.T) {
 	c := New(&http.Client{})
 	c.api.HTTP.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -101,7 +132,7 @@ func TestRecognizeInvalidAudio(t *testing.T) {
 }
 
 func TestRecognizeCancellation(t *testing.T) {
-	audio := testAudio()
+	audio := testAudio(6)
 	c := New(&http.Client{})
 	c.api.HTTP.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return nil, r.Context().Err()

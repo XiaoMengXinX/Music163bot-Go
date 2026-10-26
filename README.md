@@ -106,7 +106,7 @@ docker compose up -d
 已有数据库时，先停止旧 bot，再将原来的 `cache.db` 及同名 `-wal`、`-shm` 文件（如有）一起移入 `data/`，然后启动容器。
 
 镜像以 root 用户运行，配置、数据库、缓存和日志均挂载到宿主机。
-听歌识曲使用 [Music163-Audio-Recognize-Api](https://github.com/XiaoMengXinX/Music163-Audio-Recognize-Api) 的 Go 包在本地解析音频并提取指纹，再请求网易云匹配，无需 Vercel API 或 FFmpeg。
+听歌识曲使用 [NeteaseCloudMusic-Audio-Recognize-Reverse](https://github.com/XiaoMengXinX/NeteaseCloudMusic-Audio-Recognize-Reverse) 在本地解析音频并用纯 Go Library 提取指纹，再请求网易云匹配。识别片段长度自动适配，不依赖外部识曲服务或 FFmpeg。
 
 **自建 Bot API 本地模式**
 
