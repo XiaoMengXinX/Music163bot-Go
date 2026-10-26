@@ -30,6 +30,7 @@ func (a *App) setupCommands(ctx context.Context, tg *tgb.Bot) {
 		models.BotCommand{Command: "login", Description: "网易云扫码登录"},
 		models.BotCommand{Command: "rmcache", Description: "清除歌曲缓存"},
 		models.BotCommand{Command: "reload", Description: "重载配置"},
+		models.BotCommand{Command: "setcachechat", Description: "设置 Guest Mode 缓存群"},
 	)
 	for _, adminID := range a.cfg.Bot.Admin {
 		if _, err := tg.SetMyCommands(ctx, &tgb.SetMyCommandsParams{

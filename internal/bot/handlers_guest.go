@@ -3,71 +3,135 @@ package bot
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"github.com/XiaoMengXinX/Music163Api-Go/types"
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/recognize"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-func (a *App) handleGuestRecognize(ctx context.Context, tg *tgb.Bot, update *models.Update) {
+func (a *App) handleGuest(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.GuestMessage
 	if m == nil || m.GuestQueryID == "" {
 		return
 	}
 
-	text := render.GuestReplyVoiceFirst
-	var markup models.ReplyMarkup
-	if m.ReplyToMessage != nil && m.ReplyToMessage.Voice != nil {
-		audio, err := a.readVoice(ctx, m.ReplyToMessage.Voice)
-		if err != nil {
-			a.log.Errorln(err)
-			text = render.RecognizeReadFailed
-		} else {
-			musicID, err := a.recog.Recognize(ctx, audio)
-			switch {
-			case errors.Is(err, recognize.ErrNoResult):
-				text = render.RecognizeNoResult
-			case err != nil:
-				a.log.Errorln(err)
-				text = render.RecognizeFailed
-			default:
-				text = render.RecognizeSuccess
-				keyboard := songLinkKeyboard(musicID)
-				keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, []models.InlineKeyboardButton{{
-					Text: "在 Bot 中获取歌曲",
-					URL:  fmt.Sprintf("https://t.me/%s?start=%d", a.me.Username, musicID),
-				}})
-				markup = keyboard
-				if info, ok := a.store.GetByMusicID(musicID); ok {
-					text = render.RecognizeResult(info.SongName, info.SongArtists, info.SongAlbum)
-				} else if detail, err := a.api.SongDetail(musicID); err != nil {
-					a.log.Errorln(err)
-				} else if len(detail.Songs) != 0 {
-					song := detail.Songs[0]
-					text = render.RecognizeResult(song.Name, textx.JoinNames(artistNames(song)), song.Al.Name)
-				}
-			}
-		}
+	var result models.InlineQueryResult
+	if reply := m.ReplyToMessage; reply != nil && reply.Voice != nil {
+		result = a.guestRecognize(ctx, reply.Voice)
+	} else {
+		result = a.guestMusic(ctx, m)
 	}
-
-	disabled := true
 	if _, err := tg.AnswerGuestQuery(ctx, &tgb.AnswerGuestQueryParams{
 		GuestQueryID: m.GuestQueryID,
-		Result: &models.InlineQueryResultArticle{
-			ID:    "recognize",
-			Title: "音乐识别",
-			InputMessageContent: &models.InputTextMessageContent{
-				MessageText:        text,
-				ParseMode:          models.ParseModeHTML,
-				LinkPreviewOptions: &models.LinkPreviewOptions{IsDisabled: &disabled},
-			},
-			ReplyMarkup: markup,
-		},
+		Result:       result,
 	}); err != nil {
 		a.log.Errorln(err)
+	}
+}
+
+// guestMusic 访客模式无法上传文件，未缓存的歌曲须先上传到缓存群
+func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQueryResult {
+	texts := []string{m.Text}
+	if m.ReplyToMessage != nil {
+		texts = append(texts, m.ReplyToMessage.Text, m.ReplyToMessage.Caption)
+	}
+	var musicID int
+	var prog *types.ProgramDetailData
+	for _, text := range texts {
+		id, p, err := a.musicFromText(text)
+		if err != nil {
+			a.log.Errorln(err)
+			return guestArticle("网易云音乐", render.FetchInfoFailed, nil)
+		}
+		if id != 0 {
+			musicID, prog = id, p
+			break
+		}
+	}
+	if musicID == 0 {
+		return guestArticle("使用帮助", render.GuestUsage, nil)
+	}
+
+	songInfo, ok := a.store.GetByMusicID(musicID)
+	if chatID := a.cacheChat.Load(); !ok && chatID != 0 && a.cookieOK.Load() {
+		var err error
+		if songInfo, err = a.cacheMusic(ctx, musicID, m, prog, chatID); err != nil {
+			a.log.Errorln(err)
+		}
+	}
+	if songInfo.FileID != "" {
+		return &models.InlineQueryResultCachedAudio{
+			ID:          "music",
+			AudioFileID: songInfo.FileID,
+			Caption:     a.musicCaption(songInfo),
+			ParseMode:   models.ParseModeHTML,
+			ReplyMarkup: musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
+		}
+	}
+	text := render.GuestNoCache
+	if songInfo.SongName != "" {
+		text = render.GuestMusicResult(songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum)
+	} else if detail, err := a.api.SongDetail(musicID); err != nil {
+		a.log.Errorln(err)
+	} else if len(detail.Songs) != 0 {
+		song := detail.Songs[0]
+		text = render.GuestMusicResult(song.Name, textx.JoinNames(artistNames(song)), song.Al.Name)
+	}
+	return guestArticle("网易云音乐", text, a.guestKeyboard(musicID))
+}
+
+func (a *App) cacheMusic(ctx context.Context, musicID int, m *models.Message, prog *types.ProgramDetailData, chatID int64) (store.SongInfo, error) {
+	if err := a.musicSem.Acquire(ctx, 1); err != nil {
+		return store.SongInfo{}, err
+	}
+	defer a.musicSem.Release(1)
+	if songInfo, ok := a.store.GetByMusicID(musicID); ok {
+		return songInfo, nil
+	}
+	return a.fetchMusic(ctx, musicID, m, prog, nil, chatID, nil, func(string) error { return nil })
+}
+
+func (a *App) guestRecognize(ctx context.Context, voice *models.Voice) models.InlineQueryResult {
+	audio, err := a.readVoice(ctx, voice)
+	if err != nil {
+		a.log.Errorln(err)
+		return guestArticle("音乐识别", render.RecognizeReadFailed, nil)
+	}
+	musicID, err := a.recog.Recognize(ctx, audio)
+	switch {
+	case errors.Is(err, recognize.ErrNoResult):
+		return guestArticle("音乐识别", render.RecognizeNoResult, nil)
+	case err != nil:
+		a.log.Errorln(err)
+		return guestArticle("音乐识别", render.RecognizeFailed, nil)
+	}
+	text := render.RecognizeSuccess
+	if info, ok := a.store.GetByMusicID(musicID); ok {
+		text = render.RecognizeResult(info.SongName, info.SongArtists, info.SongAlbum)
+	} else if detail, err := a.api.SongDetail(musicID); err != nil {
+		a.log.Errorln(err)
+	} else if len(detail.Songs) != 0 {
+		song := detail.Songs[0]
+		text = render.RecognizeResult(song.Name, textx.JoinNames(artistNames(song)), song.Al.Name)
+	}
+	return guestArticle("音乐识别", text, a.guestKeyboard(musicID))
+}
+
+func guestArticle(title, text string, markup models.ReplyMarkup) *models.InlineQueryResultArticle {
+	disabled := true
+	return &models.InlineQueryResultArticle{
+		ID:    "guest",
+		Title: title,
+		InputMessageContent: &models.InputTextMessageContent{
+			MessageText:        text,
+			ParseMode:          models.ParseModeHTML,
+			LinkPreviewOptions: &models.LinkPreviewOptions{IsDisabled: &disabled},
+		},
+		ReplyMarkup: markup,
 	}
 }

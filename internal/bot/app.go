@@ -68,6 +68,7 @@ type App struct {
 	startupMu     sync.Mutex      // 保护 startupQR
 	startupQR     *startupSession // 非 nil 表示启动登录进行中
 	cookieOK      atomic.Bool     // false 时暂停新歌下载
+	cacheChat     atomic.Int64    // 0 表示未设置缓存群
 	warnMu        sync.Mutex      // 保护 warnCancel
 	warnCancel    context.CancelFunc
 	reload        context.CancelCauseFunc
@@ -124,6 +125,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 		return false, err
 	}
 	a.tg = tg
+	a.cacheChat.Store(cfg.Bot.CacheChat)
 
 	me, err := tg.GetMe(runCtx)
 	if err != nil {
@@ -167,12 +169,13 @@ func (a *App) registerHandlers(tg *tgb.Bot) {
 	a.command(tg, "rmcache", a.handleRmCache, a.adminOnly)
 	a.command(tg, "reload", a.handleReload, a.adminOnly)
 	a.command(tg, "login", a.handleLogin, a.adminOnly)
+	a.command(tg, "setcachechat", a.handleSetCacheChat, a.adminOnly)
 
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "music ", tgb.MatchTypePrefix, a.handleCallbackMusic)
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "cancellogin", tgb.MatchTypeExact, a.handleCallbackCancelLogin, a.adminOnly)
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "startlogin", tgb.MatchTypeExact, a.handleCallbackStartLogin, a.adminOnly)
 	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.InlineQuery != nil }, a.handleInline)
-	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.GuestMessage != nil }, a.handleGuestRecognize)
+	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.GuestMessage != nil }, a.handleGuest)
 }
 
 func (a *App) command(tg *tgb.Bot, name string, h tgb.HandlerFunc, m ...tgb.Middleware) {

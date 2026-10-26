@@ -2,11 +2,13 @@ package bot
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/config"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
@@ -74,4 +76,42 @@ func (a *App) handleReload(ctx context.Context, tg *tgb.Bot, update *models.Upda
 		a.log.Errorln(err)
 	}
 	a.reload(ErrReload)
+}
+
+// handleSetCacheChat 无参数时设为当前聊天，参数为 0 时关闭
+func (a *App) handleSetCacheChat(ctx context.Context, tg *tgb.Bot, update *models.Update) {
+	m := update.Message
+	chatID := m.Chat.ID
+	if args := commandArguments(m); args != "" {
+		id, err := strconv.ParseInt(args, 10, 64)
+		if err != nil {
+			if _, err := a.reply(ctx, m, render.InputChatID); err != nil {
+				a.log.Errorln(err)
+			}
+			return
+		}
+		chatID = id
+	}
+	if chatID != 0 && chatID != m.Chat.ID {
+		if _, err := a.sendMessage(ctx, chatID, render.CacheChatTest, 0); err != nil {
+			a.log.Errorln(err)
+			if _, err := a.reply(ctx, m, render.CacheChatUnreachable); err != nil {
+				a.log.Errorln(err)
+			}
+			return
+		}
+	}
+
+	a.cacheChat.Store(chatID)
+	text := render.CacheChatDisabled
+	if chatID != 0 {
+		text = render.CacheChatSet(chatID)
+	}
+	if err := config.UpdateCacheChat(a.cfgPath, chatID); err != nil {
+		a.log.Errorln(err)
+		text += "\n配置文件写入失败: " + render.Escape(err.Error()) + "\n本次设置已生效，重启后将失效"
+	}
+	if _, err := a.reply(ctx, m, text); err != nil {
+		a.log.Errorln(err)
+	}
 }

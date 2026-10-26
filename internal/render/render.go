@@ -34,18 +34,19 @@ const (
 	FetchingLyric    = "正在获取歌词中"
 	DownloadTimeout  = "下载超时"
 
-	ReplyVoiceFirst      = "请先发送一条包含音乐片段的语音，再回复该语音发送 /recognize。"
-	GuestReplyVoiceFirst = "请回复一条包含音乐片段的语音，并在回复中 @我，即可识别歌曲。"
-	Recognizing          = "正在识别音乐，请稍候..."
-	RecognizeNoResult    = "暂未识别到歌曲\n请尝试录制更清晰、稍长一些的音乐片段，再试一次。"
-	RecognizeFailed      = "音乐识别暂时失败，请稍后重试。"
-	RecognizeReadFailed  = "暂时无法读取这条语音\n请稍后重试，或重新发送语音。"
-	RecognizeSuccess     = "已识别到歌曲"
-	InlineHelpHint       = "输入 help 获取帮助"
-	InlineHelpStep1      = "1.粘贴音乐分享URL或输入MusicID"
-	InlineHelpStep2      = "2.输入 search+关键词 搜索歌曲"
-	InlineInputKeyword   = "请输入关键词"
-	BotName              = "Music163bot-Go v3"
+	ReplyVoiceFirst     = "请先发送一条包含音乐片段的语音，再回复该语音发送 /recognize。"
+	GuestUsage          = "回复一条网易云音乐分享链接或包含音乐片段的语音，并在回复中 @我，即可发送或识别歌曲。"
+	GuestNoCache        = "歌曲未缓存，请点击下方按钮在 Bot 中获取"
+	Recognizing         = "正在识别音乐，请稍候..."
+	RecognizeNoResult   = "暂未识别到歌曲\n请尝试录制更清晰、稍长一些的音乐片段，再试一次。"
+	RecognizeFailed     = "音乐识别暂时失败，请稍后重试。"
+	RecognizeReadFailed = "暂时无法读取这条语音\n请稍后重试，或重新发送语音。"
+	RecognizeSuccess    = "已识别到歌曲"
+	InlineHelpHint      = "输入 help 获取帮助"
+	InlineHelpStep1     = "1.粘贴音乐分享URL或输入MusicID"
+	InlineHelpStep2     = "2.输入 search+关键词 搜索歌曲"
+	InlineInputKeyword  = "请输入关键词"
+	BotName             = "Music163bot-Go v3"
 
 	LoginBusy        = "已有扫码登录会话进行中"
 	LoginKeyFailed   = "获取二维码失败，请稍后重试"
@@ -61,6 +62,11 @@ const (
 	LoginSessionOver      = "登录会话已结束，可发送 /login"
 	LoginNoSession        = "当前没有进行中的登录会话，可发送 /login"
 	LoginQRSent           = "已发送登录二维码"
+
+	InputChatID          = "缓存群 ID 须为数字，也可以在目标群内直接发送 /setcachechat"
+	CacheChatTest        = "已设为缓存群，Guest Mode 点歌时会先把未缓存的歌曲上传到这里"
+	CacheChatUnreachable = "无法向该聊天发送消息，请确认 bot 已加入并可以发言"
+	CacheChatDisabled    = "已关闭缓存群"
 
 	CookieExpired          = "Cookie 过期，请联系 bot 管理员"
 	CookieExpiredAdminWarn = "Cookie 已失效，新歌下载已暂停，请发送 /login 重新登录"
@@ -126,6 +132,10 @@ func RecognizeResult(name, artists, album string) string {
 	return "🎵 识别成功\n" + SongInfo(name, artists, album)
 }
 
+func GuestMusicResult(name, artists, album string) string {
+	return SongInfo(name, artists, album) + "\n" + GuestNoCache
+}
+
 func MusicCaption(name, artists, album, ext string, sizeMB, kbps float64, botName string) string {
 	return fmt.Sprintf("%s\n#网易云音乐 #%s %.2fMB %.2fkbps\nvia @%s",
 		SongInfo(name, artists, album), Escape(ext), sizeMB, kbps, Escape(botName))
@@ -158,6 +168,10 @@ func StatusInfo(chatTitle, chatUsername string, chatID, userID, total, chatCount
 当前对话 [%s] 缓存歌曲数量: %d
 当前用户 [<a href="tg://user?id=%d">%d</a>] 缓存歌曲数量: %d`,
 		total, chatInfo, chatCount, userID, userID, userCount)
+}
+
+func CacheChatSet(chatID int64) string {
+	return fmt.Sprintf("缓存群已设置为 <code>%d</code>", chatID)
 }
 
 func RmcacheReport(name string) string {

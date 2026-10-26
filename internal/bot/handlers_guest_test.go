@@ -9,17 +9,22 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/semaphore"
 	"gorm.io/gorm/logger"
 
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/fetch"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/netease"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/recognize"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
@@ -32,6 +37,9 @@ type guestAnswer struct {
 		Type                string                         `json:"type"`
 		ID                  string                         `json:"id"`
 		Title               string                         `json:"title"`
+		AudioFileID         string                         `json:"audio_file_id"`
+		Caption             string                         `json:"caption"`
+		ParseMode           models.ParseMode               `json:"parse_mode"`
 		InputMessageContent models.InputTextMessageContent `json:"input_message_content"`
 		ReplyMarkup         *models.InlineKeyboardMarkup   `json:"reply_markup"`
 	}
@@ -39,6 +47,7 @@ type guestAnswer struct {
 
 type guestTelegram struct {
 	methods       []string
+	uploads       []url.Values
 	answers       []guestAnswer
 	audio         []byte
 	getFileError  bool
@@ -75,6 +84,17 @@ func newGuestTestBot(t *testing.T) (*tgb.Bot, *guestTelegram) {
 				return
 			}
 			_, _ = w.Write(fake.audio)
+		case "/bot1:test/sendChatAction":
+			_, _ = io.WriteString(w, `{"ok":true,"result":true}`)
+		case "/bot1:test/sendAudio":
+			if err := r.ParseMultipartForm(1 << 20); err != nil {
+				t.Error(err)
+			}
+			if _, _, err := r.FormFile("audio"); err != nil {
+				t.Error(err)
+			}
+			fake.uploads = append(fake.uploads, r.MultipartForm.Value)
+			_, _ = io.WriteString(w, `{"ok":true,"result":{"message_id":1,"chat":{"id":-100123,"type":"supergroup"},"audio":{"file_id":"uploaded-audio","file_unique_id":"u","duration":1}}}`)
 		case "/bot1:test/answerGuestQuery":
 			if err := r.ParseMultipartForm(1 << 20); err != nil {
 				t.Error(err)
@@ -150,14 +170,14 @@ func TestGuestRecognizeReplyValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, fake := newGuestTestBot(t)
 			a := newTestApp(tg)
-			a.handleGuestRecognize(t.Context(), tg, &models.Update{GuestMessage: tt.message})
+			a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: tt.message})
 			if !tt.answer {
 				if len(fake.methods) != 0 {
 					t.Fatalf("unexpected requests: %v", fake.methods)
 				}
 				return
 			}
-			fake.checkAnswer(t, "query", render.GuestReplyVoiceFirst, false)
+			fake.checkAnswer(t, "query", render.GuestUsage, false)
 			if !reflect.DeepEqual(fake.methods, []string{"answerGuestQuery"}) {
 				t.Errorf("requests = %v, want only answerGuestQuery", fake.methods)
 			}
@@ -260,7 +280,7 @@ func TestGuestRecognize(t *testing.T) {
 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
 			})})
 			queryID := strings.Repeat("guest-query-", 10)
-			a.handleGuestRecognize(t.Context(), tg, &models.Update{GuestMessage: &models.Message{
+			a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: &models.Message{
 				GuestQueryID: queryID,
 				Chat:         models.Chat{ID: -10099, Type: models.ChatTypeSupergroup},
 				ReplyToMessage: &models.Message{
@@ -304,8 +324,8 @@ func TestGuestRecognizeAnswerFailure(t *testing.T) {
 	var logs bytes.Buffer
 	a.log.SetOutput(&logs)
 	a.log.SetLevel(logrus.ErrorLevel)
-	a.handleGuestRecognize(t.Context(), tg, &models.Update{GuestMessage: &models.Message{GuestQueryID: "query"}})
-	fake.checkAnswer(t, "query", render.GuestReplyVoiceFirst, false)
+	a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: &models.Message{GuestQueryID: "query"}})
+	fake.checkAnswer(t, "query", render.GuestUsage, false)
 	if !reflect.DeepEqual(fake.methods, []string{"answerGuestQuery"}) || !strings.Contains(logs.String(), "query expired") {
 		t.Errorf("answer failure must be logged without another request: %v, %s", fake.methods, logs.String())
 	}
@@ -320,9 +340,172 @@ func TestGuestRecognizeDispatch(t *testing.T) {
 		t.Fatalf("ordinary message dispatched as guest: %v", fake.methods)
 	}
 	tg.ProcessUpdate(t.Context(), &models.Update{GuestMessage: &models.Message{GuestQueryID: "guest-message", Text: "@testbot"}})
-	fake.checkAnswer(t, "guest-message", render.GuestReplyVoiceFirst, false)
+	fake.checkAnswer(t, "guest-message", render.GuestUsage, false)
 	if !reflect.DeepEqual(fake.methods, []string{"answerGuestQuery"}) {
 		t.Errorf("requests = %v, want only answerGuestQuery", fake.methods)
+	}
+}
+
+func TestGuestMusic(t *testing.T) {
+	const link = "https://music.163.com/song?id=123&userid=1"
+	cachedInfo := store.SongInfo{MusicID: 123, SongName: "<Song>", SongArtists: "A&B", SongAlbum: "Album", FileExt: "flac", FileID: "cached-audio", MusicSize: 1024 * 1024}
+	for _, tt := range []struct {
+		name          string
+		message       *models.Message
+		cached        *store.SongInfo
+		metadataError bool
+		wantText      string
+		wantButton    bool
+		wantMetadata  int
+		wantAudio     bool
+	}{
+		{name: "reply text link cached", message: &models.Message{ReplyToMessage: &models.Message{Text: "分享歌曲 " + link}}, cached: &cachedInfo, wantAudio: true},
+		{name: "reply caption link", message: &models.Message{ReplyToMessage: &models.Message{Caption: link}}, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantButton: true, wantMetadata: 1},
+		{name: "own text link", message: &models.Message{Text: "@testbot " + link}, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantButton: true, wantMetadata: 1},
+		{name: "metadata failure", message: &models.Message{Text: link}, metadataError: true, wantText: render.GuestNoCache, wantButton: true, wantMetadata: 1},
+		{name: "reply without link", message: &models.Message{ReplyToMessage: &models.Message{Text: "https://music.163.com/"}}, wantText: render.GuestUsage},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tg, fake := newGuestTestBot(t)
+			a := newTestApp(tg)
+			st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = st.Close() })
+			a.store = st
+			if tt.cached != nil {
+				if err := st.Save(tt.cached); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var metadataCalls int
+			a.api = netease.New("", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				metadataCalls++
+				if r.URL.Path != "/eapi/v3/song/detail" {
+					t.Errorf("expected only song detail, got %s", r.URL)
+				}
+				if tt.metadataError {
+					return nil, errors.New("metadata unavailable")
+				}
+				body := `{"code":200,"songs":[{"id":123,"name":"<Song>","ar":[{"name":"A&B"}],"al":{"name":"Album"}}]}`
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
+			})})
+			tt.message.GuestQueryID = "query"
+			a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: tt.message})
+			if !reflect.DeepEqual(fake.methods, []string{"answerGuestQuery"}) {
+				t.Fatalf("requests = %v, want only answerGuestQuery", fake.methods)
+			}
+			if metadataCalls != tt.wantMetadata {
+				t.Errorf("metadata calls = %d, want %d", metadataCalls, tt.wantMetadata)
+			}
+			if !tt.wantAudio {
+				fake.checkAnswer(t, "query", tt.wantText, tt.wantButton)
+				return
+			}
+			result := fake.answers[0].result
+			if result.Type != "audio" || result.AudioFileID != "cached-audio" || result.ParseMode != models.ParseModeHTML {
+				t.Errorf("invalid cached audio: %+v", result)
+			}
+			if result.Caption != a.musicCaption(cachedInfo) {
+				t.Errorf("caption = %q, want %q", result.Caption, a.musicCaption(cachedInfo))
+			}
+			want := musicKeyboard(cachedInfo.SongName, cachedInfo.SongArtists, cachedInfo.MusicID)
+			if result.ReplyMarkup == nil || !reflect.DeepEqual(*result.ReplyMarkup, want) {
+				t.Errorf("keyboard = %+v, want %+v", result.ReplyMarkup, want)
+			}
+		})
+	}
+}
+
+func TestGuestMusicCacheChat(t *testing.T) {
+	audio := append([]byte("ID3\x03\x00\x00\x00\x00\x00\x00"), bytes.Repeat([]byte{0xff, 0xfb, 0x90, 0x64}, 256)...)
+	music := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeContent(w, r, "123.mp3", time.Time{}, bytes.NewReader(audio))
+	}))
+	t.Cleanup(music.Close)
+	// 下载器只在经反代时跳过证书校验，源站失败后改由反代返回测试音频
+	origin := httptest.NewTLSServer(http.NotFoundHandler())
+	t.Cleanup(origin.Close)
+	for _, tt := range []struct {
+		name          string
+		cacheChat     int64
+		cookieExpired bool
+		noURL         bool
+		wantUpload    bool
+		wantText      string
+		wantMetadata  int
+	}{
+		{name: "upload to cache chat", cacheChat: -100123, wantUpload: true, wantMetadata: 1},
+		{name: "no download URL", cacheChat: -100123, noURL: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
+		{name: "cookie expired", cacheChat: -100123, cookieExpired: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
+		{name: "no cache chat", wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tg, fake := newGuestTestBot(t)
+			a := newTestApp(tg)
+			a.cacheDir = t.TempDir()
+			a.http = &http.Client{}
+			a.dl = fetch.New(a.cacheDir, 10*time.Second, 1, strings.TrimPrefix(music.URL, "https://"), true)
+			a.musicSem = semaphore.NewWeighted(1)
+			a.cookieOK.Store(!tt.cookieExpired)
+			a.cacheChat.Store(tt.cacheChat)
+			st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = st.Close() })
+			a.store = st
+			detail := `{"songs":[{"id":123,"name":"<Song>","dt":1000,"ar":[{"name":"A&B"}],"al":{"name":"Album"}}]}`
+			var metadataCalls int
+			a.api = netease.New("cookie", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				metadataCalls++
+				body := detail
+				if r.URL.Path != "/eapi/v3/song/detail" {
+					songURL := origin.URL + "/123.mp3"
+					if tt.noURL {
+						songURL = ""
+					}
+					body = `{"/api/v3/song/detail":` + detail + `,"/api/song/enhance/player/url/v1":{"data":[{"url":"` + songURL + `","size":` + strconv.Itoa(len(audio)) + `}]}}`
+				}
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
+			})})
+			a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: &models.Message{
+				GuestQueryID:   "query",
+				Chat:           models.Chat{ID: 7, Type: models.ChatTypePrivate},
+				From:           &models.User{ID: 7},
+				ReplyToMessage: &models.Message{Text: "https://music.163.com/song?id=123"},
+			}})
+			if metadataCalls != tt.wantMetadata {
+				t.Errorf("metadata calls = %d, want %d", metadataCalls, tt.wantMetadata)
+			}
+			info, cached := st.GetByMusicID(123)
+			if !tt.wantUpload {
+				fake.checkAnswer(t, "query", tt.wantText, true)
+				if len(fake.uploads) != 0 || cached {
+					t.Errorf("unexpected upload: %v, cached = %v", fake.uploads, cached)
+				}
+				return
+			}
+			if len(fake.uploads) != 1 {
+				t.Fatalf("uploads = %d, want 1; requests = %v", len(fake.uploads), fake.methods)
+			}
+			upload := fake.uploads[0]
+			if upload.Get("chat_id") != "-100123" || upload.Get("reply_parameters") != "" {
+				t.Errorf("upload target = %v", upload)
+			}
+			if !cached || info.FileID != "uploaded-audio" || info.FromChatID != 7 || info.FromUserID != 7 {
+				t.Errorf("cached info = %+v, %v", info, cached)
+			}
+			result := fake.answers[0].result
+			if result.Type != "audio" || result.AudioFileID != "uploaded-audio" || result.Caption != a.musicCaption(info) {
+				t.Errorf("invalid cached audio: %+v", result)
+			}
+			entries, err := os.ReadDir(a.cacheDir)
+			if err != nil || len(entries) != 0 {
+				t.Errorf("music temporary files left behind: %v, %v", entries, err)
+			}
+		})
 	}
 }
 

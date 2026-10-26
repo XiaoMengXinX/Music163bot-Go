@@ -31,6 +31,15 @@ func songLinkKeyboard(musicID int) models.InlineKeyboardMarkup {
 	}}}}
 }
 
+func (a *App) guestKeyboard(musicID int) models.InlineKeyboardMarkup {
+	keyboard := songLinkKeyboard(musicID)
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, []models.InlineKeyboardButton{{
+		Text: "在 Bot 中获取歌曲",
+		URL:  fmt.Sprintf("https://t.me/%s?start=%d", a.me.Username, musicID),
+	}})
+	return keyboard
+}
+
 func searchKeyboard(musicIDs []int) models.InlineKeyboardMarkup {
 	buttons := make([]models.InlineKeyboardButton, 0, len(musicIDs))
 	for i, id := range musicIDs {

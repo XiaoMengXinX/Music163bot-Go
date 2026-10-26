@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -87,39 +88,48 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	if m == nil {
 		return
 	}
-	text := m.Text
-	if !textx.ContainsMusicLink(text) {
+	musicID, prog, err := a.musicFromText(m.Text)
+	if err != nil {
+		a.log.Errorln(err)
 		return
+	}
+	if musicID == 0 {
+		return
+	}
+	if err := a.processMusic(ctx, musicID, m, prog, nil); err != nil {
+		a.log.Errorln(err)
+	}
+}
+
+// musicFromText 解析分享链接，电台节目一并返回节目详情
+func (a *App) musicFromText(text string) (int, *types.ProgramDetailData, error) {
+	if !textx.ContainsMusicLink(text) {
+		return 0, nil, nil
 	}
 	if textx.ContainsShortLink(text) {
 		text = textx.ResolveShortLink(text)
 	}
 	if !textx.ContainsSongLink(text) {
-		return
+		return 0, nil, nil
 	}
 	if id := textx.ParseMusicID(text); id != 0 {
-		if err := a.processMusic(ctx, id, m, nil, nil); err != nil {
-			a.log.Errorln(err)
-		}
-		return
+		return id, nil, nil
 	}
-	if pid := textx.ParseProgramID(text); pid != 0 {
-		prog, err := a.api.ProgramDetail(pid)
-		if err != nil {
-			a.log.Errorln(err)
-			return
-		}
-		if rid := prog.Program.MainSong.ID; rid != 0 {
-			if err := a.processMusic(ctx, rid, m, &prog, nil); err != nil {
-				a.log.Errorln(err)
-			}
-		}
+	pid := textx.ParseProgramID(text)
+	if pid == 0 {
+		return 0, nil, nil
 	}
+	prog, err := a.api.ProgramDetail(pid)
+	if err != nil {
+		return 0, nil, err
+	}
+	return prog.Program.MainSong.ID, &prog, nil
 }
 
 // prog 非 nil 时用节目详情补全元数据
 func (a *App) processMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData, onInfo func(store.SongInfo)) error {
 	chatID := message.Chat.ID
+	reply := &models.ReplyParameters{MessageID: message.ID, AllowSendingWithoutReply: true}
 
 	if songInfo, ok := a.store.GetByMusicID(musicID); ok {
 		if onInfo != nil {
@@ -129,8 +139,8 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		if err != nil {
 			return err
 		}
-		if _, err := a.sendMusic(ctx, songInfo, "", "", message); err != nil {
-			a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
+		if _, err := a.sendMusic(ctx, songInfo, "", "", chatID, reply); err != nil {
+			a.showDownloadFailed(func(text string) error { return a.editMessage(ctx, chatID, msgResult.ID, text, nil) }, songInfo, err)
 			return err
 		}
 		return a.deleteMessage(ctx, chatID, msgResult.ID)
@@ -148,6 +158,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	if err != nil {
 		return err
 	}
+	status := func(text string) error { return a.editMessage(ctx, chatID, msgResult.ID, text, nil) }
 
 	if err := a.musicSem.Acquire(ctx, 1); err != nil {
 		return err
@@ -159,33 +170,43 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		if onInfo != nil {
 			onInfo(songInfo)
 		}
-		if err := a.editMessage(ctx, chatID, msgResult.ID, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.HitCache), nil); err != nil {
+		if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.HitCache)); err != nil {
 			return err
 		}
-		if _, err := a.sendMusic(ctx, songInfo, "", "", message); err != nil {
-			a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
+		if _, err := a.sendMusic(ctx, songInfo, "", "", chatID, reply); err != nil {
+			a.showDownloadFailed(status, songInfo, err)
 			return err
 		}
 		return a.deleteMessage(ctx, chatID, msgResult.ID)
 	}
 
-	if err := a.editMessage(ctx, chatID, msgResult.ID, render.FetchInfo, nil); err != nil {
+	if _, err := a.fetchMusic(ctx, musicID, message, prog, onInfo, chatID, reply, status); err != nil {
 		return err
+	}
+	return a.deleteMessage(ctx, chatID, msgResult.ID)
+}
+
+// fetchMusic 下载歌曲上传到 chatID 并写入缓存，失败原因已经由 status 展示
+func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData, onInfo func(store.SongInfo),
+	chatID int64, reply *models.ReplyParameters, status func(string) error) (store.SongInfo, error) {
+	var songInfo store.SongInfo
+	if err := status(render.FetchInfo); err != nil {
+		return songInfo, err
 	}
 
 	detail, urlData, err := a.api.SongDetailAndURL(musicID)
 	if err != nil {
-		a.log.Errorln(err)
-		return a.editMessage(ctx, chatID, msgResult.ID, render.FetchInfoFailed, nil)
+		a.showStatus(status, render.FetchInfoFailed)
+		return songInfo, err
 	}
 	if prog != nil {
 		enrichFromProgram(&detail, prog)
 	}
 	if len(detail.Songs) == 0 {
-		return a.editMessage(ctx, chatID, msgResult.ID, render.FetchInfoFailed, nil)
+		a.showStatus(status, render.FetchInfoFailed)
+		return songInfo, errors.New(render.FetchInfoFailed)
 	}
 
-	var songInfo store.SongInfo
 	songInfo.FromChatID = message.Chat.ID
 	if message.Chat.Type == models.ChatTypePrivate {
 		songInfo.FromChatName = message.Chat.Username
@@ -203,7 +224,8 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		onInfo(songInfo)
 	}
 	if len(urlData.Data) == 0 || urlData.Data[0].Url == "" {
-		return a.editMessage(ctx, chatID, msgResult.ID, render.GetURLFailed, nil)
+		a.showStatus(status, render.GetURLFailed)
+		return songInfo, errors.New(render.GetURLFailed)
 	}
 	switch path.Ext(textx.URLBase(urlData.Data[0].Url)) {
 	case ".mp3":
@@ -224,8 +246,8 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		a.log.Errorln(err)
 	}
 
-	if err := a.editMessage(ctx, chatID, msgResult.ID, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Downloading), nil); err != nil {
-		return err
+	if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Downloading)); err != nil {
+		return songInfo, err
 	}
 
 	timeStamp := time.Now().UnixMicro()
@@ -241,26 +263,25 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		if p.Attempt > 1 && p.ViaProxy {
 			statusText = render.Redownloading
 		}
-		if err := a.editMessage(ctx, chatID, msgResult.ID, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024,
-			statusText+render.DownloadStatus(p.Speed, float64(p.Written)/1024/1024, float64(p.Total)/1024/1024, p.Written*100/p.Total)), nil); err != nil {
+		if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024,
+			statusText+render.DownloadStatus(p.Speed, float64(p.Written)/1024/1024, float64(p.Total)/1024/1024, p.Written*100/p.Total))); err != nil {
 			a.log.Errorln(err)
 		}
 		lastUpdateTime = time.Now().Unix()
 	}
 
 	if err := a.dl.DownloadMusic(ctx, urlData.Data[0].Url, musicFileName, onProgress); err != nil {
-		a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
-		return err
+		a.showDownloadFailed(status, songInfo, err)
+		return songInfo, err
 	}
 
 	if md5sum := urlData.Data[0].Md5; md5sum != "" {
 		if err := fetch.VerifyMD5(musicPath, md5sum); err != nil {
-			a.log.Errorln(err)
 			if rmErr := os.Remove(musicPath); rmErr != nil {
 				a.log.Errorln(rmErr)
 			}
-			a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, fmt.Errorf("%s\n%s", render.Md5VerFailed, render.RetryLater))
-			return nil
+			a.showDownloadFailed(status, songInfo, fmt.Errorf("%s\n%s", render.Md5VerFailed, render.RetryLater))
+			return songInfo, err
 		}
 	}
 
@@ -298,8 +319,8 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 
 	newDir := filepath.Join(a.cacheDir, strconv.FormatInt(timeStamp, 10))
 	if err := os.Mkdir(newDir, os.ModePerm); err != nil {
-		a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
-		return err
+		a.showDownloadFailed(status, songInfo, err)
+		return songInfo, err
 	}
 	fileName := textx.SanitizeFilename(fmt.Sprintf("%v - %v.%v", strings.ReplaceAll(songInfo.SongArtists, "/", ","), songInfo.SongName, songInfo.FileExt))
 	filePath := filepath.Join(newDir, fileName)
@@ -319,29 +340,25 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	}()
 
 	if err := tagging.Write(filePath, musicPic, detail.Songs[0], urlData.Data[0]); err != nil {
-		a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
-		return err
+		a.showDownloadFailed(status, songInfo, err)
+		return songInfo, err
 	}
 
-	if err := a.editMessage(ctx, chatID, msgResult.ID, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Uploading), nil); err != nil {
-		return err
+	if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Uploading)); err != nil {
+		return songInfo, err
 	}
 
-	audio, err := a.sendMusic(ctx, songInfo, filePath, resizePicPath, message)
+	audio, err := a.sendMusic(ctx, songInfo, filePath, resizePicPath, chatID, reply)
 	if err != nil {
-		a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
-		return err
+		a.showDownloadFailed(status, songInfo, err)
+		return songInfo, err
 	}
 
 	songInfo.FileID = audio.Audio.FileID
 	if audio.Audio.Thumbnail != nil {
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
-	if err := a.store.Save(&songInfo); err != nil {
-		return err
-	}
-
-	return a.deleteMessage(ctx, chatID, msgResult.ID)
+	return songInfo, a.store.Save(&songInfo)
 }
 
 func artistNames(song types.SongDetailData) []string {
@@ -352,25 +369,33 @@ func artistNames(song types.SongDetailData) []string {
 	return names
 }
 
-// 错误展示前须隐藏 bot token
-func (a *App) sendDownloadFailed(ctx context.Context, chatID int64, messageID int, songInfo store.SongInfo, err error) {
-	scrubbed := strings.ReplaceAll(err.Error(), a.cfg.Bot.Token, "BOT_TOKEN")
-	text := render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.DownloadFailed(scrubbed))
-	if editErr := a.editMessage(ctx, chatID, messageID, text, nil); editErr != nil {
-		a.log.Errorln(editErr)
+func (a *App) showStatus(status func(string) error, text string) {
+	if err := status(text); err != nil {
+		a.log.Errorln(err)
 	}
 }
 
-func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath, picPath string, message *models.Message) (*models.Message, error) {
+// 错误展示前须隐藏 bot token
+func (a *App) showDownloadFailed(status func(string) error, songInfo store.SongInfo, err error) {
+	scrubbed := strings.ReplaceAll(err.Error(), a.cfg.Bot.Token, "BOT_TOKEN")
+	a.showStatus(status, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.DownloadFailed(scrubbed)))
+}
+
+func (a *App) musicCaption(songInfo store.SongInfo) string {
+	return render.MusicCaption(songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt,
+		float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, a.me.Username)
+}
+
+func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath, picPath string, chatID int64, reply *models.ReplyParameters) (*models.Message, error) {
 	params := &tgb.SendAudioParams{
-		ChatID:          message.Chat.ID,
-		Caption:         render.MusicCaption(songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, a.me.Username),
+		ChatID:          chatID,
+		Caption:         a.musicCaption(songInfo),
 		ParseMode:       models.ParseModeHTML,
 		Title:           songInfo.SongName,
 		Performer:       songInfo.SongArtists,
 		Duration:        songInfo.Duration,
 		ReplyMarkup:     musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
-		ReplyParameters: &models.ReplyParameters{MessageID: message.ID, AllowSendingWithoutReply: true},
+		ReplyParameters: reply,
 	}
 	if songInfo.FileID != "" {
 		params.Audio = &models.InputFileString{Data: songInfo.FileID}
@@ -382,7 +407,7 @@ func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath,
 		defer file.Close()
 		params.Audio = &models.InputFileUpload{Filename: filepath.Base(musicPath), Data: file}
 		_, _ = a.tg.SendChatAction(ctx, &tgb.SendChatActionParams{
-			ChatID: message.Chat.ID,
+			ChatID: chatID,
 			Action: models.ChatActionUploadDocument,
 		})
 	}

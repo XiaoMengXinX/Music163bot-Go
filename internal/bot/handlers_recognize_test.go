@@ -192,8 +192,8 @@ func TestProcessMusicInfoWithoutURL(t *testing.T) {
 					t.Errorf("unexpected song info: %+v", info)
 				}
 			})
-			if err != nil {
-				t.Fatal(err)
+			if err == nil || err.Error() != render.GetURLFailed {
+				t.Fatalf("err = %v, want %s", err, render.GetURLFailed)
 			}
 			if calls != 1 || requests != 1 {
 				t.Errorf("metadata calls = %d, API requests = %d, want 1 each", calls, requests)

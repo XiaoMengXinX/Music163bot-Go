@@ -67,7 +67,7 @@ auto_retry = true
 （如 `MUSIC163BOT_BOT_TOKEN`、`MUSIC163BOT_DOWNLOAD_TIMEOUT`），便于容器部署。
 
 指令菜单在每次启动时自动注册（无需在 BotFather 手动设置）：
-普通用户看到 `/music` `/search` 等公共指令，管理员额外看到 `/login` `/rmcache` `/reload`。
+普通用户看到 `/music` `/search` 等公共指令，管理员额外看到 `/login` `/rmcache` `/reload` `/setcachechat`。
 
 inline 模式需要在 BotFather 手动开启并设置占位文案
 
@@ -154,13 +154,21 @@ bot 必须能读取 `getFile` 返回的绝对路径。同机直接运行时确�
 - `/status` —— 缓存统计
 - `/about` —— 关于本 bot
 - `/start <ID>` —— 深链点歌（inline 未缓存引导）
-- 管理员：`/rmcache <ID/链接>` 清除缓存、`/reload` 重载配置、`/login` 网易云扫码登录
+- 管理员：`/rmcache <ID/链接>` 清除缓存、`/reload` 重载配置、`/login` 网易云扫码登录、`/setcachechat [群 ID]` 设置 Guest Mode 缓存群
 - 直接发送网易云分享链接即可嗅探点歌；inline 输入 `help` 查看用法
 
-**Guest Mode 听歌识曲**：在 @BotFather 的 Mini App 中为机器人开启 Guest Mode 后，
-可在 Telegram 支持的群组或私聊里回复一条语音，并发送 `@你的Bot用户名`。
-机器人无需加入该聊天，会直接返回歌名、歌手、专辑和网易云链接按钮。
-每次访客调用只回复一条结果，不发送进度消息或自动上传音频。
+**Guest Mode**：在 @BotFather 的 Mini App 中为机器人开启 Guest Mode 后，
+可在 Telegram 支持的群组或私聊里回复一条网易云分享链接或语音，并发送 `@你的Bot用户名`，
+也可直接发送 `@你的Bot用户名 分享链接`。机器人无需加入该聊天：
+已缓存的歌曲直接发送音频，未缓存的歌曲返回歌曲信息和在 Bot 中获取的按钮；
+语音则返回识别出的歌名、歌手、专辑和网易云链接按钮。
+每次访客调用只回复一条结果，不发送进度消息。
+
+Guest Mode 无法直接上传文件。设置缓存群后，未缓存的歌曲会先下载并上传到缓存群，
+再以音频回复访客。管理员在目标群内发送 `/setcachechat` 即设为当前群，
+也可发送 `/setcachechat <群 ID>` 指定其它 bot 可发言的聊天，`/setcachechat 0` 关闭；
+设置会写入配置文件的 `[bot] cache_chat`。未设置时保持上述行为。
+下载耗时过长时本次回复可能超时，但歌曲已写入缓存，再次调用即可直接发送。
 自建 Bot API 服务需支持 Bot API 10.0 的 `guest_message` 和 `answerGuestQuery`。
 
 **网易云扫码登录**：MUSIC_U 过期时，管理员发送 `/login`，bot 回一张二维码，

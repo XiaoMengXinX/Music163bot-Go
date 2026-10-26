@@ -53,10 +53,9 @@ func (a *App) answerInlineMusic(ctx context.Context, query *models.InlineQuery, 
 				DocumentFileID: songInfo.FileID,
 				Title:          fmt.Sprintf("%s - %s", songInfo.SongArtists, songInfo.SongName),
 				Description:    songInfo.SongAlbum,
-				Caption: render.MusicCaption(songInfo.SongName, songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt,
-					float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, a.me.Username),
-				ParseMode:   models.ParseModeHTML,
-				ReplyMarkup: musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
+				Caption:        a.musicCaption(songInfo),
+				ParseMode:      models.ParseModeHTML,
+				ReplyMarkup:    musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
 			},
 		}, 3600, nil)
 	}

@@ -7,6 +7,7 @@ api_url = "https://api.telegram.org"          # 自建 Bot API 时修改
 local_mode = false                           # API 开启 --local 且 bot 可读取其文件目录时启用
 upload_timeout = "120s"                      # 上传及其他 Telegram API 请求的总超时，须为正时长
 admin = [115414, 1919810]                     # 管理员用户 ID，可用 /rmcache /reload
+cache_chat = 0                                # 缓存群 ID，Guest Mode 点歌时先把未缓存的歌曲上传到这里；0 为关闭，可用 /setcachechat 设置
 debug = false                                 # 输出 SDK 调试日志
 
 [netease]

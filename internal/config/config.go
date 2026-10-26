@@ -39,6 +39,7 @@ type BotConfig struct {
 	Debug         bool     `toml:"debug"`
 	LocalMode     bool     `toml:"local_mode"`
 	UploadTimeout Duration `toml:"upload_timeout"`
+	CacheChat     int64    `toml:"cache_chat"`
 }
 
 type NeteaseConfig struct {
