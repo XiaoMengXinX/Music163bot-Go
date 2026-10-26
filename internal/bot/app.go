@@ -99,7 +99,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 		store:     st,
 		api:       netease.New(cfg.Netease.MUSICU, cfg.Netease.Level),
 		dl:        fetch.New(cacheDir, cfg.Download.Timeout.D(), cfg.Download.Retries, cfg.Download.ReverseProxy, cfg.Download.AutoRetry),
-		recog:     recognize.New(""),
+		recog:     recognize.New(),
 		log:       log,
 		build:     build,
 		cacheDir:  cacheDir,

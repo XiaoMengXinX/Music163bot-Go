@@ -10,8 +10,7 @@ RUN sh build.sh
 
 FROM alpine:3.21
 
-# ca-certificates 访问 Telegram/网易云 API；ffmpeg 供 /recognize 语音识别转码
-RUN apk add --no-cache ca-certificates ffmpeg tzdata \
+RUN apk add --no-cache ca-certificates tzdata \
     && mkdir -p /app/cache /app/log
 
 WORKDIR /app

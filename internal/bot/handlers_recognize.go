@@ -49,22 +49,17 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		}
 	}()
 	oggPath := filepath.Join(dir, "voice.ogg")
-	mp3Path := filepath.Join(dir, "voice.mp3")
 
 	if err := a.downloadVoice(ctx, oggPath, file); err != nil {
 		a.log.Errorln(err)
 		return
 	}
-	if err := recognize.ToMp3(oggPath, mp3Path); err != nil {
-		a.log.Errorln(err)
-		return
-	}
-	audio, err := os.ReadFile(mp3Path)
+	audio, err := os.ReadFile(oggPath)
 	if err != nil {
 		a.log.Errorln(err)
 		return
 	}
-	musicID, err := a.recog.Recognize(audio)
+	musicID, err := a.recog.Recognize(ctx, audio)
 	if err != nil {
 		if _, sendErr := a.reply(ctx, voice, render.RecognizeFailed); sendErr != nil {
 			a.log.Errorln(sendErr)

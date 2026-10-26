@@ -22,7 +22,7 @@
 - 歌曲快速分享
 - 下载无损flac音频（需设置网易云VIP账号的 MUSIC_U）
 - 网易云扫码登录（管理员 `/login`，免手动抓 MUSIC_U）
-- 语音识别搜歌（`/recognize`，依赖 ffmpeg）
+- 语音识别搜歌（`/recognize`，直接解析 OGG/Opus，无需 FFmpeg）
 - 优雅退出与 `/reload` 热重载配置
 
 ## ⚙️ 构建
@@ -108,7 +108,8 @@ docker compose up -d
 
 已有数据库时，先停止旧 bot，再将原来的 `cache.db` 及同名 `-wal`、`-shm` 文件（如有）一起移入 `data/`，然后启动容器。
 
-镜像内已包含 ffmpeg，以 root 用户运行。配置、数据库、缓存和日志均挂载到宿主机。
+镜像以 root 用户运行，配置、数据库、缓存和日志均挂载到宿主机。
+听歌识曲使用 [Music163-Audio-Recognize-Api](https://github.com/XiaoMengXinX/Music163-Audio-Recognize-Api) 的 Go 包在本地解析音频并提取指纹，再请求网易云匹配，无需 Vercel API 或 FFmpeg。
 
 **自建 Bot API 本地模式**
 
