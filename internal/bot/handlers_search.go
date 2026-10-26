@@ -47,7 +47,7 @@ func (a *App) handleSearch(ctx context.Context, tg *tgb.Bot, update *models.Upda
 			names = append(names, artist.Name)
 		}
 		musicIDs = append(musicIDs, song.Id)
-		textMessage = fmt.Sprintf("%s%d.「%s」 - %s\n", textMessage, i+1, song.Name, textx.JoinNames(names))
+		textMessage = fmt.Sprintf("%s%d.「%s」 - %s\n", textMessage, i+1, render.Escape(song.Name), render.Escape(textx.JoinNames(names)))
 	}
 	if err := a.editMessage(ctx, m.Chat.ID, msgResult.ID, textMessage, searchKeyboard(musicIDs)); err != nil {
 		a.log.Errorln(err)

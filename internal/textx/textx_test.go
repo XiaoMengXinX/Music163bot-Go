@@ -1,6 +1,10 @@
 package textx
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"unicode/utf8"
+)
 
 func TestParseMusicID(t *testing.T) {
 	tests := []struct {
@@ -68,6 +72,30 @@ func TestSanitizeFilename(t *testing.T) {
 	want := "a b c d e f g h i j"
 	if got != want {
 		t.Errorf("SanitizeFilename = %q, want %q", got, want)
+	}
+}
+
+func TestSanitizeFilenameLength(t *testing.T) {
+	artists := strings.Repeat("影山ヒロノブ,ささきいさお,", 8)
+	for _, tt := range []struct {
+		name string
+		ext  string
+	}{
+		{name: artists + " - 秘密戦隊ゴレンジャー [スーパー戦隊“魂”2004 LIVE].mp3", ext: ".mp3"},
+		{name: "a" + artists + " - 愿世界和平.flac", ext: ".flac"},
+		{name: "ab" + artists + " - 愿世界和平.lrc", ext: ".lrc"},
+	} {
+		got := SanitizeFilename(tt.name)
+		if len(got) > 255 || !utf8.ValidString(got) || !strings.HasSuffix(got, tt.ext) {
+			t.Errorf("SanitizeFilename(%q) = %q (%d bytes)", tt.name, got, len(got))
+		}
+		if base := strings.TrimSuffix(got, tt.ext); !strings.HasPrefix(tt.name, base) || len(got) < 252 {
+			t.Errorf("SanitizeFilename(%q) = %q, want longest prefix", tt.name, got)
+		}
+	}
+	exact := strings.Repeat("a", 250) + ".flac"
+	if got := SanitizeFilename(exact); got != exact {
+		t.Errorf("255-byte name changed: %q", got)
 	}
 }
 

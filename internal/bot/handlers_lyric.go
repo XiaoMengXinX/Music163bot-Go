@@ -80,9 +80,8 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		return
 	}
 
-	lrcPath := filepath.Join(a.cacheDir, fmt.Sprintf("%s - %s.lrc",
-		textx.SanitizeFilename(textx.JoinNames(artistNames(detail.Songs[0]))),
-		textx.SanitizeFilename(detail.Songs[0].Name)))
+	lrcPath := filepath.Join(a.cacheDir, textx.SanitizeFilename(fmt.Sprintf("%s - %s.lrc",
+		textx.JoinNames(artistNames(detail.Songs[0])), detail.Songs[0].Name)))
 	file, err := os.OpenFile(lrcPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		sendFailed()

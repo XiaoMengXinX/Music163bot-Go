@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -33,8 +34,21 @@ var filenameReplacer = strings.NewReplacer(
 	"/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ",
 )
 
+// 常见文件系统限制文件名不超过 255 字节
+const maxFilenameBytes = 255
+
+// SanitizeFilename 替换非法字符，超长时按字节截断并保留扩展名
 func SanitizeFilename(name string) string {
-	return filenameReplacer.Replace(name)
+	name = filenameReplacer.Replace(name)
+	if len(name) <= maxFilenameBytes {
+		return name
+	}
+	ext := path.Ext(name)
+	n := maxFilenameBytes - len(ext)
+	for n > 0 && !utf8.RuneStart(name[n]) {
+		n--
+	}
+	return name[:n] + ext
 }
 
 func URLBase(rawURL string) string {
