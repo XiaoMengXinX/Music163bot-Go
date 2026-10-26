@@ -48,6 +48,7 @@ GOOS=windows GOARCH=amd64 bash build.sh
 [bot]
 token = "YOUR_BOT_TOKEN"   # 必填
 admin = [123456]           # 管理员 ID
+upload_timeout = "120s"    # 上传及其他 Telegram API 请求的总超时
 
 [netease]
 music_u = "YOUR_MUSIC_U"   # 必填，网易云 cookie 中的 MUSIC_U（下载无损需 VIP 账号）
@@ -71,8 +72,7 @@ auto_retry = true
 指令菜单在每次启动时自动注册（无需在 BotFather 手动设置）：
 普通用户看到 `/music` `/search` 等公共指令，管理员额外看到 `/login` `/rmcache` `/reload`。
 
-inline 模式需要在 BotFather 手动开启一次（API 无法代办）：发 `/setinline` 选择 bot
-并设置占位文案；建议同时 `/setinlinefeedback` 设为 0。
+inline 模式需要在 BotFather 手动开启并设置占位文案
 
 **启动**
 

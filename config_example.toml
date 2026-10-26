@@ -5,6 +5,7 @@
 token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ" # 必填，BotFather 给的 token
 api_url = "https://api.telegram.org"          # 自建 Bot API 时修改
 local_mode = false                           # API 开启 --local 且 bot 可读取其文件目录时启用
+upload_timeout = "120s"                      # 上传及其他 Telegram API 请求的总超时，须为正时长
 admin = [115414, 1919810]                     # 管理员用户 ID，可用 /rmcache /reload
 debug = false                                 # 输出 SDK 调试日志
 

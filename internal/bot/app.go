@@ -111,6 +111,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 
 	opts := []tgb.Option{
 		tgb.WithServerURL(cfg.Bot.APIURL),
+		tgb.WithHTTPClient(min(time.Minute, cfg.Bot.UploadTimeout.D()), &http.Client{Timeout: cfg.Bot.UploadTimeout.D()}),
 		tgb.WithSkipGetMe(), // 由下方 GetMe 统一完成 token 校验并取得 bot 用户名
 		tgb.WithAllowedUpdates(tgb.AllowedUpdates{"message", "callback_query", "inline_query"}), // 不显式声明会沿用服务端持久设置，收不到回调
 

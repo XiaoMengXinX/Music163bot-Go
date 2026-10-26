@@ -33,11 +33,12 @@ func (d Duration) MarshalText() ([]byte, error) { return []byte(time.Duration(d)
 
 // BotConfig 对应 [bot] 段
 type BotConfig struct {
-	Token     string  `toml:"token"`
-	APIURL    string  `toml:"api_url"`
-	Admin     []int64 `toml:"admin"`
-	Debug     bool    `toml:"debug"`
-	LocalMode bool    `toml:"local_mode"`
+	Token         string   `toml:"token"`
+	APIURL        string   `toml:"api_url"`
+	Admin         []int64  `toml:"admin"`
+	Debug         bool     `toml:"debug"`
+	LocalMode     bool     `toml:"local_mode"`
+	UploadTimeout Duration `toml:"upload_timeout"`
 }
 
 // NeteaseConfig 对应 [netease] 段
@@ -79,7 +80,8 @@ type Config struct {
 func Default() *Config {
 	return &Config{
 		Bot: BotConfig{
-			APIURL: "https://api.telegram.org",
+			APIURL:        "https://api.telegram.org",
+			UploadTimeout: Duration(120 * time.Second),
 		},
 		Netease: NeteaseConfig{
 			// 与 Music163Api-Go 默认一致
@@ -129,6 +131,9 @@ func (c *Config) Validate() error {
 	}
 	if _, err := url.Parse(c.Bot.APIURL); err != nil || c.Bot.APIURL == "" {
 		return fmt.Errorf("配置项 [bot] api_url %q 不是合法 URL", c.Bot.APIURL)
+	}
+	if c.Bot.UploadTimeout <= 0 {
+		return fmt.Errorf("配置项 [bot] upload_timeout 必须为正时长")
 	}
 	switch c.Netease.Level {
 	case "standard", "higher", "lossless", "hires", "jyeffect", "sky", "jymaster":

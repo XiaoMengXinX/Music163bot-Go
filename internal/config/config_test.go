@@ -67,6 +67,46 @@ music_u = "COOKIE"
 	}
 }
 
+func TestUploadTimeout(t *testing.T) {
+	t.Setenv("MUSIC163BOT_BOT_UPLOAD_TIMEOUT", "")
+	if err := os.Unsetenv("MUSIC163BOT_BOT_UPLOAD_TIMEOUT"); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name    string
+		setting string
+		env     string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "default", want: 120 * time.Second},
+		{name: "toml", setting: `upload_timeout = "5m"`, want: 5 * time.Minute},
+		{name: "env", setting: `upload_timeout = "5m"`, env: "180s", want: 180 * time.Second},
+		{name: "zero", setting: `upload_timeout = "0s"`, wantErr: true},
+		{name: "negative", setting: `upload_timeout = "-1s"`, wantErr: true},
+		{name: "invalid", setting: `upload_timeout = "invalid"`, wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.env != "" {
+				t.Setenv("MUSIC163BOT_BOT_UPLOAD_TIMEOUT", tt.env)
+			}
+			cfg, err := Load(writeTemp(t, "[bot]\ntoken = '1:test'\n"+tt.setting))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected invalid upload timeout error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Bot.UploadTimeout.D() != tt.want {
+				t.Errorf("upload_timeout = %v, want %v", cfg.Bot.UploadTimeout.D(), tt.want)
+			}
+		})
+	}
+}
+
 func TestLocalMode(t *testing.T) {
 	t.Setenv("MUSIC163BOT_BOT_LOCAL_MODE", "")
 	if err := os.Unsetenv("MUSIC163BOT_BOT_LOCAL_MODE"); err != nil {
