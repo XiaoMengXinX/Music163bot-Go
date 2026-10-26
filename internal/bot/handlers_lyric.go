@@ -40,13 +40,17 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		}
 	}
 
-	var musicID int
+	var musicID, programID int
 	if source != m {
-		if musicID, _, err = a.messageMusic(source); err != nil {
+		musicID, programID = messageMusic(source)
+	} else {
+		musicID, programID = musicFromText(args)
+	}
+	if programID != 0 {
+		if err := a.editMessage(ctx, msgResult.Chat.ID, msgResult.ID, render.LrcNoProgram, nil); err != nil {
 			a.log.Errorln(err)
-			sendFailed()
-			return
 		}
+		return
 	}
 	if musicID == 0 {
 		musicID = textx.ParseMusicID(args)

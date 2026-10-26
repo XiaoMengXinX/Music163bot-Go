@@ -104,7 +104,7 @@ func TestSetCacheChat(t *testing.T) {
 }
 
 func TestRmCacheFromReply(t *testing.T) {
-	audioKeyboard := musicKeyboard("<Song>", "Artist", 123)
+	audioKeyboard := musicKeyboard(store.SongInfo{MusicID: 123, SongName: "<Song>", SongArtists: "Artist"}, nil)
 	for _, tt := range []struct {
 		name      string
 		text      string

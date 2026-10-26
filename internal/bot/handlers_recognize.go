@@ -61,7 +61,7 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		return
 	}
 
-	keyboard := songLinkKeyboard(musicID)
+	keyboard := linkKeyboard(render.SongLink(musicID))
 	showResult := func(text string) {
 		if err := a.editMessage(ctx, voice.Chat.ID, status.ID, text, keyboard); err != nil {
 			a.log.Errorln(err)

@@ -88,7 +88,7 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	if m == nil {
 		return
 	}
-	musicID, prog, err := a.musicFromText(m.Text)
+	musicID, prog, err := a.resolveMusic(musicFromText(m.Text))
 	if err != nil {
 		a.log.Errorln(err)
 		return
@@ -101,25 +101,29 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	}
 }
 
-// musicFromText 解析分享链接，电台节目一并返回节目详情
-func (a *App) musicFromText(text string) (int, *types.ProgramDetailData, error) {
+// musicFromText 解析分享链接中的歌曲或电台节目 ID
+func musicFromText(text string) (musicID, programID int) {
 	if !textx.ContainsMusicLink(text) {
-		return 0, nil, nil
+		return 0, 0
 	}
 	if textx.ContainsShortLink(text) {
 		text = textx.ResolveShortLink(text)
 	}
 	if !textx.ContainsSongLink(text) {
-		return 0, nil, nil
+		return 0, 0
 	}
-	if id := textx.ParseMusicID(text); id != 0 {
-		return id, nil, nil
+	if musicID = textx.ParseMusicID(text); musicID != 0 {
+		return musicID, 0
 	}
-	pid := textx.ParseProgramID(text)
-	if pid == 0 {
-		return 0, nil, nil
+	return 0, textx.ParseProgramID(text)
+}
+
+// resolveMusic 电台节目返回主歌曲 ID 及节目详情
+func (a *App) resolveMusic(musicID, programID int) (int, *types.ProgramDetailData, error) {
+	if musicID != 0 || programID == 0 {
+		return musicID, nil, nil
 	}
-	prog, err := a.api.ProgramDetail(pid)
+	prog, err := a.api.ProgramDetail(programID)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -127,7 +131,7 @@ func (a *App) musicFromText(text string) (int, *types.ProgramDetailData, error) 
 }
 
 // messageMusic 依次从正文、说明、文字链接和按钮中解析分享链接
-func (a *App) messageMusic(m *models.Message) (int, *types.ProgramDetailData, error) {
+func messageMusic(m *models.Message) (musicID, programID int) {
 	links := []string{m.Text, m.Caption}
 	for _, entities := range [][]models.MessageEntity{m.Entities, m.CaptionEntities} {
 		for _, e := range entities {
@@ -146,11 +150,11 @@ func (a *App) messageMusic(m *models.Message) (int, *types.ProgramDetailData, er
 		}
 	}
 	for _, link := range links {
-		if musicID, prog, err := a.musicFromText(link); err != nil || musicID != 0 {
-			return musicID, prog, err
+		if musicID, programID = musicFromText(link); musicID != 0 || programID != 0 {
+			return musicID, programID
 		}
 	}
-	return 0, nil, nil
+	return 0, 0
 }
 
 // prog 非 nil 时用节目详情补全元数据
@@ -166,7 +170,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		if err != nil {
 			return err
 		}
-		if _, err := a.sendMusic(ctx, songInfo, "", "", chatID, reply); err != nil {
+		if _, err := a.sendMusic(ctx, songInfo, prog, "", "", chatID, reply); err != nil {
 			a.showDownloadFailed(func(text string) error { return a.editMessage(ctx, chatID, msgResult.ID, text, nil) }, songInfo, err)
 			return err
 		}
@@ -200,7 +204,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.HitCache)); err != nil {
 			return err
 		}
-		if _, err := a.sendMusic(ctx, songInfo, "", "", chatID, reply); err != nil {
+		if _, err := a.sendMusic(ctx, songInfo, prog, "", "", chatID, reply); err != nil {
 			a.showDownloadFailed(status, songInfo, err)
 			return err
 		}
@@ -375,7 +379,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 		return songInfo, err
 	}
 
-	audio, err := a.sendMusic(ctx, songInfo, filePath, resizePicPath, chatID, reply)
+	audio, err := a.sendMusic(ctx, songInfo, prog, filePath, resizePicPath, chatID, reply)
 	if err != nil {
 		a.showDownloadFailed(status, songInfo, err)
 		return songInfo, err
@@ -413,7 +417,7 @@ func (a *App) musicCaption(songInfo store.SongInfo) string {
 		float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, a.me.Username)
 }
 
-func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath, picPath string, chatID int64, reply *models.ReplyParameters) (*models.Message, error) {
+func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, prog *types.ProgramDetailData, musicPath, picPath string, chatID int64, reply *models.ReplyParameters) (*models.Message, error) {
 	params := &tgb.SendAudioParams{
 		ChatID:          chatID,
 		Caption:         a.musicCaption(songInfo),
@@ -421,7 +425,7 @@ func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath,
 		Title:           songInfo.SongName,
 		Performer:       songInfo.SongArtists,
 		Duration:        songInfo.Duration,
-		ReplyMarkup:     musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
+		ReplyMarkup:     musicKeyboard(songInfo, prog),
 		ReplyParameters: reply,
 	}
 	if songInfo.FileID != "" {

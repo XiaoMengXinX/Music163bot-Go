@@ -36,10 +36,11 @@ func (a *App) handleGuest(ctx context.Context, tg *tgb.Bot, update *models.Updat
 
 // guestMusic 访客模式无法上传文件，未缓存的歌曲须先上传到缓存群
 func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQueryResult {
-	musicID, prog, err := a.musicFromText(m.Text)
-	if err == nil && musicID == 0 && m.ReplyToMessage != nil {
-		musicID, prog, err = a.messageMusic(m.ReplyToMessage)
+	musicID, programID := musicFromText(m.Text)
+	if musicID == 0 && programID == 0 && m.ReplyToMessage != nil {
+		musicID, programID = messageMusic(m.ReplyToMessage)
 	}
+	musicID, prog, err := a.resolveMusic(musicID, programID)
 	if err != nil {
 		a.log.Errorln(err)
 		return guestArticle("网易云音乐", render.FetchInfoFailed, nil)
@@ -60,7 +61,7 @@ func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQu
 			AudioFileID: songInfo.FileID,
 			Caption:     a.musicCaption(songInfo),
 			ParseMode:   models.ParseModeHTML,
-			ReplyMarkup: musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
+			ReplyMarkup: musicKeyboard(songInfo, prog),
 		}
 	}
 	text := render.GuestNoCache
@@ -72,7 +73,11 @@ func (a *App) guestMusic(ctx context.Context, m *models.Message) models.InlineQu
 		song := detail.Songs[0]
 		text = render.GuestMusicResult(song.Name, textx.JoinNames(artistNames(song)), song.Al.Name)
 	}
-	return guestArticle("网易云音乐", text, a.guestKeyboard(musicID))
+	link := render.SongLink(musicID)
+	if programID != 0 {
+		link = render.ProgramLink(programID)
+	}
+	return guestArticle("网易云音乐", text, a.guestKeyboard(link, musicID))
 }
 
 func (a *App) cacheMusic(ctx context.Context, musicID int, m *models.Message, prog *types.ProgramDetailData, chatID int64) (store.SongInfo, error) {
@@ -109,7 +114,7 @@ func (a *App) guestRecognize(ctx context.Context, voice *models.Voice) models.In
 		song := detail.Songs[0]
 		text = render.RecognizeResult(song.Name, textx.JoinNames(artistNames(song)), song.Al.Name)
 	}
-	return guestArticle("音乐识别", text, a.guestKeyboard(musicID))
+	return guestArticle("音乐识别", text, a.guestKeyboard(render.SongLink(musicID), musicID))
 }
 
 func guestArticle(title, text string, markup models.ReplyMarkup) *models.InlineQueryResultArticle {

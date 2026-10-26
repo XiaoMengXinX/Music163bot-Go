@@ -124,6 +124,15 @@ func newGuestTestBot(t *testing.T) (*tgb.Bot, *guestTelegram) {
 
 func (f *guestTelegram) checkAnswer(t *testing.T, queryID, text string, button bool) {
 	t.Helper()
+	link := ""
+	if button {
+		link = render.SongLink(123)
+	}
+	f.checkAnswerLink(t, queryID, text, link)
+}
+
+func (f *guestTelegram) checkAnswerLink(t *testing.T, queryID, text, link string) {
+	t.Helper()
 	if len(f.answers) != 1 {
 		t.Fatalf("answers = %d, want 1; requests = %v", len(f.answers), f.methods)
 	}
@@ -142,9 +151,9 @@ func (f *guestTelegram) checkAnswer(t *testing.T, queryID, text string, button b
 	if content.LinkPreviewOptions == nil || content.LinkPreviewOptions.IsDisabled == nil || !*content.LinkPreviewOptions.IsDisabled {
 		t.Error("link previews must be disabled")
 	}
-	if button {
+	if link != "" {
 		want := models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{
-			{{Text: "在网易云音乐中打开", URL: "https://music.163.com/song/123"}},
+			{{Text: "在网易云音乐中打开", URL: link}},
 			{{Text: "在 Bot 中获取歌曲", URL: "https://t.me/testbot?start=123"}},
 		}}
 		if result.ReplyMarkup == nil || !reflect.DeepEqual(*result.ReplyMarkup, want) {
@@ -410,7 +419,7 @@ func TestGuestMusic(t *testing.T) {
 			if result.Caption != a.musicCaption(cachedInfo) {
 				t.Errorf("caption = %q, want %q", result.Caption, a.musicCaption(cachedInfo))
 			}
-			want := musicKeyboard(cachedInfo.SongName, cachedInfo.SongArtists, cachedInfo.MusicID)
+			want := musicKeyboard(cachedInfo, nil)
 			if result.ReplyMarkup == nil || !reflect.DeepEqual(*result.ReplyMarkup, want) {
 				t.Errorf("keyboard = %+v, want %+v", result.ReplyMarkup, want)
 			}
@@ -432,6 +441,7 @@ func TestGuestMusicCacheChat(t *testing.T) {
 		cacheChat     int64
 		cookieExpired bool
 		noURL         bool
+		program       bool
 		wantUpload    bool
 		wantText      string
 		wantMetadata  int
@@ -440,6 +450,8 @@ func TestGuestMusicCacheChat(t *testing.T) {
 		{name: "no download URL", cacheChat: -100123, noURL: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
 		{name: "cookie expired", cacheChat: -100123, cookieExpired: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
 		{name: "no cache chat", wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
+		{name: "program upload to cache chat", cacheChat: -100123, program: true, wantUpload: true, wantMetadata: 2},
+		{name: "program without cache chat", program: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 2},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, fake := newGuestTestBot(t)
@@ -461,7 +473,11 @@ func TestGuestMusicCacheChat(t *testing.T) {
 			a.api = netease.New("cookie", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 				metadataCalls++
 				body := detail
-				if r.URL.Path != "/eapi/v3/song/detail" {
+				switch r.URL.Path {
+				case "/eapi/dj/program/detail":
+					body = `{"code":200,"program":{"id":2061,"name":"Program","mainSong":{"id":123,"name":"<Song>","duration":1000}}}`
+				case "/eapi/v3/song/detail":
+				default:
 					songURL := origin.URL + "/123.mp3"
 					if tt.noURL {
 						songURL = ""
@@ -470,18 +486,22 @@ func TestGuestMusicCacheChat(t *testing.T) {
 				}
 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
 			})})
+			shared, link := "https://music.163.com/song?id=123", render.SongLink(123)
+			if tt.program {
+				shared, link = render.ProgramLink(2061), render.ProgramLink(2061)
+			}
 			a.handleGuest(t.Context(), tg, &models.Update{GuestMessage: &models.Message{
 				GuestQueryID:   "query",
 				Chat:           models.Chat{ID: 7, Type: models.ChatTypePrivate},
 				From:           &models.User{ID: 7},
-				ReplyToMessage: &models.Message{Text: "https://music.163.com/song?id=123"},
+				ReplyToMessage: &models.Message{Text: shared},
 			}})
 			if metadataCalls != tt.wantMetadata {
 				t.Errorf("metadata calls = %d, want %d", metadataCalls, tt.wantMetadata)
 			}
 			info, cached := st.GetByMusicID(123)
 			if !tt.wantUpload {
-				fake.checkAnswer(t, "query", tt.wantText, true)
+				fake.checkAnswerLink(t, "query", tt.wantText, link)
 				if len(fake.uploads) != 0 || cached {
 					t.Errorf("unexpected upload: %v, cached = %v", fake.uploads, cached)
 				}
@@ -500,6 +520,19 @@ func TestGuestMusicCacheChat(t *testing.T) {
 			result := fake.answers[0].result
 			if result.Type != "audio" || result.AudioFileID != "uploaded-audio" || result.Caption != a.musicCaption(info) {
 				t.Errorf("invalid cached audio: %+v", result)
+			}
+			wantLink := "https://music.163.com/song?id=123"
+			if tt.program {
+				wantLink = render.ProgramLink(2061)
+			}
+			var uploadKeyboard models.InlineKeyboardMarkup
+			if err := json.Unmarshal([]byte(upload.Get("reply_markup")), &uploadKeyboard); err != nil {
+				t.Fatal(err)
+			}
+			for _, keyboard := range []*models.InlineKeyboardMarkup{&uploadKeyboard, result.ReplyMarkup} {
+				if keyboard == nil || keyboard.InlineKeyboard[0][0].URL != wantLink || *keyboard.InlineKeyboard[1][0].SwitchInlineQuery != "https://music.163.com/song?id=123" {
+					t.Errorf("keyboard = %+v, want link %s", keyboard, wantLink)
+				}
 			}
 			entries, err := os.ReadDir(a.cacheDir)
 			if err != nil || len(entries) != 0 {

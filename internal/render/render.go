@@ -20,6 +20,7 @@ const (
 	HitCache         = "命中缓存, 正在发送中..."
 	SendMeTo         = "Send me to..."
 	GetLrcFailed     = "获取歌词失败, 歌曲可能不存在或为纯音乐"
+	LrcNoProgram     = "电台节目不支持获取歌词"
 	GetURLFailed     = "获取歌曲下载链接失败"
 	FetchInfo        = "正在获取歌曲信息..."
 	FetchInfoFailed  = "获取歌曲信息失败"
@@ -180,4 +181,8 @@ func RmcacheReport(name string) string {
 
 func SongLink(musicID int) string {
 	return fmt.Sprintf("https://music.163.com/song/%d", musicID)
+}
+
+func ProgramLink(programID int) string {
+	return fmt.Sprintf("https://music.163.com/program?id=%d", programID)
 }

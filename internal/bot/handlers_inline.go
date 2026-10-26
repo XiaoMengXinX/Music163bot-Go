@@ -55,7 +55,7 @@ func (a *App) answerInlineMusic(ctx context.Context, query *models.InlineQuery, 
 				Description:    songInfo.SongAlbum,
 				Caption:        a.musicCaption(songInfo),
 				ParseMode:      models.ParseModeHTML,
-				ReplyMarkup:    musicKeyboard(songInfo.SongName, songInfo.SongArtists, songInfo.MusicID),
+				ReplyMarkup:    musicKeyboard(songInfo, nil),
 			},
 		}, 3600, nil)
 	}
