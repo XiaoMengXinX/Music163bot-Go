@@ -1,4 +1,4 @@
-// Package store SQLite 歌曲缓存：goose 版本化迁移、查询与 Upsert。表结构与 v2 一致
+// Package store 管理 SQLite 歌曲缓存
 package store
 
 import (
@@ -40,12 +40,10 @@ type SongInfo struct {
 
 func (SongInfo) TableName() string { return "song_infos" }
 
-// Store 是数据库入口
 type Store struct {
 	db *gorm.DB
 }
 
-// Open 打开数据库并执行迁移；WAL + busy_timeout
 func Open(path string, gormLogger logger.Interface) (*Store, error) {
 	db, err := gorm.Open(sqlite.Open(path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)"), &gorm.Config{
 		Logger:      gormLogger,
@@ -74,7 +72,6 @@ func Open(path string, gormLogger logger.Interface) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-// Close 关闭数据库连接
 func (s *Store) Close() error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
@@ -93,7 +90,7 @@ func (s *Store) GetByMusicID(musicID int) (SongInfo, bool) {
 	return songInfo, true
 }
 
-// Save 写入缓存；music_id 唯一，重复时更新（清空软删除标记）
+// 按 music_id 更新缓存，同时清除软删除标记
 func (s *Store) Save(songInfo *SongInfo) error {
 	return s.db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "music_id"}},
@@ -105,7 +102,6 @@ func (s *Store) Save(songInfo *SongInfo) error {
 	}).Create(songInfo).Error
 }
 
-// DeleteByMusicID 删除歌曲缓存，返回被删除的歌曲名（不存在时 ok 为 false）
 func (s *Store) DeleteByMusicID(musicID int) (name string, ok bool, err error) {
 	songInfo, found := s.GetByMusicID(musicID)
 	if !found {
@@ -117,7 +113,6 @@ func (s *Store) DeleteByMusicID(musicID int) (name string, ok bool, err error) {
 	return songInfo.SongName, true, nil
 }
 
-// Counts 返回缓存总数、某用户、某对话的缓存数量
 func (s *Store) Counts(fromUserID, fromChatID int64) (total, byUser, byChat int64) {
 	s.db.Model(&SongInfo{}).Count(&total)
 	s.db.Model(&SongInfo{}).Where("from_user_id = ?", fromUserID).Count(&byUser)

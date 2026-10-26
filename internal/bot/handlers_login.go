@@ -15,10 +15,8 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 )
 
-// errLoginCancelled 「取消登录」按钮的取消原因
 var errLoginCancelled = errors.New("login cancelled")
 
-// handleLogin /login（管理员）扫码登录，成功后热更新 cookie 并回写配置
 func (a *App) handleLogin(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if !a.loginMu.TryLock() {
@@ -58,13 +56,11 @@ func (a *App) handleLogin(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		return
 	}
 
-	// 会话 ctx：「取消登录」按钮通过它中断轮询
 	sessCtx, cancelSession := context.WithCancelCause(ctx)
 	defer cancelSession(nil)
 	a.setLoginCancel(cancelSession)
 	defer a.setLoginCancel(nil)
 
-	// editCaption 更新二维码说明；markup 传空键盘可顺带移除「取消登录」按钮
 	editCaption := func(text string, markup models.ReplyMarkup) error {
 		_, err := a.tg.EditMessageCaption(ctx, &tgb.EditMessageCaptionParams{
 			ChatID:      m.Chat.ID,
@@ -79,7 +75,6 @@ func (a *App) handleLogin(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	a.pollQRLogin(sessCtx, key, editCaption)
 }
 
-// cancelLoginKeyboard 二维码下方的「取消登录」按钮
 func cancelLoginKeyboard() models.InlineKeyboardMarkup {
 	return models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{{
@@ -93,14 +88,13 @@ func emptyKeyboard() models.InlineKeyboardMarkup {
 	return models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{}}
 }
 
-// setLoginCancel 记录当前会话的取消函数（loginMu 被会话持有，另用小锁保护）
+// loginMu 由会话持有，取消函数须用独立锁保护
 func (a *App) setLoginCancel(cancel context.CancelCauseFunc) {
 	a.loginCancelMu.Lock()
 	defer a.loginCancelMu.Unlock()
 	a.loginCancel = cancel
 }
 
-// cancelLoginSession 取消进行中的登录会话；没有会话时返回 false
 func (a *App) cancelLoginSession() bool {
 	a.loginCancelMu.Lock()
 	defer a.loginCancelMu.Unlock()
@@ -111,11 +105,9 @@ func (a *App) cancelLoginSession() bool {
 	return true
 }
 
-// handleCallbackCancelLogin 「取消登录」按钮回调（管理员）
 func (a *App) handleCallbackCancelLogin(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	query := update.CallbackQuery
 	if !a.cancelLoginSession() {
-		// 会话已结束（残留按钮）：编辑消息给出可见反馈，而不是只弹一闪而过的 toast
 		text := render.LoginNoSession
 		if msg := query.Message.Message; msg != nil {
 			if _, err := a.tg.EditMessageCaption(ctx, &tgb.EditMessageCaptionParams{
@@ -144,10 +136,9 @@ func (a *App) handleCallbackCancelLogin(ctx context.Context, tg *tgb.Bot, update
 	}
 }
 
-// loginQRValidity 二维码有效期（用于剩余秒数展示）
+// loginQRValidity 仅用于倒计时，以服务端过期状态为准
 const loginQRValidity = 3 * time.Minute
 
-// pollQRLogin 每秒轮询扫码状态直到终态
 func (a *App) pollQRLogin(ctx context.Context, key string, editCaption func(string, models.ReplyMarkup) error) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -155,7 +146,7 @@ func (a *App) pollQRLogin(ctx context.Context, key string, editCaption func(stri
 	defer countdown.Stop()
 	expiresAt := time.Now().Add(loginQRValidity)
 	deadline := time.After(5 * time.Minute) // 二维码约 3 分钟过期，此处兜底
-	// 802 响应带昵称，803 往往不带，记下 802 的昵称备用
+	// 803 可能不带昵称，保留 802 的昵称
 	var scannedNick string
 	var failures int
 	for {
@@ -164,7 +155,6 @@ func (a *App) pollQRLogin(ctx context.Context, key string, editCaption func(stri
 			if errors.Is(context.Cause(ctx), errLoginCancelled) {
 				_ = editCaption(render.LoginCancelled, emptyKeyboard())
 			}
-			// 其余情况（关机/重载）静默退出
 			return
 		case <-deadline:
 			_ = editCaption(render.LoginExpired, emptyKeyboard())
@@ -180,7 +170,6 @@ func (a *App) pollQRLogin(ctx context.Context, key string, editCaption func(stri
 		case <-ticker.C:
 			status, nickname, musicU, err := a.api.CheckQRLogin(key)
 			if err != nil {
-				// 连续多次失败才放弃
 				failures++
 				if failures >= 10 {
 					a.log.Errorln(err)

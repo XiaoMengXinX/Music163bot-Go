@@ -17,7 +17,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
 )
 
-// handleRecognize /recognize：识别回复的语音留言并发歌
 func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if m.ReplyToMessage == nil {
@@ -97,7 +96,7 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 	}
 	showResult(render.RecognizeSuccess)
 	if err := a.processMusic(ctx, musicID, voice, nil, func(info store.SongInfo) {
-		showResult(render.SongInfo(info.SongName, info.SongArtists, info.SongAlbum))
+		showResult("🎵 识别成功\n" + render.SongInfo(info.SongName, info.SongArtists, info.SongAlbum))
 	}); err != nil {
 		a.log.Errorln(err)
 	}

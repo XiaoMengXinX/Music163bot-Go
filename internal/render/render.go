@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// 静态文案
 const (
 	InputKeyword     = "请输入搜索关键词"
 	InputIDorKeyword = "请输入歌曲ID或歌曲关键词"
@@ -67,7 +66,6 @@ const (
 	CookieResumedAdmin     = "Cookie 已生效，新歌下载已恢复"
 )
 
-// LoginStartupPrompt 管理员提示（带按钮），remainSec 为二维码剩余秒数
 func LoginStartupPrompt(expired bool, remainSec int) string {
 	head := "Cookie 未配置，需登录"
 	if expired {
@@ -76,7 +74,6 @@ func LoginStartupPrompt(expired bool, remainSec int) string {
 	return fmt.Sprintf("%s\n点击下方按钮扫码登录，或扫描终端内二维码\n请在 %d 秒内操作", head, remainSec)
 }
 
-// LoginStartupTerminal 终端提示
 func LoginStartupTerminal(expired bool, remainSec int) string {
 	head := "Cookie 未配置，需登录"
 	if expired {
@@ -85,12 +82,10 @@ func LoginStartupTerminal(expired bool, remainSec int) string {
 	return fmt.Sprintf("%s\n请使用网易云音乐 App 扫描下方二维码\n请在 %d 秒内操作", head, remainSec)
 }
 
-// LoginQRCaption 二维码图片说明
 func LoginQRCaption(remainSec int) string {
 	return fmt.Sprintf("请使用网易云音乐 App 扫码\n剩余有效期 %d 秒", remainSec)
 }
 
-// LoginScanned 已扫码提示（有昵称时附带）
 func LoginScanned(nickname string) string {
 	if nickname != "" {
 		return "已扫码，等待确认: " + Escape(nickname)
@@ -98,7 +93,6 @@ func LoginScanned(nickname string) string {
 	return "已扫码，等待确认"
 }
 
-// LoginOK 登录成功提示
 func LoginOK(nickname string) string {
 	if nickname != "" {
 		return "扫码登录成功: " + Escape(nickname)
@@ -106,20 +100,16 @@ func LoginOK(nickname string) string {
 	return "扫码登录成功"
 }
 
-// Escape 转义 HTML 特殊字符
 func Escape(s string) string { return html.EscapeString(s) }
 
-// MusicStatus 点歌流程的状态消息：歌名/专辑行 + 状态后缀
 func MusicStatus(name, album, ext string, sizeMB float64, suffix string) string {
 	return fmt.Sprintf("%s\n专辑: %s\n%s %.2fMB\n%s", Escape(name), Escape(album), Escape(ext), sizeMB, suffix)
 }
 
-// DownloadStatus 下载进度后缀 " %s\n%.2fMB/%.2fMB %d%%"
 func DownloadStatus(speed string, writtenMB, totalMB float64, percent int64) string {
 	return fmt.Sprintf(" %s\n%.2fMB/%.2fMB %d%%", Escape(speed), writtenMB, totalMB, percent)
 }
 
-// DownloadFailed md5 失败与超时直接展示错误本身，其余附加前缀
 func DownloadFailed(errText string) string {
 	if strings.Contains(errText, Md5VerFailed) || strings.Contains(errText, DownloadTimeout) {
 		return Escape(errText)
@@ -128,16 +118,14 @@ func DownloadFailed(errText string) string {
 }
 
 func SongInfo(name, artists, album string) string {
-	return fmt.Sprintf("🎵 识别成功\n「%s」- %s\n专辑: %s", Escape(name), Escape(artists), Escape(album))
+	return fmt.Sprintf("「%s」- %s\n专辑: %s", Escape(name), Escape(artists), Escape(album))
 }
 
-// MusicCaption 音频文件的 caption
 func MusicCaption(name, artists, album, ext string, sizeMB, kbps float64, botName string) string {
 	return fmt.Sprintf("%s\n#网易云音乐 #%s %.2fMB %.2fkbps\nvia @%s",
 		SongInfo(name, artists, album), Escape(ext), sizeMB, kbps, Escape(botName))
 }
 
-// About /about 文案
 func About(runtimeVer, versionName, commitSHA, buildTime, buildArch string) string {
 	return fmt.Sprintf(`<b>Music163bot-Go v3</b>
 Github: https://github.com/XiaoMengXinX/Music163bot-Go
@@ -150,12 +138,10 @@ Github: https://github.com/XiaoMengXinX/Music163bot-Go
 		Escape(runtimeVer), Escape(versionName), Escape(commitSHA), Escape(buildTime), Escape(buildArch))
 }
 
-// StatusInfo /status 统计信息
 func StatusInfo(chatTitle, chatUsername string, chatID, userID, total, chatCount, userCount int64) string {
 	var chatInfo string
 	switch {
 	case chatUsername != "" && chatTitle == "":
-		// 私聊
 		chatInfo = fmt.Sprintf(`<a href="tg://user?id=%d">%s</a>`, chatID, Escape(chatUsername))
 	case chatUsername != "":
 		chatInfo = fmt.Sprintf(`<a href="https://t.me/%s">%s</a>`, Escape(chatUsername), Escape(chatTitle))
@@ -169,12 +155,10 @@ func StatusInfo(chatTitle, chatUsername string, chatID, userID, total, chatCount
 		total, chatInfo, chatCount, userID, userID, userCount)
 }
 
-// RmcacheReport 清除缓存成功文案
 func RmcacheReport(name string) string {
 	return fmt.Sprintf("清除 [%s] 缓存成功", Escape(name))
 }
 
-// SongLink 歌曲分享链接
 func SongLink(musicID int) string {
 	return fmt.Sprintf("https://music.163.com/song/%d", musicID)
 }

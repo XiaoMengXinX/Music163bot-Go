@@ -9,7 +9,6 @@ import (
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 )
 
-// QRLoginStatus 扫码登录状态，对应 CheckQrLogin 返回码
 type QRLoginStatus int
 
 const (
@@ -19,7 +18,6 @@ const (
 	QRSuccess QRLoginStatus = 803 // 登录成功
 )
 
-// SetMUSICU 替换 MUSIC_U cookie，立即生效
 func (c *Client) SetMUSICU(musicU string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -28,7 +26,7 @@ func (c *Client) SetMUSICU(musicU string) {
 	}
 }
 
-// requestData 返回当前请求数据的快照（切片不可变，读写安全）
+// Cookie 切片只替换，不原地修改
 func (c *Client) requestData() utils.RequestData {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -37,7 +35,7 @@ func (c *Client) requestData() utils.RequestData {
 	return data
 }
 
-// CreateQRLoginKey 申请扫码登录用的 unikey（匿名请求）
+// 匿名申请扫码登录 key
 func (c *Client) CreateQRLoginKey() (string, error) {
 	result, err := api.GetQrUnikey(utils.RequestData{HTTPClient: c.http})
 	if err != nil {
@@ -49,12 +47,11 @@ func (c *Client) CreateQRLoginKey() (string, error) {
 	return result.Unikey, nil
 }
 
-// QRLoginContent 拼接 unikey 对应的二维码内容
 func QRLoginContent(unikey string) string {
 	return "https://music.163.com/login?codekey=" + unikey
 }
 
-// CheckQRLogin 查询扫码状态（匿名请求），成功时同时返回新的 MUSIC_U
+// 匿名查询扫码状态，成功时返回新的 MUSIC_U
 func (c *Client) CheckQRLogin(key string) (status QRLoginStatus, nickname, musicU string, err error) {
 	result, header, err := api.CheckQrLogin(utils.RequestData{HTTPClient: c.http}, key)
 	if err != nil {
@@ -77,7 +74,6 @@ func (c *Client) CheckQRLogin(key string) (status QRLoginStatus, nickname, music
 	return 0, "", "", fmt.Errorf("扫码登录返回未知状态 %d: %s", result.Code, result.Message)
 }
 
-// extractMUSICU 从 Set-Cookie 响应头中提取 MUSIC_U
 func extractMUSICU(header http.Header) string {
 	for _, cookie := range header.Values("Set-Cookie") {
 		first := strings.SplitN(cookie, ";", 2)[0]
@@ -88,7 +84,6 @@ func extractMUSICU(header http.Header) string {
 	return ""
 }
 
-// LoginStatusValid 检查 MUSIC_U 是否处于登录状态；网络错误时返回 err
 func (c *Client) LoginStatusValid() (bool, error) {
 	result, err := api.GetLoginStatus(c.requestData())
 	if err != nil {

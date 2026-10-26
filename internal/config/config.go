@@ -1,4 +1,4 @@
-// Package config 负责 v3 TOML 配置的解析、默认值、环境变量覆盖与校验。
+// Package config 加载并校验 TOML 配置
 package config
 
 import (
@@ -32,7 +32,6 @@ func (d *Duration) UnmarshalText(b []byte) error {
 
 func (d Duration) MarshalText() ([]byte, error) { return []byte(time.Duration(d).String()), nil }
 
-// BotConfig 对应 [bot] 段
 type BotConfig struct {
 	Token         string   `toml:"token"`
 	APIURL        string   `toml:"api_url"`
@@ -42,7 +41,6 @@ type BotConfig struct {
 	UploadTimeout Duration `toml:"upload_timeout"`
 }
 
-// NeteaseConfig 对应 [netease] 段
 type NeteaseConfig struct {
 	MUSICU string `toml:"music_u"`
 	Level  string `toml:"level"`
@@ -79,7 +77,7 @@ func (c NeteaseConfig) proxyURL() (*url.URL, error) {
 	return u, nil
 }
 
-// HTTPClient 使用已校验的配置创建客户端，空代理保留默认传输行为。
+// HTTPClient 要求配置已校验；空代理保留默认传输行为
 func (c NeteaseConfig) HTTPClient() (*http.Client, error) {
 	client := &http.Client{}
 	if c.Proxy == "" {
@@ -95,12 +93,10 @@ func (c NeteaseConfig) HTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-// DatabaseConfig 对应 [database] 段
 type DatabaseConfig struct {
 	Path string `toml:"path"`
 }
 
-// DownloadConfig 对应 [download] 段
 type DownloadConfig struct {
 	Timeout      Duration `toml:"timeout"`
 	Retries      int      `toml:"retries"`
@@ -109,13 +105,11 @@ type DownloadConfig struct {
 	AutoRetry    bool     `toml:"auto_retry"`
 }
 
-// LogConfig 对应 [log] 段
 type LogConfig struct {
 	Level string `toml:"level"`
 	Path  string `toml:"path"`
 }
 
-// Config 是 v3 的完整配置
 type Config struct {
 	Bot      BotConfig      `toml:"bot"`
 	Netease  NeteaseConfig  `toml:"netease"`
@@ -124,7 +118,6 @@ type Config struct {
 	Log      LogConfig      `toml:"log"`
 }
 
-// Default 返回填好默认值的配置
 func Default() *Config {
 	return &Config{
 		Bot: BotConfig{
@@ -132,7 +125,6 @@ func Default() *Config {
 			UploadTimeout: Duration(120 * time.Second),
 		},
 		Netease: NeteaseConfig{
-			// 与 Music163Api-Go 默认一致
 			Level: "hires",
 		},
 		Database: DatabaseConfig{
@@ -151,7 +143,7 @@ func Default() *Config {
 	}
 }
 
-// Load 读取 TOML：默认值打底，严格模式拒绝未知字段，应用环境变量覆盖
+// Load 严格解析 TOML，并应用默认值及环境变量覆盖
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -172,7 +164,7 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Validate 校验取值范围；music_u 可为空，启动时引导扫码登录
+// Validate 允许 music_u 为空，由启动流程引导登录
 func (c *Config) Validate() error {
 	if c.Bot.Token == "" {
 		return fmt.Errorf("配置项 [bot] token 不能为空")

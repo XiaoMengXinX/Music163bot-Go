@@ -8,8 +8,6 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// 消息发送 helper，统一 HTML parse mode
-
 func (a *App) sendMessage(ctx context.Context, chatID int64, text string, replyToMessageID int) (*models.Message, error) {
 	params := &tgb.SendMessageParams{
 		ChatID:    chatID,
@@ -22,7 +20,6 @@ func (a *App) sendMessage(ctx context.Context, chatID int64, text string, replyT
 	return a.tg.SendMessage(ctx, params)
 }
 
-// reply 回复某条消息
 func (a *App) reply(ctx context.Context, m *models.Message, text string) (*models.Message, error) {
 	return a.sendMessage(ctx, m.Chat.ID, text, m.ID)
 }

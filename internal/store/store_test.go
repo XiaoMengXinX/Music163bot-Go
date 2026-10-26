@@ -32,7 +32,6 @@ type v2SongInfo struct {
 
 func (v2SongInfo) TableName() string { return "song_infos" }
 
-// createV2DB 模拟 v2：AutoMigrate 建表并写入重复的 music_id 缓存行
 func createV2DB(t *testing.T) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "cache.db")
@@ -66,7 +65,6 @@ func open(t *testing.T, path string) *Store {
 	return s
 }
 
-// 老 v2 库（含重复行）应自动迁移：去重保留最新行，数据不丢
 func TestMigrateFromV2Database(t *testing.T) {
 	s := open(t, createV2DB(t))
 
@@ -90,7 +88,6 @@ func TestMigrateFromV2Database(t *testing.T) {
 	}
 }
 
-// 全新数据库应完成建表与索引
 func TestFreshDatabase(t *testing.T) {
 	s := open(t, filepath.Join(t.TempDir(), "new.db"))
 
@@ -103,7 +100,6 @@ func TestFreshDatabase(t *testing.T) {
 	}
 }
 
-// Save 应具备 Upsert 语义：同 music_id 再存为更新而非插入
 func TestSaveUpsert(t *testing.T) {
 	s := open(t, filepath.Join(t.TempDir(), "new.db"))
 
@@ -126,7 +122,6 @@ func TestSaveUpsert(t *testing.T) {
 	}
 }
 
-// 软删除后再缓存应恢复（upsert 清空 deleted_at）
 func TestSaveAfterDelete(t *testing.T) {
 	s := open(t, filepath.Join(t.TempDir(), "new.db"))
 

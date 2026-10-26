@@ -172,9 +172,9 @@ func TestLoadValues(t *testing.T) {
 }
 
 func TestLoadUnknownFieldRejected(t *testing.T) {
-	_, err := Load(writeTemp(t, validTOML+"\n[bot]\nbadkey = 1\n"))
-	if err == nil {
-		t.Fatal("拼错的配置项应被严格模式拒绝")
+	_, err := Load(writeTemp(t, validTOML+"\nbadkey = 1\n"))
+	if err == nil || !strings.Contains(err.Error(), "strict mode") {
+		t.Fatalf("拼错的配置项应被严格模式拒绝: %v", err)
 	}
 }
 
@@ -412,7 +412,6 @@ music_u = "x"
 `)); err == nil {
 		t.Error("缺少 token 应报错")
 	}
-	// music_u 允许留空：启动时会引导终端扫码登录
 	if _, err := Load(writeTemp(t, `[bot]
 token = "x"
 `)); err != nil {
@@ -467,7 +466,7 @@ func TestMigrateINI(t *testing.T) {
 	if cfg.Bot.APIURL != "https://custom.api" {
 		t.Errorf("api_url 迁移错误: %s", cfg.Bot.APIURL)
 	}
-	// "115414, 1919810" 带空格也应解析出两个管理员（v2 不会 trim，是 bug）
+	// 管理员 ID 两侧的空格不影响迁移
 	if len(cfg.Bot.Admin) != 2 || cfg.Bot.Admin[0] != 115414 || cfg.Bot.Admin[1] != 1919810 {
 		t.Errorf("admin 迁移错误: %v", cfg.Bot.Admin)
 	}

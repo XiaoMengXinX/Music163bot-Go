@@ -15,14 +15,12 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 )
 
-// 启动登录相关配置
-
 const (
-	startupLoginBudget = 3 * time.Minute // 二维码有效期；服务端 800 过期信号为准，此处兜底
+	startupLoginBudget = 3 * time.Minute // 以服务端 800 过期信号为准，此处兜底
 	tgCountdownTick    = 10 * time.Second
 )
 
-// startupSession 启动登录会话：终端与管理员共享同一个二维码
+// startupSession 由终端和管理员共享同一二维码
 type startupSession struct {
 	png       []byte
 	expiresAt time.Time
@@ -30,7 +28,6 @@ type startupSession struct {
 	surfaces  map[int64]int // 管理员 chatID -> 二维码消息 ID
 }
 
-// startupLogin 启动登录主流程，与 tg.Start 并行运行；invalid 区分失效/未配置
 func (a *App) startupLogin(runCtx context.Context, cancelRun context.CancelCauseFunc, invalid bool) {
 	if !a.loginMu.TryLock() {
 		cancelRun(errLoginStopped)
@@ -77,7 +74,7 @@ func (a *App) startupLogin(runCtx context.Context, cancelRun context.CancelCause
 	tgCountdown := time.NewTicker(tgCountdownTick)
 	defer tgCountdown.Stop()
 	deadline := time.After(startupLoginBudget)
-	// 802 响应带昵称，803 往往不带，记下 802 的昵称备用
+	// 803 可能不带昵称，保留 802 的昵称
 	var scannedNick string
 	var failures int
 	for {
@@ -143,7 +140,7 @@ func (a *App) startupLogin(runCtx context.Context, cancelRun context.CancelCause
 }
 
 func remainSeconds(sess *startupSession) int {
-	// 向上取整：刚创建时显示满额秒数
+	// 向上取整，避免刚创建就少显示一秒
 	remain := int(math.Ceil(time.Until(sess.expiresAt).Seconds()))
 	if remain < 0 {
 		remain = 0
@@ -151,7 +148,6 @@ func remainSeconds(sess *startupSession) int {
 	return remain
 }
 
-// startupLoginTimeout 登录超时：双端提示并停止 bot
 func (a *App) startupLoginTimeout(runCtx context.Context, sess *startupSession, cancelRun context.CancelCauseFunc) {
 	fmt.Println("\n二维码已过期，未登录，bot 停止运行")
 	a.finishStartupPrompts(runCtx, sess, render.LoginTimeoutStopped)
@@ -159,7 +155,6 @@ func (a *App) startupLoginTimeout(runCtx context.Context, sess *startupSession, 
 	cancelRun(errLoginStopped)
 }
 
-// newStartupQR 生成登录二维码（获取 key 失败时短暂重试）
 func (a *App) newStartupQR() (key string, png []byte, qr *qrcode.QRCode, err error) {
 	for attempt := 0; attempt < 3; attempt++ {
 		key, err = a.api.CreateQRLoginKey()
@@ -179,7 +174,6 @@ func (a *App) newStartupQR() (key string, png []byte, qr *qrcode.QRCode, err err
 	return "", nil, nil, fmt.Errorf("获取扫码二维码失败")
 }
 
-// sendStartupPrompts 给管理员发登录提示（带按钮），记录消息 ID 供倒计时更新
 func (a *App) sendStartupPrompts(ctx context.Context, sess *startupSession, invalid bool) {
 	text := render.LoginStartupPrompt(invalid, remainSeconds(sess))
 	for _, adminID := range a.cfg.Bot.Admin {
@@ -201,7 +195,6 @@ func (a *App) sendStartupPrompts(ctx context.Context, sess *startupSession, inva
 	}
 }
 
-// updateStartupPrompts 更新提示消息里的剩余秒数
 func (a *App) updateStartupPrompts(ctx context.Context, sess *startupSession, invalid bool, remain int) {
 	text := render.LoginStartupPrompt(invalid, remain)
 	a.startupMu.Lock()
@@ -224,7 +217,6 @@ func (a *App) updateStartupPrompts(ctx context.Context, sess *startupSession, in
 	}
 }
 
-// finishStartupPrompts 登录结束时改写提示消息并移除按钮
 func (a *App) finishStartupPrompts(ctx context.Context, sess *startupSession, text string) {
 	a.startupMu.Lock()
 	prompts := make(map[int64]int, len(sess.prompts))
@@ -246,7 +238,6 @@ func (a *App) finishStartupPrompts(ctx context.Context, sess *startupSession, te
 	}
 }
 
-// handleCallbackStartLogin 「扫码登录」按钮：给该管理员发与终端相同的二维码
 func (a *App) handleCallbackStartLogin(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	query := update.CallbackQuery
 	a.startupMu.Lock()
@@ -281,7 +272,6 @@ func (a *App) handleCallbackStartLogin(ctx context.Context, tg *tgb.Bot, update 
 	})
 }
 
-// broadcastStartup 更新所有管理员二维码消息的 caption
 func (a *App) broadcastStartup(sess *startupSession, text string, markup models.ReplyMarkup) {
 	a.startupMu.Lock()
 	surfaces := make(map[int64]int, len(sess.surfaces))
@@ -300,7 +290,6 @@ func (a *App) broadcastStartup(sess *startupSession, text string, markup models.
 	}
 }
 
-// loginPromptKeyboard 管理员登录提示上的「扫码登录」按钮
 func loginPromptKeyboard() models.InlineKeyboardMarkup {
 	return models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{{

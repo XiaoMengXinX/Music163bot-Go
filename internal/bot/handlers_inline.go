@@ -14,7 +14,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-// handleInline inline 查询分发：help / search+关键词 / 链接或 ID
 func (a *App) handleInline(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	query := update.InlineQuery
 	var err error
@@ -45,7 +44,6 @@ func (a *App) answerInline(ctx context.Context, queryID string, results []models
 	return err
 }
 
-// answerInlineMusic 已缓存的歌曲直接回音频，未缓存的引导进私聊缓存
 func (a *App) answerInlineMusic(ctx context.Context, query *models.InlineQuery, musicID int) error {
 	songInfo, ok := a.store.GetByMusicID(musicID)
 	if ok && songInfo.FileID != "" && songInfo.SongName != "" {
@@ -62,7 +60,6 @@ func (a *App) answerInlineMusic(ctx context.Context, query *models.InlineQuery, 
 			},
 		}, 3600, nil)
 	}
-	// 有缓存记录但无 FileID 时也走未缓存引导
 	return a.answerInline(ctx, query.ID, []models.InlineQueryResult{
 		&models.InlineQueryResultArticle{
 			ID:                  query.ID,

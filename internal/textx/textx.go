@@ -25,12 +25,10 @@ var (
 	regURL = regexp.MustCompile("(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?")
 )
 
-// JoinNames 用 "/" 拼接歌手名
 func JoinNames(names []string) string {
 	return strings.Join(names, "/")
 }
 
-// SanitizeFilename 替换文件名中的非法字符为空格
 var filenameReplacer = strings.NewReplacer(
 	"/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ",
 )
@@ -39,7 +37,6 @@ func SanitizeFilename(name string) string {
 	return filenameReplacer.Replace(name)
 }
 
-// URLBase 返回 URL 去掉查询参数后的最后一段路径，用作下载文件名
 func URLBase(rawURL string) string {
 	if i := strings.IndexByte(rawURL, '?'); i >= 0 {
 		rawURL = rawURL[:i]
@@ -50,7 +47,6 @@ func URLBase(rawURL string) string {
 	return path.Base(rawURL)
 }
 
-// ParseMusicID 从文本解析网易云歌曲 ID
 func ParseMusicID(text string) int {
 	messageText := strings.NewReplacer("\n", "", " ", "").Replace(text)
 	if musicURL := regURL.FindStringSubmatch(messageText); len(musicURL) != 0 {
@@ -65,10 +61,9 @@ func ParseMusicID(text string) int {
 	return musicID
 }
 
-// ParseProgramID 从文本解析电台节目 ID
 func ParseProgramID(text string) int {
 	messageText := strings.NewReplacer("\n", "", " ", "").Replace(text)
-	// 短链落点的参数顺序不固定（如 program?app_version=...&id=...），按 Query 取
+	// 短链跳转后的 id 参数不一定在首位
 	if programURL := regURL.FindStringSubmatch(messageText); len(programURL) != 0 {
 		if strings.Contains(programURL[0], "program") {
 			ur, _ := url.Parse(programURL[0])
@@ -89,7 +84,6 @@ func extractInt(text string) string {
 	return matchArr[0]
 }
 
-// LinkTestMusic 清理文本中的链接前缀后提取数字（inline 查询等直接调用）
 func LinkTestMusic(text string) string {
 	return extractInt(reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(reg2.ReplaceAllString(reg1.ReplaceAllString(text, ""), ""), ""), ""), ""))
 }
@@ -98,7 +92,6 @@ func linkTestProgram(text string) string {
 	return extractInt(reg5.ReplaceAllString(reg4.ReplaceAllString(reg3.ReplaceAllString(regP4.ReplaceAllString(regP3.ReplaceAllString(regP2.ReplaceAllString(regP1.ReplaceAllString(text, ""), ""), ""), ""), ""), ""), ""))
 }
 
-// shortLinkClient 只跟随一跳重定向，带超时
 var shortLinkClient = &http.Client{
 	Timeout: 10 * time.Second,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -106,23 +99,19 @@ var shortLinkClient = &http.Client{
 	},
 }
 
-// ContainsMusicLink 判断消息文本是否包含网易云分享相关域名
 func ContainsMusicLink(text string) bool {
 	return strings.Contains(text, "music.163.com") ||
 		strings.Contains(text, "163cn.tv") ||
 		strings.Contains(text, "163cn.link")
 }
 
-// ContainsSongLink 判断文本是否包含歌曲/电台节目分享链接（song/program/dj 关键字）。
-// 仅提及域名（如 music.163.com）或其它页面链接（歌单/MV 等）不算，
-// 避免嗅探把域名里的数字误当成歌曲 ID。
+// 仅含域名的消息不作为歌曲链接，避免误取域名中的数字
 func ContainsSongLink(text string) bool {
 	return strings.Contains(text, "song") ||
 		strings.Contains(text, "program") ||
 		strings.Contains(text, "dj")
 }
 
-// ContainsShortLink 判断是否包含 163cn 短链（.tv 与 .link）
 func ContainsShortLink(text string) bool {
 	return strings.Contains(text, "163cn.tv") || strings.Contains(text, "163cn.link")
 }

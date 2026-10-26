@@ -1,4 +1,4 @@
-// Package logging logrus 初始化与 gorm 日志适配，业务日志与 SQL 日志同源
+// Package logging 配置业务与 SQL 日志
 package logging
 
 import (
@@ -16,7 +16,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Formatter 日志格式：2006/01/02 15:04:05 [LEVEL] message (file:line)
 type Formatter struct{}
 
 func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
@@ -26,7 +25,6 @@ func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 		filepath.Base(entry.Caller.File), entry.Caller.Line)), nil
 }
 
-// dailyFileWriter 按日期切分日志文件：log/<YYYY-MM-DD>.log
 type dailyFileWriter struct {
 	mu  sync.Mutex
 	dir string
@@ -54,7 +52,6 @@ func (w *dailyFileWriter) Write(p []byte) (int, error) {
 	return w.f.Write(p)
 }
 
-// Setup 输出到 stdout 与按日切分的日志文件，文件打开失败时仅 stdout
 func Setup(level, dir string) *logrus.Logger {
 	l := logrus.New()
 	l.SetFormatter(&Formatter{})
@@ -72,7 +69,7 @@ func Setup(level, dir string) *logrus.Logger {
 	return l
 }
 
-// GormLogger 与业务日志同源的 gorm logger；debug 记全部 SQL，info 起记慢查询
+// debug 记录全部 SQL，info 仅记录慢查询和错误
 func GormLogger(l *logrus.Logger, level string) logger.Interface {
 	var lvl logger.LogLevel
 	switch level {

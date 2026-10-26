@@ -92,7 +92,6 @@ func TestContainsSongLink(t *testing.T) {
 		"https://music.163.com/song/1824020873/",
 		"https://music.163.com/program?id=2064195060",
 		"https://music.163.com/dj?id=2064195060",
-		// 短链落点：program 后第一个参数不是 id
 		"https://y.music.163.com/m/program?app_version=9.5.05&id=3718588406&userid=1&djId=2",
 	}
 	for _, s := range positive {
@@ -101,10 +100,10 @@ func TestContainsSongLink(t *testing.T) {
 		}
 	}
 	negative := []string{
-		"music.163.com 挺好用的",                           // 仅提及域名，v2 会误取 163 触发失败提示
-		"https://music.163.com/playlist?id=7016142538", // 歌单
-		"https://music.163.com/mv?id=123456",           // MV
-		"https://music.163.com/",                       // 首页
+		"music.163.com 挺好用的",
+		"https://music.163.com/playlist?id=7016142538",
+		"https://music.163.com/mv?id=123456",
+		"https://music.163.com/",
 		"普通消息",
 	}
 	for _, s := range negative {
@@ -115,11 +114,9 @@ func TestContainsSongLink(t *testing.T) {
 }
 
 func TestResolveShortLink(t *testing.T) {
-	// 无短链时原样返回
 	if got := ResolveShortLink("https://music.163.com/song?id=1"); got != "https://music.163.com/song?id=1" {
 		t.Errorf("非短链应原样返回, got %q", got)
 	}
-	// 非 163cn host 不解析（v2 只查字符串包含，会误请求）
 	if got := ResolveShortLink("see https://example.com/163cn.tv/foo"); got != "see https://example.com/163cn.tv/foo" {
 		t.Errorf("非 163cn 短链应原样返回, got %q", got)
 	}

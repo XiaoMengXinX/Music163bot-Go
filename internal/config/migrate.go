@@ -12,7 +12,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-// ParseINI 按行取第一个 "="，去首尾空白，跳过空键值（v2 语义）
+// ParseINI 按首个 "=" 分割，去首尾空白，忽略空键值
 func ParseINI(path string) (map[string]string, error) {
 	ini := make(map[string]string)
 	f, err := os.Open(path)
@@ -47,7 +47,7 @@ func ParseINI(path string) (map[string]string, error) {
 	return ini, nil
 }
 
-// MigrateINI v2 键值映射为 v3 配置，返回结果与提示列表
+// MigrateINI 将旧 INI 键值转换为配置及迁移提示
 func MigrateINI(ini map[string]string) (*Config, []string, error) {
 	cfg := Default()
 	var notes []string

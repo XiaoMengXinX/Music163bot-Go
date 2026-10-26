@@ -11,14 +11,11 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 )
 
-// cookie 监控：失效暂停下载并提醒管理员，重新登录后恢复
-
 const (
 	cookieCheckInterval = 10 * time.Minute
 	cookieWarnInterval  = 10 * time.Minute
 )
 
-// watchCookie 周期校验登录态，失效即暂停下载
 func (a *App) watchCookie(ctx context.Context) {
 	ticker := time.NewTicker(cookieCheckInterval)
 	defer ticker.Stop()
@@ -29,7 +26,7 @@ func (a *App) watchCookie(ctx context.Context) {
 		case <-ticker.C:
 			valid, err := a.api.LoginStatusValid()
 			if err != nil {
-				// 网络原因无法判定时跳过本轮
+				// 网络错误不视为 Cookie 失效
 				continue
 			}
 			if !valid {
@@ -39,10 +36,9 @@ func (a *App) watchCookie(ctx context.Context) {
 	}
 }
 
-// pauseDownloads 暂停新歌下载并启动管理员告警循环
 func (a *App) pauseDownloads(ctx context.Context) {
 	if !a.cookieOK.CompareAndSwap(true, false) {
-		return // 已处于暂停状态
+		return
 	}
 	a.log.Warnln("MUSIC_U 已失效，暂停新歌下载")
 	a.notifyAdmins(ctx, render.CookieExpiredAdminWarn, nil)
@@ -59,7 +55,7 @@ func (a *App) pauseDownloads(ctx context.Context) {
 			case <-warnCtx.Done():
 				return
 			case <-ctx.Done():
-				return // bot 关机/重载
+				return
 			case <-ticker.C:
 				if !a.cookieOK.Load() {
 					a.notifyAdmins(ctx, render.CookieExpiredAdminWarn, nil)
@@ -69,7 +65,7 @@ func (a *App) pauseDownloads(ctx context.Context) {
 	}()
 }
 
-// resumeDownloads 恢复下载；此前由监控暂停过（告警循环在跑）时通知管理员
+// 仅在监控告警后通知管理员恢复，启动登录不通知
 func (a *App) resumeDownloads(ctx context.Context) {
 	a.warnMu.Lock()
 	warnCancel := a.warnCancel
@@ -85,8 +81,7 @@ func (a *App) resumeDownloads(ctx context.Context) {
 	}
 }
 
-// finishLogin 登录核心：热更新 cookie、回写配置、恢复下载。
-// 返回附加提示（如写回失败）
+// finishLogin 返回配置写回失败等附加提示
 func (a *App) finishLogin(musicU, nickname string) string {
 	a.api.SetMUSICU(musicU)
 	a.cfg.Netease.MUSICU = musicU
@@ -100,7 +95,6 @@ func (a *App) finishLogin(musicU, nickname string) string {
 	return note
 }
 
-// notifyAdmins 给所有管理员发通知（发送失败仅记日志）
 func (a *App) notifyAdmins(ctx context.Context, text string, markup models.ReplyMarkup) {
 	for _, adminID := range a.cfg.Bot.Admin {
 		_, err := a.tg.SendMessage(ctx, &tgb.SendMessageParams{

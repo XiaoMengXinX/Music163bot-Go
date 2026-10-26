@@ -11,7 +11,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-// handleAbout /about
 func (a *App) handleAbout(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if _, err := a.reply(ctx, m, render.About(a.build.RuntimeVer, a.build.VersionName, a.build.CommitSHA, a.build.BuildTime, a.build.BuildArch)); err != nil {
@@ -19,7 +18,6 @@ func (a *App) handleAbout(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	}
 }
 
-// handleStatus /status 统计信息（串行 + 500ms 限流）
 func (a *App) handleStatus(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if err := a.statusSem.Acquire(ctx, 1); err != nil {
@@ -37,7 +35,6 @@ func (a *App) handleStatus(ctx context.Context, tg *tgb.Bot, update *models.Upda
 	}
 }
 
-// handleRmCache /rmcache（管理员）：清除指定歌曲缓存
 func (a *App) handleRmCache(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	args := commandArguments(m)
@@ -71,7 +68,6 @@ func (a *App) handleRmCache(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	}
 }
 
-// handleReload /reload（管理员）：取消当前运行，由 main 重新加载配置后再启动
 func (a *App) handleReload(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if _, err := a.reply(ctx, m, render.Reloading); err != nil {

@@ -1,4 +1,4 @@
-// Package fetch 音乐下载封装：超时、断点续传、反代重试、进度回调
+// Package fetch 下载音乐与文件
 package fetch
 
 import (
@@ -9,10 +9,9 @@ import (
 	downloader "github.com/XiaoMengXinX/SimpleDownloader"
 )
 
-// hostReplacer 网易 CDN 域名替换为可直连的镜像域名
+// 替换为可直连的网易 CDN 域名
 var hostReplacer = strings.NewReplacer("m8.", "m7.", "m801.", "m701.", "m804.", "m701.", "m704.", "m701.")
 
-// Progress 描述一次下载的进行状态
 type Progress struct {
 	Attempt  int    // 第几次尝试，从 1 开始
 	ViaProxy bool   // 是否经由反代
@@ -21,7 +20,6 @@ type Progress struct {
 	Speed    string // 最近 500ms 的速度
 }
 
-// Downloader 音乐下载器
 type Downloader struct {
 	d         *downloader.Downloader
 	retries   int
@@ -29,7 +27,6 @@ type Downloader struct {
 	autoRetry bool
 }
 
-// New 创建下载器
 func New(savePath string, timeout time.Duration, retries int, proxy string, autoRetry bool) *Downloader {
 	return &Downloader{
 		d:         downloader.NewDownloader().SetSavePath(savePath).SetBreakPoint(true).SetTimeOut(timeout),
@@ -48,9 +45,7 @@ func (dl *Downloader) DownloadFile(url, fileName string) error {
 	return task.SetFileName(fileName).Download()
 }
 
-// DownloadMusic 下载音乐并周期回调进度（约 500ms 一次）。
-// 失败按配置重试：首次直连，此后经反代（复用同一任务断点续传）；
-// 最终失败清理临时文件。
+// 首次不使用反代，失败后按配置切换并复用任务续传
 func (dl *Downloader) DownloadMusic(ctx context.Context, url, fileName string, progress func(Progress)) error {
 	task, err := dl.d.NewDownloadTask(url)
 	if err != nil {
@@ -78,7 +73,6 @@ func (dl *Downloader) DownloadMusic(ctx context.Context, url, fileName string, p
 	return lastErr
 }
 
-// watch 等待下载完成，期间按 tick 回调进度
 func (dl *Downloader) watch(ctx context.Context, task *downloader.DownloadTask, attempt int, viaProxy bool, progress func(Progress)) error {
 	errCh := task.DownloadWithChannel()
 	ticker := time.NewTicker(500 * time.Millisecond)

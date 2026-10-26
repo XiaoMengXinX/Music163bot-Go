@@ -8,7 +8,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 )
 
-// musicKeyboard 音频消息下方的按钮：歌曲链接 + 「Send me to...」
 func musicKeyboard(songName, songArtists string, musicID int) models.InlineKeyboardMarkup {
 	songURL := fmt.Sprintf("https://music.163.com/song?id=%d", musicID)
 	return models.InlineKeyboardMarkup{
@@ -25,7 +24,6 @@ func musicKeyboard(songName, songArtists string, musicID int) models.InlineKeybo
 	}
 }
 
-// searchKeyboard 搜索结果的单行数字按钮，回调数据为 "music <id>"
 func searchKeyboard(musicIDs []int) models.InlineKeyboardMarkup {
 	buttons := make([]models.InlineKeyboardButton, 0, len(musicIDs))
 	for i, id := range musicIDs {

@@ -8,10 +8,8 @@ import (
 	"os"
 )
 
-// ErrMD5Failed MD5 校验失败
 var ErrMD5Failed = errors.New("MD5校验失败")
 
-// VerifyMD5 计算文件 md5 并与期望值比对，不匹配返回 ErrMD5Failed
 func VerifyMD5(filePath, expect string) error {
 	f, err := os.Open(filePath)
 	if err != nil {

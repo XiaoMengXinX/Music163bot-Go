@@ -6,7 +6,6 @@ import (
 )
 
 func TestEscapeInTemplates(t *testing.T) {
-	// 歌名带 HTML 特殊字符时必须被转义，否则 HTML parse mode 发送失败
 	caption := MusicCaption("<b>歌名&</b>", "歌手", "专辑", "mp3", 1.5, 320, "Music163bot")
 	if strings.Contains(caption, "<b>歌名") {
 		t.Errorf("caption 未转义: %s", caption)
@@ -16,11 +15,11 @@ func TestEscapeInTemplates(t *testing.T) {
 	}
 
 	info := SongInfo("雨き声残響", "ゆめこ & <歌手>", "最新热歌慢摇92")
-	if info != "🎵 识别成功\n「雨き声残響」- ゆめこ &amp; &lt;歌手&gt;\n专辑: 最新热歌慢摇92" {
+	if info != "「雨き声残響」- ゆめこ &amp; &lt;歌手&gt;\n专辑: 最新热歌慢摇92" {
 		t.Errorf("歌曲信息格式错误: %s", info)
 	}
-	if !strings.HasPrefix(caption, SongInfo("<b>歌名&</b>", "歌手", "专辑")+"\n") {
-		t.Errorf("caption 与歌曲信息格式不一致: %s", caption)
+	if caption != "「&lt;b&gt;歌名&amp;&lt;/b&gt;」- 歌手\n专辑: 专辑\n#网易云音乐 #mp3 1.50MB 320.00kbps\nvia @Music163bot" {
+		t.Errorf("caption 格式错误: %s", caption)
 	}
 
 	status := MusicStatus("a<b", "c&d", "mp3", 1.0, Downloading)
@@ -43,12 +42,10 @@ func TestEscapeInTemplates(t *testing.T) {
 }
 
 func TestStatusInfoChatVariants(t *testing.T) {
-	// 私聊：username 非空、title 空 → tg://user 链接
 	private := StatusInfo("", "alice", 42, 42, 1, 1, 1)
 	if !strings.Contains(private, `tg://user?id=42`) {
 		t.Errorf("私聊应生成 tg://user 链接: %s", private)
 	}
-	// 无用户名的群：仅展示标题
 	plain := StatusInfo("群名", "", 1, 2, 3, 4, 5)
 	if !strings.Contains(plain, "[群名]") {
 		t.Errorf("匿名群应展示标题: %s", plain)
@@ -69,7 +66,6 @@ func TestDownloadFailed(t *testing.T) {
 }
 
 func TestDownloadStatusFormat(t *testing.T) {
-	// 与 v2 格式一致：" %s\n%.2fMB/%.2fMB %d%%"
 	got := DownloadStatus("1.5MB/s", 3.0, 10.0, 30)
 	want := " 1.5MB/s\n3.00MB/10.00MB 30%"
 	if got != want {

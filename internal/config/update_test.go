@@ -30,7 +30,6 @@ timeout = "60s"
 		t.Fatal(err)
 	}
 
-	// 注释与其它配置原样保留，music_u 更新
 	after, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +50,6 @@ timeout = "60s"
 		t.Errorf("回写结果不符合预期:\n%s", after)
 	}
 
-	// 更新后的文件可正常解析，值正确
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +61,7 @@ timeout = "60s"
 		t.Errorf("其它配置被误改: %+v", cfg)
 	}
 
-	// 再次更新（双引号形式也能替换）
+	// 同时覆盖单引号和双引号赋值
 	if err := UpdateMUSICU(path, "third"); err != nil {
 		t.Fatal(err)
 	}

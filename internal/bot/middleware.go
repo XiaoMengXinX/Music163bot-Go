@@ -9,7 +9,6 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// recoverMiddleware panic 恢复
 func (a *App) recoverMiddleware(next tgb.HandlerFunc) tgb.HandlerFunc {
 	return func(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 		defer func() {
@@ -21,7 +20,6 @@ func (a *App) recoverMiddleware(next tgb.HandlerFunc) tgb.HandlerFunc {
 	}
 }
 
-// adminOnly 管理员守卫
 func (a *App) adminOnly(next tgb.HandlerFunc) tgb.HandlerFunc {
 	return func(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 		var userID int64

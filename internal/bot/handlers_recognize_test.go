@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +15,9 @@ import (
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 
+	"golang.org/x/sync/semaphore"
+
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/netease"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/recognize"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
@@ -156,6 +160,51 @@ func TestProcessMusicCachedInfo(t *testing.T) {
 	}
 }
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestProcessMusicInfoWithoutURL(t *testing.T) {
+	for _, data := range []string{`[]`, `[{"url":""}]`} {
+		t.Run(data, func(t *testing.T) {
+			tg, rec := newTestBot(t)
+			a := newTestApp(tg)
+			st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer st.Close()
+			a.store = st
+			a.cookieOK.Store(true)
+			a.musicSem = semaphore.NewWeighted(1)
+			requests := 0
+			a.api = netease.New("cookie", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				requests++
+				body := `{"/api/v3/song/detail":{"songs":[{"name":"雨き声残響","ar":[{"name":"ゆめこ"}],"al":{"name":"最新热歌慢摇92"}}]},"/api/song/enhance/player/url/v1":{"data":` + data + `}}`
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
+			})})
+			calls := 0
+			err = a.processMusic(context.Background(), 123, &models.Message{
+				ID: 1, Chat: models.Chat{ID: 42}, From: &models.User{ID: 42},
+			}, nil, func(info store.SongInfo) {
+				calls++
+				if info.MusicID != 123 || info.SongName != "雨き声残響" || info.SongArtists != "ゆめこ" || info.SongAlbum != "最新热歌慢摇92" {
+					t.Errorf("unexpected song info: %+v", info)
+				}
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if calls != 1 || requests != 1 {
+				t.Errorf("metadata calls = %d, API requests = %d, want 1 each", calls, requests)
+			}
+			if rec.has("/sendAudio") {
+				t.Error("song without download URL should not send audio")
+			}
+		})
+	}
+}
+
 func TestRecognizeFailureStatus(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -171,6 +220,7 @@ func TestRecognizeFailureStatus(t *testing.T) {
 				t.Fatal(err)
 			}
 			var texts []string
+			var methods []string
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasSuffix(r.URL.Path, "/getFile") {
 					if tt.name == "get file" {
@@ -191,6 +241,7 @@ func TestRecognizeFailureStatus(t *testing.T) {
 					t.Errorf("status message ID = %s, want 10", r.FormValue("message_id"))
 				}
 				texts = append(texts, r.FormValue("text"))
+				methods = append(methods, filepath.Base(r.URL.Path))
 				_, _ = w.Write([]byte(`{"ok":true,"result":{"message_id":10,"chat":{"id":42,"type":"private"}}}`))
 			}))
 			defer srv.Close()
@@ -205,6 +256,9 @@ func TestRecognizeFailureStatus(t *testing.T) {
 			a.handleRecognize(context.Background(), tg, &models.Update{Message: &models.Message{
 				ReplyToMessage: &models.Message{ID: 1, Chat: models.Chat{ID: 42}, Voice: &models.Voice{FileID: "voice"}},
 			}})
+			if len(methods) != 2 || methods[0] != "sendMessage" || methods[1] != "editMessageText" {
+				t.Errorf("unexpected status methods: %q", methods)
+			}
 			if len(texts) != 2 || texts[0] != render.Recognizing || texts[1] != tt.want {
 				t.Errorf("unexpected status messages: %q", texts)
 			}

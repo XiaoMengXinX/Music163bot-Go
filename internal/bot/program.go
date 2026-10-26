@@ -4,10 +4,7 @@ import (
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
 )
 
-// 节目主歌曲在 song/detail 接口里返回的元数据是稀疏的
-//（专辑/封面常为空），用节目详情补全，展示/163key/封面全部受益。
-
-// songArtist 与 types.SongDetailData.Ar 的匿名结构体一致
+// songArtist 须与 types.SongDetailData.Ar 的元素类型一致
 type songArtist = struct {
 	Id    int           `json:"id"`
 	Name  string        `json:"name"`
@@ -15,7 +12,7 @@ type songArtist = struct {
 	Alias []interface{} `json:"alias"`
 }
 
-// songAlbum 与 types.SongDetailData.Al 的匿名结构体一致
+// songAlbum 须与 types.SongDetailData.Al 的类型一致
 type songAlbum = struct {
 	Id     int           `json:"id"`
 	Name   string        `json:"name"`
@@ -25,7 +22,7 @@ type songAlbum = struct {
 	Pic    int           `json:"pic"`
 }
 
-// enrichFromProgram 用节目详情补全歌曲详情；详情为空时直接构造一条
+// 节目在 song/detail 中可能缺少专辑、封面，需用节目详情补全
 func enrichFromProgram(detail *types.SongsDetailData, prog *types.ProgramDetailData) {
 	p := prog.Program
 	if len(detail.Songs) == 0 {
@@ -57,7 +54,7 @@ func enrichFromProgram(detail *types.SongsDetailData, prog *types.ProgramDetailD
 	}
 }
 
-// hasArtistNames 歌手列表是否至少有一个非空名字（接口会返回名字为空的占位歌手）
+// 接口可能返回名字为空的占位歌手
 func hasArtistNames(artists []songArtist) bool {
 	for _, a := range artists {
 		if a.Name != "" {
@@ -67,7 +64,6 @@ func hasArtistNames(artists []songArtist) bool {
 	return false
 }
 
-// programArtists 节目主歌曲的歌手列表，为空时回退到主播昵称
 func programArtists(prog *types.ProgramDetailData) []songArtist {
 	var artists []songArtist
 	for _, a := range prog.Program.MainSong.Artists {

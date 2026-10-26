@@ -13,7 +13,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-// handleSearch /search：前 8 首结果的数字按钮列表
 func (a *App) handleSearch(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	args := commandArguments(m)
@@ -55,7 +54,6 @@ func (a *App) handleSearch(ctx context.Context, tg *tgb.Bot, update *models.Upda
 	}
 }
 
-// handleCallbackMusic "music <id>" 回调：私聊直接发歌，群聊引导跳转私聊
 func (a *App) handleCallbackMusic(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	query := update.CallbackQuery
 	args := strings.Split(query.Data, " ")

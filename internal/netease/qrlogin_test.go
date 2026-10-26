@@ -15,14 +15,12 @@ func TestExtractMUSICU(t *testing.T) {
 		t.Errorf("extractMUSICU = %q, want abc123", got)
 	}
 
-	// 值内含特殊字符、无属性的情形
 	bare := http.Header{}
 	bare.Add("Set-Cookie", "MUSIC_U=a-b_c.1%2F2")
 	if got := extractMUSICU(bare); got != "a-b_c.1%2F2" {
 		t.Errorf("无属性 Set-Cookie 解析错误: %q", got)
 	}
 
-	// 没有 MUSIC_U 时返回空
 	none := http.Header{}
 	none.Add("Set-Cookie", "NMTID=xxx; Path=/")
 	if got := extractMUSICU(none); got != "" {

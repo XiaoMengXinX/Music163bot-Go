@@ -76,7 +76,7 @@ func ResizeCover(filePath string) (string, error) {
 	return outPath, nil
 }
 
-// Write 向音乐文件写入 163key 与封面标签；带封面失败时降级为无封面重试。
+// Write 向音乐文件写入 163key 与封面标签；带封面失败时降级为无封面重试
 func Write(filePath, picPath string, songDetail types.SongDetailData, songURL types.SongURLData) error {
 	mark := marker.CreateMarker(songDetail, songURL)
 

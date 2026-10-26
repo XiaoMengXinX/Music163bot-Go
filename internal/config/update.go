@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// musicULine 匹配 music_u 赋值行；键名全表唯一
+// music_u 键名须全表唯一
 var musicULine = regexp.MustCompile(`^(\s*music_u\s*=\s*)('([^']*)'|"([^"]*)")(.*)$`)
 
 // UpdateMUSICU 修改配置中的 music_u，其余行（含注释）原样保留

@@ -14,7 +14,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-// handleLyric /lyric：按参数（或回复的消息内容）解析歌曲并发送 .lrc 歌词文件
 func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	source := m
@@ -26,7 +25,6 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 			}
 			return
 		}
-		// 取被回复消息全文作为解析来源，状态消息也回复到被回复消息
 		source = m.ReplyToMessage
 		args = source.Text
 	}

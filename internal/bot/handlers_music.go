@@ -21,7 +21,6 @@ import (
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/textx"
 )
 
-// handleStart /start 深链点歌（仅私聊）
 func (a *App) handleStart(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if m.Chat.Type != models.ChatTypePrivate {
@@ -36,7 +35,6 @@ func (a *App) handleStart(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	}
 }
 
-// handleMusic /music、/netease：ID 直达或按关键词搜索第一首
 func (a *App) handleMusic(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	args := commandArguments(m)
@@ -67,7 +65,6 @@ func (a *App) handleMusic(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	}
 }
 
-// handleProgram /program：电台节目点歌，携带节目详情补全元数据
 func (a *App) handleProgram(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	id, _ := strconv.Atoi(commandArguments(m))
@@ -85,7 +82,6 @@ func (a *App) handleProgram(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	}
 }
 
-// handleDefault 嗅探消息中的分享链接并点歌（含 163cn 短链解析）
 func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Update) {
 	m := update.Message
 	if m == nil {
@@ -98,7 +94,6 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	if textx.ContainsShortLink(text) {
 		text = textx.ResolveShortLink(text)
 	}
-	// 不是歌曲/节目分享（仅提及域名或歌单等其它链接）时不触发
 	if !textx.ContainsSongLink(text) {
 		return
 	}
@@ -122,8 +117,7 @@ func (a *App) handleDefault(ctx context.Context, tg *tgb.Bot, update *models.Upd
 	}
 }
 
-// processMusic 点歌主流程：缓存命中直接发送，否则下载、打标、上传、入库。
-// prog 非 nil 表示来自电台节目，用节目详情补全稀疏的歌曲元数据
+// prog 非 nil 时用节目详情补全元数据
 func (a *App) processMusic(ctx context.Context, musicID int, message *models.Message, prog *types.ProgramDetailData, onInfo func(store.SongInfo)) error {
 	chatID := message.Chat.ID
 
@@ -142,7 +136,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		return a.deleteMessage(ctx, chatID, msgResult.ID)
 	}
 
-	// cookie 失效时暂停新歌下载，缓存命中的直接发送不受影响
+	// Cookie 失效不影响缓存发送
 	if !a.cookieOK.Load() {
 		if _, err := a.reply(ctx, message, render.CookieExpired); err != nil {
 			a.log.Errorln(err)
@@ -160,7 +154,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	}
 	defer a.musicSem.Release(1)
 
-	// 等待下载位期间可能有并发任务已把这首歌下载进缓存，再查一次
+	// 等待下载位时缓存可能已被其他任务填充
 	if songInfo, ok := a.store.GetByMusicID(musicID); ok {
 		if onInfo != nil {
 			onInfo(songInfo)
@@ -187,11 +181,8 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	if prog != nil {
 		enrichFromProgram(&detail, prog)
 	}
-	if len(detail.Songs) == 0 || len(urlData.Data) == 0 {
+	if len(detail.Songs) == 0 {
 		return a.editMessage(ctx, chatID, msgResult.ID, render.FetchInfoFailed, nil)
-	}
-	if urlData.Data[0].Url == "" {
-		return a.editMessage(ctx, chatID, msgResult.ID, render.GetURLFailed, nil)
 	}
 
 	var songInfo store.SongInfo
@@ -208,6 +199,12 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	songInfo.SongName = detail.Songs[0].Name
 	songInfo.SongArtists = textx.JoinNames(artistNames(detail.Songs[0]))
 	songInfo.SongAlbum = detail.Songs[0].Al.Name
+	if onInfo != nil {
+		onInfo(songInfo)
+	}
+	if len(urlData.Data) == 0 || urlData.Data[0].Url == "" {
+		return a.editMessage(ctx, chatID, msgResult.ID, render.GetURLFailed, nil)
+	}
 	switch path.Ext(textx.URLBase(urlData.Data[0].Url)) {
 	case ".mp3":
 		songInfo.FileExt = "mp3"
@@ -219,9 +216,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	songInfo.MusicSize = urlData.Data[0].Size
 	if songInfo.Duration > 0 {
 		songInfo.BitRate = 8 * urlData.Data[0].Size / songInfo.Duration
-	}
-	if onInfo != nil {
-		onInfo(songInfo)
 	}
 	if picRes, err := a.http.Head(detail.Songs[0].Al.PicUrl); err == nil {
 		_ = picRes.Body.Close()
@@ -238,7 +232,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	musicFileName := fmt.Sprintf("%d-%s", timeStamp, textx.URLBase(urlData.Data[0].Url))
 	musicPath := filepath.Join(a.cacheDir, musicFileName)
 
-	// 进度编辑限流 5 秒一次
 	var lastUpdateTime int64
 	onProgress := func(p fetch.Progress) {
 		if time.Now().Unix()-lastUpdateTime < 5 {
@@ -260,7 +253,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		return err
 	}
 
-	// 服务器未返回 md5 时跳过校验
 	if md5sum := urlData.Data[0].Md5; md5sum != "" {
 		if err := fetch.VerifyMD5(musicPath, md5sum); err != nil {
 			a.log.Errorln(err)
@@ -272,7 +264,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		}
 	}
 
-	// 封面下载与缩放失败不影响发歌，仅记录日志
+	// 封面失败不阻断发歌
 	var picPath, resizePicPath string
 	if picURL := detail.Songs[0].Al.PicUrl; picURL != "" {
 		picName := fmt.Sprintf("%d-%s", timeStamp, textx.URLBase(picURL))
@@ -289,7 +281,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		}
 	}
 
-	// 大于 2MB 的封面用缩放版嵌入
 	var musicPic string
 	if picStat, err := os.Stat(picPath); err == nil {
 		if picStat.Size() > 2*1024*1024 {
@@ -305,7 +296,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 		a.log.Errorln(err)
 	}
 
-	// 移动到独立目录并按「歌手 - 歌名.ext」命名，失败则用原始文件
 	newDir := filepath.Join(a.cacheDir, strconv.FormatInt(timeStamp, 10))
 	if err := os.Mkdir(newDir, os.ModePerm); err != nil {
 		a.sendDownloadFailed(ctx, chatID, msgResult.ID, songInfo, err)
@@ -354,7 +344,6 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 	return a.deleteMessage(ctx, chatID, msgResult.ID)
 }
 
-// artistNames 提取歌曲详情的歌手名列表
 func artistNames(song types.SongDetailData) []string {
 	names := make([]string, 0, len(song.Ar))
 	for _, ar := range song.Ar {
@@ -363,7 +352,7 @@ func artistNames(song types.SongDetailData) []string {
 	return names
 }
 
-// sendDownloadFailed 编辑状态消息为失败原因，先替换掉 token 等敏感信息
+// 错误展示前须隐藏 bot token
 func (a *App) sendDownloadFailed(ctx context.Context, chatID int64, messageID int, songInfo store.SongInfo, err error) {
 	scrubbed := strings.ReplaceAll(err.Error(), a.cfg.Bot.Token, "BOT_TOKEN")
 	text := render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.DownloadFailed(scrubbed))
@@ -372,7 +361,6 @@ func (a *App) sendDownloadFailed(ctx context.Context, chatID int64, messageID in
 	}
 }
 
-// sendMusic 发送音频：缓存命中用 FileID 直发，否则上传本地文件
 func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, musicPath, picPath string, message *models.Message) (*models.Message, error) {
 	params := &tgb.SendAudioParams{
 		ChatID:          message.Chat.ID,

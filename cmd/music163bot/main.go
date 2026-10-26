@@ -1,4 +1,3 @@
-// music163bot v3 入口
 package main
 
 import (
@@ -57,16 +56,16 @@ func main() {
 		log := logging.Setup(cfg.Log.Level, cfg.Log.Path)
 		log.Printf("Music163bot-Go %s 启动中", build.VersionName)
 
-		// MUSIC_U 缺失或失效时带着启动登录流程运行；网络原因无法判定则按现状启动
+		// 网络错误不视为 Cookie 失效
 		apiHTTP, err := cfg.Netease.HTTPClient()
 		if err != nil {
 			log.Errorln(err)
 			os.Exit(1)
 		}
 		loginState := checkLogin(cfg, log, apiHTTP)
-		apiHTTP.CloseIdleConnections()
 
-		reload, err := bot.Run(ctx, cfg, *cfgPath, log, build, loginState)
+		reload, err := bot.Run(ctx, cfg, *cfgPath, log, build, loginState, apiHTTP)
+		apiHTTP.CloseIdleConnections()
 		if err != nil {
 			log.Errorln(err)
 			os.Exit(1)
@@ -75,11 +74,10 @@ func main() {
 			return
 		}
 		log.Println("/reload：重新加载配置中")
-		// 注意：此处不能 stop()——reload 要带着同一个信号 ctx 进入下一轮循环
+		// 重载须复用信号 ctx，不能调用 stop
 	}
 }
 
-// checkLogin 校验 MUSIC_U；返回启动时的 Cookie 状态
 func checkLogin(cfg *config.Config, log *logrus.Logger, client *http.Client) bot.LoginState {
 	if cfg.Netease.MUSICU == "" {
 		return bot.LoginEmpty
@@ -95,7 +93,6 @@ func checkLogin(cfg *config.Config, log *logrus.Logger, client *http.Client) bot
 	return bot.LoginNone
 }
 
-// autoMigrateINI 配置文件不存在而同目录有 v2 的 config.ini 时，自动迁移并提示
 func autoMigrateINI(cfgPath string) {
 	if _, err := os.Stat(cfgPath); err == nil {
 		return

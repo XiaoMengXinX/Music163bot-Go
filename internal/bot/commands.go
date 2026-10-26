@@ -7,9 +7,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// setupCommands 启动时注册指令菜单，覆盖 BotFather 的手动设置。
-// 管理员私聊必须注册「公共 + 管理员」合并列表：
-// chat scope 会整体覆盖 default scope，只注册管理员指令会让管理员看不到公共指令。
+// chat scope 覆盖 default scope，管理员菜单须包含公共指令
 func (a *App) setupCommands(ctx context.Context, tg *tgb.Bot) {
 	userCommands := []models.BotCommand{
 		{Command: "music", Description: "点歌（ID 或关键词）"},
@@ -28,7 +26,6 @@ func (a *App) setupCommands(ctx context.Context, tg *tgb.Bot) {
 		a.log.Warnf("注册指令菜单失败: %v", err)
 	}
 
-	// 管理员私聊：公共指令 + 管理员指令
 	adminCommands := append(append([]models.BotCommand{}, userCommands...),
 		models.BotCommand{Command: "login", Description: "网易云扫码登录"},
 		models.BotCommand{Command: "rmcache", Description: "清除歌曲缓存"},
