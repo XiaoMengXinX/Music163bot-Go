@@ -24,6 +24,13 @@ func musicKeyboard(songName, songArtists string, musicID int) models.InlineKeybo
 	}
 }
 
+func songLinkKeyboard(musicID int) models.InlineKeyboardMarkup {
+	return models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{{{
+		Text: "在网易云音乐中打开",
+		URL:  render.SongLink(musicID),
+	}}}}
+}
+
 func searchKeyboard(musicIDs []int) models.InlineKeyboardMarkup {
 	buttons := make([]models.InlineKeyboardButton, 0, len(musicIDs))
 	for i, id := range musicIDs {

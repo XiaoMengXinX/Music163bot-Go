@@ -44,31 +44,7 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		}
 	}
 
-	file, err := a.tg.GetFile(ctx, &tgb.GetFileParams{FileID: voice.Voice.FileID})
-	if err != nil {
-		a.log.Errorln(err)
-		setStatus(render.RecognizeReadFailed)
-		return
-	}
-	dir, err := os.MkdirTemp(a.cacheDir, "recognize-")
-	if err != nil {
-		a.log.Errorln(err)
-		setStatus(render.RecognizeFailed)
-		return
-	}
-	defer func() {
-		if err := os.RemoveAll(dir); err != nil {
-			a.log.Errorln(err)
-		}
-	}()
-	oggPath := filepath.Join(dir, "voice.ogg")
-
-	if err := a.downloadVoice(ctx, oggPath, file); err != nil {
-		a.log.Errorln(err)
-		setStatus(render.RecognizeReadFailed)
-		return
-	}
-	audio, err := os.ReadFile(oggPath)
+	audio, err := a.readVoice(ctx, voice.Voice)
 	if err != nil {
 		a.log.Errorln(err)
 		setStatus(render.RecognizeReadFailed)
@@ -85,21 +61,43 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		return
 	}
 
-	keyboard := models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{{{
-		Text: "在网易云音乐中打开",
-		URL:  render.SongLink(musicID),
-	}}}}
+	keyboard := songLinkKeyboard(musicID)
 	showResult := func(text string) {
 		if err := a.editMessage(ctx, voice.Chat.ID, status.ID, text, keyboard); err != nil {
 			a.log.Errorln(err)
 		}
 	}
-	showResult(render.RecognizeSuccess)
+	shown := false
 	if err := a.processMusic(ctx, musicID, voice, nil, func(info store.SongInfo) {
-		showResult("🎵 识别成功\n" + render.SongInfo(info.SongName, info.SongArtists, info.SongAlbum))
+		showResult(render.RecognizeResult(info.SongName, info.SongArtists, info.SongAlbum))
+		shown = true
 	}); err != nil {
 		a.log.Errorln(err)
 	}
+	if !shown {
+		showResult(render.RecognizeSuccess)
+	}
+}
+
+func (a *App) readVoice(ctx context.Context, voice *models.Voice) ([]byte, error) {
+	file, err := a.tg.GetFile(ctx, &tgb.GetFileParams{FileID: voice.FileID})
+	if err != nil {
+		return nil, err
+	}
+	dir, err := os.MkdirTemp(a.cacheDir, "recognize-")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			a.log.Errorln(err)
+		}
+	}()
+	voicePath := filepath.Join(dir, "voice.ogg")
+	if err := a.downloadVoice(ctx, voicePath, file); err != nil {
+		return nil, err
+	}
+	return os.ReadFile(voicePath)
 }
 
 func (a *App) downloadVoice(ctx context.Context, dstPath string, file *models.File) error {

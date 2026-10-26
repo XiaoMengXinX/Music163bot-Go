@@ -110,7 +110,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 		tgb.WithServerURL(cfg.Bot.APIURL),
 		tgb.WithHTTPClient(min(time.Minute, cfg.Bot.UploadTimeout.D()), &http.Client{Timeout: cfg.Bot.UploadTimeout.D()}),
 		tgb.WithSkipGetMe(), // 统一在下方 GetMe 校验
-		tgb.WithAllowedUpdates(tgb.AllowedUpdates{"message", "callback_query", "inline_query"}), // 避免沿用服务端设置而漏收回调
+		tgb.WithAllowedUpdates(tgb.AllowedUpdates{"message", "callback_query", "inline_query", "guest_message"}), // 避免沿用服务端设置而漏收回调
 
 		tgb.WithMiddlewares(a.recoverMiddleware),
 		tgb.WithDefaultHandler(a.handleDefault),
@@ -172,6 +172,7 @@ func (a *App) registerHandlers(tg *tgb.Bot) {
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "cancellogin", tgb.MatchTypeExact, a.handleCallbackCancelLogin, a.adminOnly)
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "startlogin", tgb.MatchTypeExact, a.handleCallbackStartLogin, a.adminOnly)
 	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.InlineQuery != nil }, a.handleInline)
+	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.GuestMessage != nil }, a.handleGuestRecognize)
 }
 
 func (a *App) command(tg *tgb.Bot, name string, h tgb.HandlerFunc, m ...tgb.Middleware) {

@@ -34,6 +34,7 @@ func TestClientHTTP(t *testing.T) {
 			anonymous bool
 			call      func() error
 		}{
+			{name: "song detail", call: func() error { _, err := c.SongDetail(123); return err }},
 			{name: "song", call: func() error { _, _, err := c.SongDetailAndURL(123); return err }},
 			{name: "lyric", call: func() error { _, _, err := c.LyricAndDetail(123); return err }},
 			{name: "search", call: func() error { _, err := c.SearchSong("test", 1); return err }},

@@ -157,6 +157,12 @@ bot 必须能读取 `getFile` 返回的绝对路径。同机直接运行时确�
 - 管理员：`/rmcache <ID/链接>` 清除缓存、`/reload` 重载配置、`/login` 网易云扫码登录
 - 直接发送网易云分享链接即可嗅探点歌；inline 输入 `help` 查看用法
 
+**Guest Mode 听歌识曲**：在 @BotFather 的 Mini App 中为机器人开启 Guest Mode 后，
+可在 Telegram 支持的群组或私聊里回复一条语音，并发送 `@你的Bot用户名`。
+机器人无需加入该聊天，会直接返回歌名、歌手、专辑和网易云链接按钮。
+每次访客调用只回复一条结果，不发送进度消息或自动上传音频。
+自建 Bot API 服务需支持 Bot API 10.0 的 `guest_message` 和 `answerGuestQuery`。
+
 **网易云扫码登录**：MUSIC_U 过期时，管理员发送 `/login`，bot 回一张二维码，
 用网易云音乐 App 扫码确认后，bot 会立即用新账号凭据继续工作（无需重启），
 并把新的 `music_u` 自动写回 `config.toml`。

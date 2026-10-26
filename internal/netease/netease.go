@@ -31,6 +31,10 @@ func New(musicU, level string, client *http.Client) *Client {
 	return c
 }
 
+func (c *Client) SongDetail(musicID int) (types.SongsDetailData, error) {
+	return api.GetSongDetail(c.requestData(), []int{musicID})
+}
+
 func (c *Client) SongDetailAndURL(musicID int) (types.SongsDetailData, types.SongsURLData, error) {
 	var detail types.SongsDetailData
 	var urlData types.SongsURLData
