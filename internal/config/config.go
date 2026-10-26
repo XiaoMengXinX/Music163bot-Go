@@ -4,6 +4,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -45,6 +46,53 @@ type BotConfig struct {
 type NeteaseConfig struct {
 	MUSICU string `toml:"music_u"`
 	Level  string `toml:"level"`
+	Proxy  string `toml:"proxy"`
+}
+
+func (c NeteaseConfig) proxyURL() (*url.URL, error) {
+	if c.Proxy == "" {
+		return nil, nil
+	}
+	invalid := fmt.Errorf("配置项 [netease] proxy 必须为 http/https/socks5/socks5h 代理 URL，主机名不能为空，端口须为 1..65535，不允许路径、query 或 fragment")
+	u, err := url.Parse(c.Proxy)
+	if err != nil {
+		return nil, invalid
+	}
+	switch u.Scheme {
+	case "http", "https", "socks5", "socks5h":
+	default:
+		return nil, invalid
+	}
+	if u.Hostname() == "" || u.Opaque != "" ||
+		(u.EscapedPath() != "" && u.EscapedPath() != "/") ||
+		u.ForceQuery || u.RawQuery != "" || strings.Contains(c.Proxy, "#") ||
+		strings.HasSuffix(u.Host, ":") ||
+		(strings.Contains(u.Hostname(), ":") && !strings.HasPrefix(u.Host, "[")) {
+		return nil, invalid
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return nil, invalid
+		}
+	}
+	return u, nil
+}
+
+// HTTPClient 使用已校验的配置创建客户端，空代理保留默认传输行为。
+func (c NeteaseConfig) HTTPClient() (*http.Client, error) {
+	client := &http.Client{}
+	if c.Proxy == "" {
+		return client, nil
+	}
+	u, err := url.Parse(c.Proxy)
+	if err != nil {
+		return nil, fmt.Errorf("配置项 [netease] proxy 不是合法代理 URL")
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = http.ProxyURL(u)
+	client.Transport = transport
+	return client, nil
 }
 
 // DatabaseConfig 对应 [database] 段
@@ -139,6 +187,9 @@ func (c *Config) Validate() error {
 	case "standard", "higher", "lossless", "hires", "jyeffect", "sky", "jymaster":
 	default:
 		return fmt.Errorf("配置项 [netease] level %q 不合法（可选 standard/higher/lossless/hires/jyeffect/sky/jymaster）", c.Netease.Level)
+	}
+	if _, err := c.Netease.proxyURL(); err != nil {
+		return err
 	}
 	for _, id := range c.Bot.Admin {
 		if id <= 0 {

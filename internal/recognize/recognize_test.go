@@ -57,9 +57,8 @@ func TestRecognize(t *testing.T) {
 		{name: "invalid result", body: `{"code":200,"data":{"result":"invalid"}}`, otherErr: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			c := New()
 			called := false
-			c.api.HTTP.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			c := New(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 				called = true
 				if r.URL.Host != "interface.music.163.com" || r.URL.Path != "/api/music/audio/match" || r.Method != http.MethodPost {
 					t.Errorf("unexpected recognition request: %s %s", r.Method, r.URL)
@@ -71,7 +70,7 @@ func TestRecognize(t *testing.T) {
 					t.Fatal("missing audio fingerprint")
 				}
 				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tt.body))}, nil
-			})
+			})})
 			id, err := c.Recognize(t.Context(), audio)
 			if !called {
 				t.Fatal("audio input did not reach audio matching")
@@ -91,7 +90,7 @@ func TestRecognize(t *testing.T) {
 }
 
 func TestRecognizeInvalidAudio(t *testing.T) {
-	c := New()
+	c := New(&http.Client{})
 	c.api.HTTP.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
 		t.Fatal("invalid audio must not reach audio matching")
 		return nil, nil
@@ -103,7 +102,7 @@ func TestRecognizeInvalidAudio(t *testing.T) {
 
 func TestRecognizeCancellation(t *testing.T) {
 	audio := testAudio()
-	c := New()
+	c := New(&http.Client{})
 	c.api.HTTP.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return nil, r.Context().Err()
 	})

@@ -62,7 +62,7 @@ func (dl *Downloader) DownloadMusic(ctx context.Context, url, fileName string, p
 	var lastErr error
 	for attempt := 1; attempt <= attempts; attempt++ {
 		viaProxy := attempt > 1 && dl.proxy != "" && dl.autoRetry
-		if viaProxy {
+		if viaProxy && attempt == 2 {
 			task.WithResolvedIpOnHost(dl.proxy)
 		}
 		lastErr = dl.watch(ctx, task, attempt, viaProxy, progress)

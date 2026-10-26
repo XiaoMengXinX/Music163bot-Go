@@ -79,6 +79,12 @@ type App struct {
 // loginState 非 LoginNone 时（Cookie 缺失或失效）bot 照常启动并引导扫码登录，
 // 超时未登录则自动停止运行。
 func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Logger, build BuildInfo, loginState LoginState) (reloadRequested bool, err error) {
+	apiHTTP, err := cfg.Netease.HTTPClient()
+	if err != nil {
+		return false, err
+	}
+	defer apiHTTP.CloseIdleConnections()
+
 	cacheDir := "./cache"
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return false, err
@@ -97,9 +103,9 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 		cfg:       cfg,
 		cfgPath:   cfgPath,
 		store:     st,
-		api:       netease.New(cfg.Netease.MUSICU, cfg.Netease.Level),
+		api:       netease.New(cfg.Netease.MUSICU, cfg.Netease.Level, apiHTTP),
 		dl:        fetch.New(cacheDir, cfg.Download.Timeout.D(), cfg.Download.Retries, cfg.Download.ReverseProxy, cfg.Download.AutoRetry),
-		recog:     recognize.New(),
+		recog:     recognize.New(apiHTTP),
 		log:       log,
 		build:     build,
 		cacheDir:  cacheDir,

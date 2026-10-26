@@ -12,6 +12,9 @@ debug = false                                 # 输出 SDK 调试日志
 [netease]
 music_u = "你的 MUSIC_U cookie" # 可留空：留空或失效时启动会在终端显示二维码，扫码后自动写入；运行中可用管理员命令 /login 重新登录
 level = "hires"                 # 优先音质: standard/higher/lossless/hires/jyeffect(高清环绕声)/sky(沉浸环绕声)/jymaster(超清母带)，账号无权限时自动降级
+proxy = ""                      # 用于网易云 API、扫码登录、识曲等；空值保留原有环境代理行为
+# 支持 http://host[:port]、https://host[:port]、socks5://host[:port]、socks5h://host[:port]
+# 可选认证，如 http://user:password@127.0.0.1:8080 或 socks5://127.0.0.1:1080；不允许路径、query、fragment
 
 [database]
 path = "cache.db" # SQLite 数据库路径，v2 的 cache.db 可直接沿用

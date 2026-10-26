@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -52,46 +53,61 @@ func TestDownloadFile(t *testing.T) {
 	}
 }
 
-// 音乐下载强制 https（与 v2 一致），直连自签证书会失败，
-// 配置反代后经由代理重试（代理路径不校验证书）应成功——同时覆盖重试与反代两条路径。
-// 服务器需正确处理 HEAD 与 Range（SimpleDownloader 多线程分段下载）。
 func TestDownloadMusicRetryViaProxy(t *testing.T) {
-	var requests int
-	data := []byte("music-data-0123456789")
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
-		w.Header().Set("Accept-Ranges", "bytes")
-		if r.Method == http.MethodHead {
-			w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-			return
-		}
-		var start, end int
-		if _, err := fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end); err == nil {
-			if end >= len(data) {
-				end = len(data) - 1
-			}
-			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, len(data)))
-			w.WriteHeader(http.StatusPartialContent)
-			_, _ = w.Write(data[start : end+1])
-			return
-		}
-		_, _ = w.Write(data)
-	}))
-	defer srv.Close()
-	proxyHost := strings.TrimPrefix(srv.URL, "https://")
+	for _, retries := range []int{1, 2, 3} {
+		t.Run(fmt.Sprintf("retries=%d", retries), func(t *testing.T) {
+			origin := httptest.NewTLSServer(http.NotFoundHandler())
+			defer origin.Close()
+			originHost := strings.TrimPrefix(origin.URL, "https://")
 
-	dir := t.TempDir()
-	dl := New(dir, 10*time.Second, 1, proxyHost, true)
-	err := dl.DownloadMusic(context.Background(), srv.URL+"/song.mp3", "song.mp3", func(Progress) {})
-	if err != nil {
-		t.Fatalf("经反代重试后应成功: %v", err)
-	}
-	if requests < 1 {
-		t.Errorf("代理路径应完成请求, got %d", requests)
-	}
-	got, err := os.ReadFile(filepath.Join(dir, "song.mp3"))
-	if err != nil || string(got) != string(data) {
-		t.Errorf("下载内容错误: %q %v", got, err)
+			var attempts atomic.Int32
+			data := []byte("music-data-0123456789")
+			proxy := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Host != originHost {
+					t.Errorf("反代请求应保留原 Host: got %q, want %q", r.Host, originHost)
+				}
+				if r.URL.RequestURI() != "/song.mp3?token=test" {
+					t.Errorf("反代请求路径错误: %s", r.URL.RequestURI())
+				}
+				w.Header().Set("Accept-Ranges", "bytes")
+				if r.Method == http.MethodHead {
+					attempts.Add(1)
+					w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+					return
+				}
+				if attempts.Load() < int32(retries) {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				var start, end int
+				if _, err := fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end); err == nil {
+					if end >= len(data) {
+						end = len(data) - 1
+					}
+					w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, len(data)))
+					w.WriteHeader(http.StatusPartialContent)
+					_, _ = w.Write(data[start : end+1])
+					return
+				}
+				_, _ = w.Write(data)
+			}))
+			defer proxy.Close()
+			proxyHost := strings.TrimPrefix(proxy.URL, "https://")
+
+			dir := t.TempDir()
+			dl := New(dir, 10*time.Second, retries, proxyHost, true)
+			err := dl.DownloadMusic(context.Background(), origin.URL+"/song.mp3?token=test", "song.mp3", func(Progress) {})
+			if err != nil {
+				t.Fatalf("经反代重试后应成功: %v", err)
+			}
+			if got := attempts.Load(); got != int32(retries) {
+				t.Errorf("反代尝试次数错误: got %d, want %d", got, retries)
+			}
+			got, err := os.ReadFile(filepath.Join(dir, "song.mp3"))
+			if err != nil || string(got) != string(data) {
+				t.Errorf("下载内容错误: %q %v", got, err)
+			}
+		})
 	}
 }
 

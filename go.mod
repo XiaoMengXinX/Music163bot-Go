@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936
-	github.com/XiaoMengXinX/Music163Api-Go v0.1.31
+	github.com/XiaoMengXinX/Music163Api-Go v0.1.32-0.20261026151159-9167996e9052
 	github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20261025221656-fa61ae8f8717
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-telegram/bot v1.27.0

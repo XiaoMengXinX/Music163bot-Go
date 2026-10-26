@@ -53,6 +53,7 @@ upload_timeout = "120s"    # 上传及其他 Telegram API 请求的总超时
 [netease]
 music_u = "YOUR_MUSIC_U"   # 必填，网易云 cookie 中的 MUSIC_U（下载无损需 VIP 账号）
 level = "hires"            # 优先音质，账号无权限时自动降级
+proxy = ""                 # 网易云请求代理，如 http://127.0.0.1:8080 或 socks5://127.0.0.1:1080
 
 [download]
 timeout = "60s"
@@ -64,10 +65,6 @@ auto_retry = true
 
 完整配置项见 `config_example.toml`。所有配置都可用 `MUSIC163BOT_` 前缀的环境变量覆盖
 （如 `MUSIC163BOT_BOT_TOKEN`、`MUSIC163BOT_DOWNLOAD_TIMEOUT`），便于容器部署。
-
-优先音质 `level` 可选 `standard` / `higher` / `lossless` / `hires`（默认）/
-`jyeffect`（高清环绕声）/ `sky`（沉浸环绕声）/ `jymaster`（超清母带），
-高音质需要对应 VIP 等级，无权限时服务端自动降级。
 
 指令菜单在每次启动时自动注册（无需在 BotFather 手动设置）：
 普通用户看到 `/music` `/search` 等公共指令，管理员额外看到 `/login` `/rmcache` `/reload`。

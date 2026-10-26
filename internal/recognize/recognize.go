@@ -17,8 +17,10 @@ type Client struct {
 	api *ncm.Client
 }
 
-func New() *Client {
-	return &Client{api: &ncm.Client{HTTP: &http.Client{Timeout: 60 * time.Second}}}
+func New(client *http.Client) *Client {
+	httpClient := *client
+	httpClient.Timeout = 60 * time.Second
+	return &Client{api: &ncm.Client{HTTP: &httpClient}}
 }
 
 func (c *Client) Recognize(ctx context.Context, audio []byte) (int, error) {

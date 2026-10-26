@@ -1,8 +1,14 @@
 package config
 
 import (
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -194,6 +200,209 @@ music_u = "COOKIE"
 level = "sq"
 `)); err == nil {
 		t.Error("非法音质等级应被拒绝")
+	}
+}
+
+func TestNeteaseProxy(t *testing.T) {
+	t.Setenv("MUSIC163BOT_NETEASE_PROXY", "")
+	if err := os.Unsetenv("MUSIC163BOT_NETEASE_PROXY"); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name    string
+		setting string
+		env     *string
+		want    string
+		wantErr bool
+	}{
+		{name: "default"},
+		{name: "toml", setting: `proxy = "http://localhost:8080"`, want: "http://localhost:8080"},
+		{name: "env", setting: `proxy = "invalid"`, env: new("socks5://user:password@localhost:1080"), want: "socks5://user:password@localhost:1080"},
+		{name: "empty env", setting: `proxy = "http://localhost:8080"`, env: new("")},
+		{name: "invalid env", env: new("http://user:password@localhost:0"), wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.env != nil {
+				t.Setenv("MUSIC163BOT_NETEASE_PROXY", *tt.env)
+			}
+			cfg, err := Load(writeTemp(t, "[bot]\ntoken = '1:test'\n[netease]\n"+tt.setting))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected invalid proxy error")
+				}
+				if strings.Contains(err.Error(), "password") {
+					t.Fatalf("proxy error leaked credentials: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Netease.Proxy != tt.want {
+				t.Error("proxy configuration mismatch")
+			}
+		})
+	}
+}
+
+func TestNeteaseProxyValidation(t *testing.T) {
+	for _, proxy := range []string{
+		"", "http://localhost", "https://localhost:443/", "socks5://localhost:1080",
+		"socks5h://localhost", "http://user:password@proxy.example:1",
+		"socks5://user:p%40ssword@127.0.0.1:65535", "http://[::1]", "http://[::1]:8080/",
+	} {
+		t.Run("valid/"+proxy, func(t *testing.T) {
+			cfg := Default()
+			cfg.Bot.Token = "1:test"
+			cfg.Netease.Proxy = proxy
+			if err := cfg.Validate(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	for _, proxy := range []string{
+		"localhost:8080", "//localhost:8080", "ftp://localhost", "http:localhost",
+		"http://", "http://:8080", "http://user:password@:8080", "http:///localhost",
+		"http://localhost:0", "http://localhost:65536", "http://localhost:-1",
+		"http://localhost:abc", "http://localhost:", "http://[::1]:", "http://::1",
+		"http://localhost/path", "http://localhost//", "http://localhost/%2F", "http://localhost/%2f",
+		"http://localhost?query", "http://localhost?", "http://localhost#fragment", "http://localhost#",
+		"http://user:password@localhost:bad", "http://user:password@localhost/%zz", "http://user:password@bad host",
+	} {
+		t.Run("invalid/"+proxy, func(t *testing.T) {
+			cfg := Default()
+			cfg.Bot.Token = "1:test"
+			cfg.Netease.Proxy = proxy
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected invalid proxy error")
+			}
+			if !strings.Contains(err.Error(), "[netease] proxy") || strings.Contains(err.Error(), proxy) || strings.Contains(err.Error(), "password") {
+				t.Fatalf("unexpected proxy error: %v", err)
+			}
+		})
+	}
+}
+
+func TestNeteaseHTTPClient(t *testing.T) {
+	client, err := (NeteaseConfig{}).HTTPClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Transport != nil || client.Timeout != 0 {
+		t.Fatal("empty proxy should preserve default transport and timeout")
+	}
+	if client, err := (NeteaseConfig{Proxy: "http://user:password@localhost:bad"}).HTTPClient(); err == nil || client != nil || strings.Contains(err.Error(), "password") {
+		t.Fatal("parse errors should be returned without credentials")
+	}
+
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() != "http://target.invalid/song?id=1" {
+			t.Errorf("unexpected proxy target: %s", r.URL)
+		}
+		if r.Header.Get("Proxy-Authorization") != "Basic dXNlcjpwYXNzd29yZA==" {
+			t.Error("missing proxy authentication")
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer proxy.Close()
+	defaultTransport := http.DefaultTransport.(*http.Transport)
+	defaultProxy := fmt.Sprintf("%p", defaultTransport.Proxy)
+	cfg := Default()
+	cfg.Bot.Token = "1:test"
+	cfg.Netease.Proxy = strings.Replace(proxy.URL, "://", "://user:password@", 1)
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	client, err = cfg.Netease.HTTPClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseIdleConnections()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok || transport == defaultTransport || client.Timeout != 0 {
+		t.Fatal("explicit proxy should clone transport without adding a timeout")
+	}
+	if fmt.Sprintf("%p", defaultTransport.Proxy) != defaultProxy {
+		t.Fatal("default transport proxy was modified")
+	}
+	resp, err := client.Get("http://target.invalid/song?id=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("proxy response status = %d", resp.StatusCode)
+	}
+}
+
+func TestNeteaseHTTPClientSOCKS5(t *testing.T) {
+	for _, scheme := range []string{"socks5", "socks5h"} {
+		t.Run(scheme, func(t *testing.T) {
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			handshake := make(chan error, 1)
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					handshake <- err
+					return
+				}
+				defer conn.Close()
+				if err := conn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+					handshake <- err
+					return
+				}
+				var greeting [2]byte
+				if _, err := io.ReadFull(conn, greeting[:]); err != nil {
+					handshake <- err
+					return
+				}
+				methods := make([]byte, int(greeting[1]))
+				if _, err := io.ReadFull(conn, methods); err != nil {
+					handshake <- err
+					return
+				}
+				if greeting[0] != 5 || len(methods) == 0 || methods[0] != 0 {
+					handshake <- fmt.Errorf("unexpected SOCKS5 greeting: %v %v", greeting, methods)
+					return
+				}
+				_, err = conn.Write([]byte{5, 255})
+				handshake <- err
+			}()
+			cfg := Default()
+			cfg.Bot.Token = "1:test"
+			cfg.Netease.Proxy = scheme + "://" + listener.Addr().String()
+			if err := cfg.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			client, err := cfg.Netease.HTTPClient()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.CloseIdleConnections()
+			client.Timeout = 5 * time.Second
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("failed SOCKS5 proxy must not fall back to a direct request")
+			}))
+			defer target.Close()
+			if resp, err := client.Get(target.URL); err == nil {
+				resp.Body.Close()
+				t.Error("SOCKS5 rejection should fail the request")
+			}
+			listener.Close()
+			select {
+			case err := <-handshake:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("SOCKS5 handshake was not received")
+			}
+		})
 	}
 }
 

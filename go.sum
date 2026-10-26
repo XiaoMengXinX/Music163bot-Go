@@ -2,8 +2,8 @@ github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936 h1:to5zI
 github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936/go.mod h1:L6oR/uZwUSBO7o57qbul/zwUuuKpP4EVnFKmTBscvLY=
 github.com/XiaoMengXinX/Music163-Audio-Recognize-Api v0.0.0-20261026090511-1a943aa33cbf h1:BHdCvoCFZ+ubj7fcOf9+nfxKLwRecNjf1pVFI/au1UY=
 github.com/XiaoMengXinX/Music163-Audio-Recognize-Api v0.0.0-20261026090511-1a943aa33cbf/go.mod h1:GmLzf4UfwXSuZw7yz+vgwdFLnSEyf3GTl3hBCEqX0Fc=
-github.com/XiaoMengXinX/Music163Api-Go v0.1.31 h1:9eC0b6BRZCEZHxtHtIWPT9jnU2rHe+nPP+VFKNw+0GA=
-github.com/XiaoMengXinX/Music163Api-Go v0.1.31/go.mod h1:kLU/CkLxKnEJFCge0URvQ0lHt6ImoG1/2aVeNbgV2RQ=
+github.com/XiaoMengXinX/Music163Api-Go v0.1.32-0.20261026151159-9167996e9052 h1:kBd77+g6hy4/LBtjAj3UOam4Nj0Z+7WzJDaoG7UtRws=
+github.com/XiaoMengXinX/Music163Api-Go v0.1.32-0.20261026151159-9167996e9052/go.mod h1:kLU/CkLxKnEJFCge0URvQ0lHt6ImoG1/2aVeNbgV2RQ=
 github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20261025221656-fa61ae8f8717 h1:3yEdzNpDXYofpl6Coo+DcAPHC70ONrkPfHeoAF5gcys=
 github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20261025221656-fa61ae8f8717/go.mod h1:Fh8cPEMvudeU3D+sBG4FAoC4iOH8aGI7Z39oaN6/2iA=
 github.com/bogem/id3v2 v1.2.0 h1:hKDF+F1gOgQ5r1QmBCEZUk4MveJbKxCeIDSBU7CQ4oI=

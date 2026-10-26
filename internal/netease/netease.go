@@ -15,12 +15,13 @@ import (
 type Client struct {
 	mu    sync.RWMutex
 	data  utils.RequestData
+	http  *http.Client
 	level string // 请求音质等级
 }
 
 // New 创建客户端；musicU 为空时以无 cookie 方式请求，level 为音质等级
-func New(musicU, level string) *Client {
-	c := &Client{level: level}
+func New(musicU, level string, client *http.Client) *Client {
+	c := &Client{level: level, http: client}
 	if musicU != "" {
 		c.data = utils.RequestData{
 			Cookies: []*http.Cookie{

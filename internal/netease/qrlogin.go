@@ -32,12 +32,14 @@ func (c *Client) SetMUSICU(musicU string) {
 func (c *Client) requestData() utils.RequestData {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.data
+	data := c.data
+	data.HTTPClient = c.http
+	return data
 }
 
 // CreateQRLoginKey 申请扫码登录用的 unikey（匿名请求）
 func (c *Client) CreateQRLoginKey() (string, error) {
-	result, err := api.GetQrUnikey(utils.RequestData{})
+	result, err := api.GetQrUnikey(utils.RequestData{HTTPClient: c.http})
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +56,7 @@ func QRLoginContent(unikey string) string {
 
 // CheckQRLogin 查询扫码状态（匿名请求），成功时同时返回新的 MUSIC_U
 func (c *Client) CheckQRLogin(key string) (status QRLoginStatus, nickname, musicU string, err error) {
-	result, header, err := api.CheckQrLogin(utils.RequestData{}, key)
+	result, header, err := api.CheckQrLogin(utils.RequestData{HTTPClient: c.http}, key)
 	if err != nil {
 		return 0, "", "", err
 	}

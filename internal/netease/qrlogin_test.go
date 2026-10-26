@@ -31,7 +31,7 @@ func TestExtractMUSICU(t *testing.T) {
 }
 
 func TestSetMUSICU(t *testing.T) {
-	c := New("old", "hires")
+	c := New("old", "hires", &http.Client{})
 	c.SetMUSICU("new")
 	data := c.requestData()
 	if len(data.Cookies) != 1 || data.Cookies[0].Value != "new" {

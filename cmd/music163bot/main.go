@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -57,7 +58,13 @@ func main() {
 		log.Printf("Music163bot-Go %s 启动中", build.VersionName)
 
 		// MUSIC_U 缺失或失效时带着启动登录流程运行；网络原因无法判定则按现状启动
-		loginState := checkLogin(cfg, log)
+		apiHTTP, err := cfg.Netease.HTTPClient()
+		if err != nil {
+			log.Errorln(err)
+			os.Exit(1)
+		}
+		loginState := checkLogin(cfg, log, apiHTTP)
+		apiHTTP.CloseIdleConnections()
 
 		reload, err := bot.Run(ctx, cfg, *cfgPath, log, build, loginState)
 		if err != nil {
@@ -73,11 +80,11 @@ func main() {
 }
 
 // checkLogin 校验 MUSIC_U；返回启动时的 Cookie 状态
-func checkLogin(cfg *config.Config, log *logrus.Logger) bot.LoginState {
+func checkLogin(cfg *config.Config, log *logrus.Logger, client *http.Client) bot.LoginState {
 	if cfg.Netease.MUSICU == "" {
 		return bot.LoginEmpty
 	}
-	valid, err := netease.New(cfg.Netease.MUSICU, cfg.Netease.Level).LoginStatusValid()
+	valid, err := netease.New(cfg.Netease.MUSICU, cfg.Netease.Level, client).LoginStatusValid()
 	if err != nil {
 		log.Warnf("无法验证 MUSIC_U 有效性: %v", err)
 		return bot.LoginNone
