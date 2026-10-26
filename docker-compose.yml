@@ -8,9 +8,12 @@ services:
        - music163bot
 
   bot:
-    image: ghcr.io/xiaomengxinx/music163bot-go
+    image: ghcr.io/xiaomengxinx/music163bot-go:latest
+    environment:
+      MUSIC163BOT_DATABASE_PATH: /app/data/cache.db
     volumes:
       - ./config.toml:/app/config.toml
+      - ./data:/app/data
       - ./cache:/app/cache
       - ./log:/app/log
     depends_on:

@@ -96,11 +96,19 @@ MUSIC_U 已失效，请重新扫码登录
 
 **Docker 部署**
 
-```
+配置好 `config.toml` 后启动：
+
+```sh
+mkdir -p data
 docker compose up -d
 ```
 
-镜像内已包含 ffmpeg（`/recognize` 可用），以非 root 用户运行。
+`data/` 存放歌曲缓存数据库 `cache.db`，以及 SQLite 运行时生成的
+`cache.db-wal`、`cache.db-shm` 文件。首次启动会自动创建数据库。
+
+已有数据库时，先停止旧 bot，再将原来的 `cache.db` 及同名 `-wal`、`-shm` 文件（如有）一起移入 `data/`，然后启动容器。
+
+镜像内已包含 ffmpeg，以 root 用户运行。配置、数据库、缓存和日志均挂载到宿主机。
 
 ## 📦 从 v2 升级
 

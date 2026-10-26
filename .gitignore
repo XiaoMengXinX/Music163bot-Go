@@ -26,6 +26,7 @@ config.toml
 /src
 /ext
 /cache
+/data/
 /test
 *.mp3
 *.flac

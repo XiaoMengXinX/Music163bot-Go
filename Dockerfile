@@ -12,13 +12,10 @@ FROM alpine:3.21
 
 # ca-certificates 访问 Telegram/网易云 API；ffmpeg 供 /recognize 语音识别转码
 RUN apk add --no-cache ca-certificates ffmpeg tzdata \
-    && addgroup -S bot && adduser -S bot -G bot \
-    && mkdir -p /app/cache /app/log && chown -R bot:bot /app
+    && mkdir -p /app/cache /app/log
 
 WORKDIR /app
 
-COPY --from=builder --chown=bot:bot /build/Music163bot-Go .
-
-USER bot
+COPY --from=builder /build/Music163bot-Go .
 
 CMD [ "./Music163bot-Go" ]
