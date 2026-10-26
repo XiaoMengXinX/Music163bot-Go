@@ -67,6 +67,45 @@ music_u = "COOKIE"
 	}
 }
 
+func TestLocalMode(t *testing.T) {
+	t.Setenv("MUSIC163BOT_BOT_LOCAL_MODE", "")
+	if err := os.Unsetenv("MUSIC163BOT_BOT_LOCAL_MODE"); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name    string
+		setting string
+		env     string
+		want    bool
+		wantErr bool
+	}{
+		{name: "default"},
+		{name: "toml", setting: "local_mode = true", want: true},
+		{name: "env enabled", env: "true", want: true},
+		{name: "env disabled", setting: "local_mode = true", env: "false"},
+		{name: "invalid env", env: "invalid", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.env != "" {
+				t.Setenv("MUSIC163BOT_BOT_LOCAL_MODE", tt.env)
+			}
+			cfg, err := Load(writeTemp(t, "[bot]\ntoken = '1:test'\n"+tt.setting))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected invalid boolean error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Bot.LocalMode != tt.want {
+				t.Errorf("local_mode = %v, want %v", cfg.Bot.LocalMode, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoadValues(t *testing.T) {
 	cfg, err := Load(writeTemp(t, validTOML))
 	if err != nil {

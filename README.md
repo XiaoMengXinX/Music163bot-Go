@@ -110,6 +110,31 @@ docker compose up -d
 
 镜像内已包含 ffmpeg，以 root 用户运行。配置、数据库、缓存和日志均挂载到宿主机。
 
+**自建 Bot API 本地模式**
+
+Bot API 以 `--local` 运行时，在 `config.toml` 中开启本地文件读取：
+
+```toml
+[bot]
+api_url = "http://127.0.0.1:8081"
+local_mode = true
+```
+
+也可设置环境变量 `MUSIC163BOT_BOT_LOCAL_MODE=true`。此选项只控制 bot 的文件读取方式，
+Bot API 服务需要单独启用 `--local`。
+
+bot 必须能读取 `getFile` 返回的绝对路径。同机直接运行时确保有读取权限；
+如果 bot 在容器中，需要将 API 的实际文件存储目录以相同绝对路径、只读方式挂载到 bot 容器。
+例如 API 的存储目录为 `/srv/telegram-bot-api`，在 bot 服务的 `volumes` 中添加：
+
+```yaml
+- /srv/telegram-bot-api:/srv/telegram-bot-api:ro
+```
+
+容器内的 `api_url` 应填写能访问到的 API 地址，`127.0.0.1` 指向容器自身。
+跨服务器使用本地模式需要共享存储。语音文件会复制到 bot 的临时目录后处理，原文件不会被修改或删除。
+使用官方 API 时保持 `local_mode = false`。
+
 ## 📦 从 v2 升级
 
 命令和交互与 v2 一致，直接用原来的目录启动即可：

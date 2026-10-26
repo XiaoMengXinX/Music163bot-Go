@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -39,19 +38,20 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 		a.log.Errorln(err)
 		return
 	}
-	voiceURL := a.tg.FileDownloadLink(file)
-
-	oggPath := filepath.Join(a.cacheDir, fmt.Sprintf("%d-%d-%d.ogg", voice.Chat.ID, voice.ID, time.Now().Unix()))
-	mp3Path := oggPath + ".mp3"
+	dir, err := os.MkdirTemp(a.cacheDir, "recognize-")
+	if err != nil {
+		a.log.Errorln(err)
+		return
+	}
 	defer func() {
-		for _, f := range []string{oggPath, mp3Path} {
-			if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
-				a.log.Errorln(err)
-			}
+		if err := os.RemoveAll(dir); err != nil {
+			a.log.Errorln(err)
 		}
 	}()
+	oggPath := filepath.Join(dir, "voice.ogg")
+	mp3Path := filepath.Join(dir, "voice.mp3")
 
-	if err := a.downloadVoice(oggPath, voiceURL); err != nil {
+	if err := a.downloadVoice(ctx, oggPath, file); err != nil {
 		a.log.Errorln(err)
 		return
 	}
@@ -83,23 +83,47 @@ func (a *App) handleRecognize(ctx context.Context, tg *tgb.Bot, update *models.U
 	}
 }
 
-// downloadVoice 下载语音文件到本地，确保响应体与文件句柄关闭
-func (a *App) downloadVoice(dstPath, url string) error {
-	resp, err := a.http.Get(url)
+func (a *App) downloadVoice(ctx context.Context, dstPath string, file *models.File) error {
+	var source io.Reader
+	if a.cfg.Bot.LocalMode {
+		if !filepath.IsAbs(file.FilePath) {
+			return fmt.Errorf("本地模式需要 Bot API 返回绝对文件路径，请确认服务已启用 --local")
+		}
+		localFile, err := os.Open(file.FilePath)
+		if err != nil {
+			return fmt.Errorf("读取 Bot API 本地文件失败，请检查共享目录和读取权限: %w", err)
+		}
+		defer localFile.Close()
+		info, err := localFile.Stat()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("Bot API 本地路径不是普通文件")
+		}
+		source = localFile
+	} else {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.tg.FileDownloadLink(file), nil)
+		if err != nil {
+			return err
+		}
+		resp, err := a.http.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("下载语音失败: %s", resp.Status)
+		}
+		source = resp.Body
+	}
+	out, err := os.Create(dstPath)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("下载语音失败: %s", resp.Status)
-	}
-	file, err := os.Create(dstPath)
-	if err != nil {
+	if _, err := io.Copy(out, source); err != nil {
+		_ = out.Close()
 		return err
 	}
-	if _, err := io.Copy(file, resp.Body); err != nil {
-		_ = file.Close()
-		return err
-	}
-	return file.Close()
+	return out.Close()
 }

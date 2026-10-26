@@ -33,10 +33,11 @@ func (d Duration) MarshalText() ([]byte, error) { return []byte(time.Duration(d)
 
 // BotConfig 对应 [bot] 段
 type BotConfig struct {
-	Token  string  `toml:"token"`
-	APIURL string  `toml:"api_url"`
-	Admin  []int64 `toml:"admin"`
-	Debug  bool    `toml:"debug"`
+	Token     string  `toml:"token"`
+	APIURL    string  `toml:"api_url"`
+	Admin     []int64 `toml:"admin"`
+	Debug     bool    `toml:"debug"`
+	LocalMode bool    `toml:"local_mode"`
 }
 
 // NeteaseConfig 对应 [netease] 段
