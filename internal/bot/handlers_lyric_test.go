@@ -16,7 +16,7 @@ import (
 )
 
 func TestLyricFromReplyButton(t *testing.T) {
-	var document string
+	var document, caption, parseMode string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "/sendDocument") {
@@ -26,6 +26,7 @@ func TestLyricFromReplyButton(t *testing.T) {
 			if _, header, err := r.FormFile("document"); err == nil {
 				document = header.Filename
 			}
+			caption, parseMode = r.FormValue("caption"), r.FormValue("parse_mode")
 		}
 		_, _ = io.WriteString(w, `{"ok":true,"result":{"message_id":10,"chat":{"id":-100123,"type":"supergroup"}}}`)
 	}))
@@ -40,7 +41,7 @@ func TestLyricFromReplyButton(t *testing.T) {
 		if strings.Contains(r.URL.Path, "search") {
 			t.Errorf("reply with song button must not search: %s", r.URL)
 		}
-		body := `{"/api/song/lyric":{"lrc":{"lyric":"[00:00.00]lyric"}},"/api/v3/song/detail":{"songs":[{"id":123,"name":"Song","ar":[{"name":"Artist"}]}]}}`
+		body := `{"/api/song/lyric":{"lrc":{"lyric":"[00:00.00]作词 : A\n[00:01.00]\n[00:02.00]lyric <1>"}},"/api/v3/song/detail":{"songs":[{"id":123,"name":"Song","ar":[{"name":"Artist"},{"name":"Other"}]}]}}`
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
 	})})
 	keyboard := musicKeyboard(store.SongInfo{MusicID: 123, SongName: "Song", SongArtists: "Artist"}, nil)
@@ -56,8 +57,11 @@ func TestLyricFromReplyButton(t *testing.T) {
 			ReplyMarkup: &keyboard,
 		},
 	}})
-	if document != "Artist - Song.lrc" {
-		t.Errorf("document = %q, want lyric file", document)
+	if document != songFileName("Artist/Other", "Song", "lrc") || document != "Artist,Other - Song.lrc" {
+		t.Errorf("document = %q, want lyric file named like the song file", document)
+	}
+	if want := render.LyricCaption("作词 : A\nlyric <1>"); caption != want || parseMode != string(models.ParseModeHTML) {
+		t.Errorf("caption = %q (%s), want %q", caption, parseMode, want)
 	}
 }
 

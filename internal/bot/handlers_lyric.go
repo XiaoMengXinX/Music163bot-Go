@@ -3,7 +3,6 @@ package bot
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -80,8 +79,8 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		return
 	}
 
-	lrcPath := filepath.Join(a.cacheDir, textx.SanitizeFilename(fmt.Sprintf("%s - %s.lrc",
-		textx.JoinNames(artistNames(detail.Songs[0])), detail.Songs[0].Name)))
+	song := detail.Songs[0]
+	lrcPath := filepath.Join(a.cacheDir, songFileName(textx.JoinNames(artistNames(song)), song.Name, "lrc"))
 	file, err := os.OpenFile(lrcPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		sendFailed()
@@ -110,11 +109,16 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		return
 	}
 	defer lrcFile.Close()
-	if _, err := a.tg.SendDocument(ctx, &tgb.SendDocumentParams{
+	params := &tgb.SendDocumentParams{
 		ChatID:          source.Chat.ID,
 		Document:        &models.InputFileUpload{Filename: filepath.Base(lrcPath), Data: lrcFile},
 		ReplyParameters: &models.ReplyParameters{MessageID: source.ID},
-	}); err != nil {
+	}
+	if text := textx.LrcText(lyric.Lrc.Lyric); text != "" {
+		params.Caption = render.LyricCaption(text)
+		params.ParseMode = models.ParseModeHTML
+	}
+	if _, err := a.tg.SendDocument(ctx, params); err != nil {
 		a.log.Errorln(err)
 		return
 	}

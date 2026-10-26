@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"unicode/utf16"
 )
 
 const (
@@ -135,6 +136,25 @@ func RecognizeResult(name, artists, album string) string {
 
 func GuestMusicResult(name, artists, album string) string {
 	return SongInfo(name, artists, album) + "\n" + GuestNoCache
+}
+
+// LyricCaption caption 按 UTF-16 计算长度且不超过 1024
+func LyricCaption(lyric string) string {
+	const limit = 1024
+	if truncateUTF16(lyric, limit) != lyric {
+		lyric = truncateUTF16(lyric, limit-1) + "…"
+	}
+	return "<blockquote expandable>" + Escape(lyric) + "</blockquote>"
+}
+
+func truncateUTF16(s string, limit int) string {
+	n := 0
+	for i, r := range s {
+		if n += utf16.RuneLen(r); n > limit {
+			return s[:i]
+		}
+	}
+	return s
 }
 
 func MusicCaption(name, artists, album, ext string, sizeMB, kbps float64, botName string) string {

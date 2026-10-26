@@ -3,6 +3,8 @@ package render
 import (
 	"strings"
 	"testing"
+	"unicode/utf16"
+	"unicode/utf8"
 )
 
 func TestEscapeInTemplates(t *testing.T) {
@@ -73,5 +75,38 @@ func TestDownloadStatusFormat(t *testing.T) {
 	want := " 1.5MB/s\n3.00MB/10.00MB 30%"
 	if got != want {
 		t.Errorf("DownloadStatus = %q, want %q", got, want)
+	}
+}
+
+func TestLyricCaption(t *testing.T) {
+	if got := LyricCaption("<a> & b"); got != "<blockquote expandable>&lt;a&gt; &amp; b</blockquote>" {
+		t.Errorf("LyricCaption = %q", got)
+	}
+	for _, tt := range []struct {
+		name      string
+		lyric     string
+		truncated bool
+	}{
+		{name: "exact limit", lyric: strings.Repeat("a", 1024)},
+		{name: "ascii", lyric: strings.Repeat("a", 1500), truncated: true},
+		{name: "cjk", lyric: strings.Repeat("歌词\n", 400), truncated: true},
+		{name: "surrogate pairs", lyric: "a" + strings.Repeat("🎵", 600), truncated: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			text := strings.TrimSuffix(strings.TrimPrefix(LyricCaption(tt.lyric), "<blockquote expandable>"), "</blockquote>")
+			length := len(utf16.Encode([]rune(text)))
+			if !utf8.ValidString(text) || length > 1024 {
+				t.Fatalf("caption text has %d UTF-16 units: %q", length, text)
+			}
+			if !tt.truncated {
+				if text != tt.lyric {
+					t.Errorf("caption changed: %q", text)
+				}
+				return
+			}
+			if !strings.HasSuffix(text, "…") || !strings.HasPrefix(tt.lyric, strings.TrimSuffix(text, "…")) || length < 1023 {
+				t.Errorf("caption = %q (%d units), want longest prefix with ellipsis", text, length)
+			}
+		})
 	}
 }

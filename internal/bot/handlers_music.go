@@ -353,8 +353,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 		a.showDownloadFailed(status, songInfo, err)
 		return songInfo, err
 	}
-	fileName := textx.SanitizeFilename(fmt.Sprintf("%v - %v.%v", strings.ReplaceAll(songInfo.SongArtists, "/", ","), songInfo.SongName, songInfo.FileExt))
-	filePath := filepath.Join(newDir, fileName)
+	filePath := filepath.Join(newDir, songFileName(songInfo.SongArtists, songInfo.SongName, songInfo.FileExt))
 	if err := os.Rename(musicPath, filePath); err != nil {
 		a.log.Errorln(err)
 		filePath = musicPath
@@ -390,6 +389,11 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 	return songInfo, a.store.Save(&songInfo)
+}
+
+// songFileName 歌曲与歌词文件共用命名
+func songFileName(artists, name, ext string) string {
+	return textx.SanitizeFilename(fmt.Sprintf("%s - %s.%s", strings.ReplaceAll(artists, "/", ","), name, ext))
 }
 
 func artistNames(song types.SongDetailData) []string {

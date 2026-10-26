@@ -149,3 +149,13 @@ func TestResolveShortLink(t *testing.T) {
 		t.Errorf("非 163cn 短链应原样返回, got %q", got)
 	}
 }
+
+func TestLrcText(t *testing.T) {
+	lrc := "[00:00.000] 作词 : 周杰伦\n[00:01.053]\n\n[00:28.950]故事的小黄花\n[01:00.00][02:00.00]重复的副歌  \n纯文本"
+	if got, want := LrcText(lrc), "作词 : 周杰伦\n故事的小黄花\n重复的副歌\n纯文本"; got != want {
+		t.Errorf("LrcText = %q, want %q", got, want)
+	}
+	if got := LrcText("[00:00.00]\n[00:01.00] "); got != "" {
+		t.Errorf("tag-only lyric = %q, want empty", got)
+	}
+}

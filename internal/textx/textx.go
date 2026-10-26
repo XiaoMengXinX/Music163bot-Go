@@ -23,6 +23,7 @@ var (
 	reg4   = regexp.MustCompile("&(.*)")
 	reg5   = regexp.MustCompile("/(.*)")
 	regInt = regexp.MustCompile(`\d+`)
+	regLrc = regexp.MustCompile(`^(\[[^\]]*\])+`)
 	regURL = regexp.MustCompile("(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?")
 )
 
@@ -49,6 +50,17 @@ func SanitizeFilename(name string) string {
 		n--
 	}
 	return name[:n] + ext
+}
+
+// LrcText 去除 LRC 时间标签与空行
+func LrcText(lrc string) string {
+	var lines []string
+	for _, line := range strings.Split(lrc, "\n") {
+		if line = strings.TrimSpace(regLrc.ReplaceAllString(line, "")); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func URLBase(rawURL string) string {
