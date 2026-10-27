@@ -68,8 +68,8 @@ func TestURLBase(t *testing.T) {
 }
 
 func TestSanitizeFilename(t *testing.T) {
-	got := SanitizeFilename(`a/b\c*d:e?f"g<h>i|j`)
-	want := "a b c d e f g h i j"
+	got := SanitizeFilename("a/b\\c*d:e?f\"g<h>i|j\nk\r")
+	want := "a b c d e f g h i j k "
 	if got != want {
 		t.Errorf("SanitizeFilename = %q, want %q", got, want)
 	}
@@ -86,16 +86,16 @@ func TestSanitizeFilenameLength(t *testing.T) {
 		{name: "ab" + artists + " - 愿世界和平.lrc", ext: ".lrc"},
 	} {
 		got := SanitizeFilename(tt.name)
-		if len(got) > 255 || !utf8.ValidString(got) || !strings.HasSuffix(got, tt.ext) {
+		if len(got) > maxFilenameBytes || !utf8.ValidString(got) || !strings.HasSuffix(got, tt.ext) {
 			t.Errorf("SanitizeFilename(%q) = %q (%d bytes)", tt.name, got, len(got))
 		}
-		if base := strings.TrimSuffix(got, tt.ext); !strings.HasPrefix(tt.name, base) || len(got) < 252 {
+		if base := strings.TrimSuffix(got, tt.ext); !strings.HasPrefix(tt.name, base) || len(got) < maxFilenameBytes-3 {
 			t.Errorf("SanitizeFilename(%q) = %q, want longest prefix", tt.name, got)
 		}
 	}
-	exact := strings.Repeat("a", 250) + ".flac"
+	exact := strings.Repeat("a", maxFilenameBytes-len(".flac")) + ".flac"
 	if got := SanitizeFilename(exact); got != exact {
-		t.Errorf("255-byte name changed: %q", got)
+		t.Errorf("%d-byte name changed: %q", maxFilenameBytes, got)
 	}
 }
 

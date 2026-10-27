@@ -32,11 +32,11 @@ func JoinNames(names []string) string {
 }
 
 var filenameReplacer = strings.NewReplacer(
-	"/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ",
+	"/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ", "\n", " ", "\r", " ",
 )
 
-// 常见文件系统限制文件名不超过 255 字节
-const maxFilenameBytes = 255
+// 常见文件系统限制文件名不超过 255 字节，id3v2 保存时会写入追加 "-id3v2" 的临时文件
+const maxFilenameBytes = 255 - len("-id3v2")
 
 // SanitizeFilename 替换非法字符，超长时按字节截断并保留扩展名
 func SanitizeFilename(name string) string {
