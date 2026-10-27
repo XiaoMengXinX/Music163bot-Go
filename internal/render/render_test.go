@@ -57,19 +57,6 @@ func TestStatusInfoChatVariants(t *testing.T) {
 	}
 }
 
-func TestDownloadFailed(t *testing.T) {
-	if got := DownloadFailed("MD5校验失败\n请稍后重试"); got != "MD5校验失败\n请稍后重试" {
-		t.Errorf("md5 失败应原样展示: %q", got)
-	}
-	if got := DownloadFailed("下载超时"); got != "下载超时" {
-		t.Errorf("超时应原样展示: %q", got)
-	}
-	got := DownloadFailed("unexpected error <x>")
-	if got != "下载/发送失败\nunexpected error &lt;x&gt;" {
-		t.Errorf("其余错误应加前缀并转义: %q", got)
-	}
-}
-
 func TestDownloadStatusFormat(t *testing.T) {
 	got := DownloadStatus("1.5MB/s", 3.0, 10.0, 30)
 	want := " 1.5MB/s\n3.00MB/10.00MB 30%"

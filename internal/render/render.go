@@ -4,7 +4,6 @@ package render
 import (
 	"fmt"
 	"html"
-	"strings"
 	"unicode/utf16"
 )
 
@@ -34,7 +33,9 @@ const (
 	Reloading        = "重新加载中"
 	CallbackText     = "Success"
 	FetchingLyric    = "正在获取歌词中"
-	DownloadTimeout  = "下载超时"
+	DownloadFailed   = "下载失败"
+	SendFailed       = "发送失败"
+	ProcessFailed    = "文件处理失败"
 	SearchExpired    = "搜索已失效，请重新搜索"
 	NoMoreResults    = "没有更多结果了"
 	SearchNotOwner   = "只有发起搜索的人可以操作"
@@ -120,13 +121,6 @@ func MusicStatus(name, album, ext string, sizeMB float64, suffix string) string 
 
 func DownloadStatus(speed string, writtenMB, totalMB float64, percent int64) string {
 	return fmt.Sprintf(" %s\n%.2fMB/%.2fMB %d%%", Escape(speed), writtenMB, totalMB, percent)
-}
-
-func DownloadFailed(errText string) string {
-	if strings.Contains(errText, Md5VerFailed) || strings.Contains(errText, DownloadTimeout) {
-		return Escape(errText)
-	}
-	return "下载/发送失败\n" + Escape(errText)
 }
 
 func SongInfo(name, artists, album string) string {

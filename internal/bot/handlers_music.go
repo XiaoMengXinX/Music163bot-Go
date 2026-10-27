@@ -171,7 +171,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 			return err
 		}
 		if _, err := a.sendMusic(ctx, songInfo, prog, "", "", chatID, reply); err != nil {
-			a.showDownloadFailed(func(text string) error { return a.editMessage(ctx, chatID, msgResult.ID, text, nil) }, songInfo, err)
+			a.showDownloadFailed(func(text string) error { return a.editMessage(ctx, chatID, msgResult.ID, text, nil) }, songInfo, render.SendFailed)
 			return err
 		}
 		return a.deleteMessage(ctx, chatID, msgResult.ID)
@@ -205,7 +205,7 @@ func (a *App) processMusic(ctx context.Context, musicID int, message *models.Mes
 			return err
 		}
 		if _, err := a.sendMusic(ctx, songInfo, prog, "", "", chatID, reply); err != nil {
-			a.showDownloadFailed(status, songInfo, err)
+			a.showDownloadFailed(status, songInfo, render.SendFailed)
 			return err
 		}
 		return a.deleteMessage(ctx, chatID, msgResult.ID)
@@ -302,7 +302,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	}
 
 	if err := a.dl.DownloadMusic(ctx, urlData.Data[0].Url, musicFileName, onProgress); err != nil {
-		a.showDownloadFailed(status, songInfo, err)
+		a.showDownloadFailed(status, songInfo, render.DownloadFailed)
 		return songInfo, err
 	}
 
@@ -311,7 +311,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 			if rmErr := os.Remove(musicPath); rmErr != nil {
 				a.log.Errorln(rmErr)
 			}
-			a.showDownloadFailed(status, songInfo, fmt.Errorf("%s\n%s", render.Md5VerFailed, render.RetryLater))
+			a.showDownloadFailed(status, songInfo, render.Md5VerFailed)
 			return songInfo, err
 		}
 	}
@@ -350,7 +350,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 
 	newDir := filepath.Join(a.cacheDir, strconv.FormatInt(timeStamp, 10))
 	if err := os.Mkdir(newDir, os.ModePerm); err != nil {
-		a.showDownloadFailed(status, songInfo, err)
+		a.showDownloadFailed(status, songInfo, render.ProcessFailed)
 		return songInfo, err
 	}
 	filePath := filepath.Join(newDir, songFileName(songInfo.SongArtists, songInfo.SongName, songInfo.FileExt))
@@ -370,7 +370,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	}()
 
 	if err := tagging.Write(filePath, musicPic, detail.Songs[0], urlData.Data[0]); err != nil {
-		a.showDownloadFailed(status, songInfo, err)
+		a.showDownloadFailed(status, songInfo, render.ProcessFailed)
 		return songInfo, err
 	}
 
@@ -380,7 +380,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 
 	audio, err := a.sendMusic(ctx, songInfo, prog, filePath, resizePicPath, chatID, reply)
 	if err != nil {
-		a.showDownloadFailed(status, songInfo, err)
+		a.showDownloadFailed(status, songInfo, render.SendFailed)
 		return songInfo, err
 	}
 
@@ -410,10 +410,9 @@ func (a *App) showStatus(status func(string) error, text string) {
 	}
 }
 
-// 错误展示前须隐藏 bot token
-func (a *App) showDownloadFailed(status func(string) error, songInfo store.SongInfo, err error) {
-	scrubbed := strings.ReplaceAll(err.Error(), a.cfg.Bot.Token, "BOT_TOKEN")
-	a.showStatus(status, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.DownloadFailed(scrubbed)))
+// 错误详情可能含服务器 IP、下载直链等，只展示错误类型，详情由调用方记录日志
+func (a *App) showDownloadFailed(status func(string) error, songInfo store.SongInfo, reason string) {
+	a.showStatus(status, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, reason+"\n"+render.RetryLater))
 }
 
 func (a *App) musicCaption(songInfo store.SongInfo) string {

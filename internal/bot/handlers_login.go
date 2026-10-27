@@ -193,7 +193,7 @@ func (a *App) pollQRLogin(ctx context.Context, key string, editCaption func(stri
 					nickname = scannedNick
 				}
 				note := a.finishLogin(musicU, nickname)
-				_ = editCaption(render.LoginOK(nickname)+note, emptyKeyboard())
+				_ = editCaption(render.LoginOK(nickname)+render.Escape(note), emptyKeyboard())
 				return
 			case netease.QRExpired:
 				_ = editCaption(render.LoginExpired, emptyKeyboard())
