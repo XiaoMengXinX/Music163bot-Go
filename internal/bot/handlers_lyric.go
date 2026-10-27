@@ -55,7 +55,7 @@ func (a *App) handleLyric(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		musicID = textx.ParseMusicID(args)
 	}
 	if musicID == 0 {
-		searchResult, err := a.api.SearchSong(args, 5)
+		searchResult, err := a.api.SearchSong(args, 5, 0)
 		if err != nil {
 			a.log.Errorln(err)
 		}

@@ -90,7 +90,7 @@ func (a *App) answerInlineSearch(ctx context.Context, query *models.InlineQuery)
 			},
 		}, 3600, nil)
 	}
-	result, err := a.api.SearchSong(keyword, 0)
+	result, err := a.api.SearchSong(keyword, 0, 0)
 	if err != nil {
 		return err
 	}

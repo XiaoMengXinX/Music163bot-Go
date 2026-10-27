@@ -35,6 +35,9 @@ const (
 	CallbackText     = "Success"
 	FetchingLyric    = "正在获取歌词中"
 	DownloadTimeout  = "下载超时"
+	SearchExpired    = "搜索已失效，请重新搜索"
+	NoMoreResults    = "没有更多结果了"
+	SearchNotOwner   = "只有发起搜索的人可以操作"
 
 	ReplyVoiceFirst     = "请先发送一条包含音乐片段的语音，再回复该语音发送 /recognize。"
 	GuestUsage          = "回复一条网易云音乐分享链接或包含音乐片段的语音，并在回复中 @我，即可发送或识别歌曲。"
@@ -197,6 +200,18 @@ func CacheChatSet(chatID int64) string {
 
 func RmcacheReport(name string) string {
 	return fmt.Sprintf("清除 [%s] 缓存成功", Escape(name))
+}
+
+func Cooldown(seconds int) string {
+	return fmt.Sprintf("操作太频繁，请 %d 秒后再试", seconds)
+}
+
+func SearchPage(page, total int) string {
+	return fmt.Sprintf("<code>第[%d/%d]页</code>\n", page, total)
+}
+
+func SearchItem(n int, name, artists string) string {
+	return fmt.Sprintf("<code>%-3s</code> <code>%s - %s</code>\n", fmt.Sprintf("%d.", n), Escape(name), Escape(artists))
 }
 
 func SongLink(musicID int) string {

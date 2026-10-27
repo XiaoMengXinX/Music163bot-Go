@@ -47,13 +47,24 @@ func (a *App) guestKeyboard(link string, musicID int) models.InlineKeyboardMarku
 	return keyboard
 }
 
-func searchKeyboard(musicIDs []int) models.InlineKeyboardMarkup {
+func searchKeyboard(musicIDs []int, start, page int, hasMore bool, hash string) models.InlineKeyboardMarkup {
 	buttons := make([]models.InlineKeyboardButton, 0, len(musicIDs))
 	for i, id := range musicIDs {
 		buttons = append(buttons, models.InlineKeyboardButton{
-			Text:         fmt.Sprintf("%d", i+1),
+			Text:         fmt.Sprintf("%d", start+i),
 			CallbackData: fmt.Sprintf("music %d", id),
 		})
 	}
-	return models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{buttons}}
+	keyboard := [][]models.InlineKeyboardButton{buttons}
+	var pages []models.InlineKeyboardButton
+	if page > 1 {
+		pages = append(pages, models.InlineKeyboardButton{Text: "⬅️ 上一页", CallbackData: fmt.Sprintf("search %d %s", page-1, hash)})
+	}
+	if hasMore {
+		pages = append(pages, models.InlineKeyboardButton{Text: "下一页 ➡️", CallbackData: fmt.Sprintf("search %d %s", page+1, hash)})
+	}
+	if len(pages) != 0 {
+		keyboard = append(keyboard, pages)
+	}
+	return models.InlineKeyboardMarkup{InlineKeyboard: keyboard}
 }

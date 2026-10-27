@@ -51,7 +51,7 @@ func (a *App) handleMusic(ctx context.Context, tg *tgb.Bot, update *models.Updat
 		}
 		return
 	}
-	result, err := a.api.SearchSong(args, 10)
+	result, err := a.api.SearchSong(args, 10, 0)
 	if err != nil {
 		a.log.Errorln(err)
 	}

@@ -37,7 +37,7 @@ func TestClientHTTP(t *testing.T) {
 			{name: "song detail", call: func() error { _, err := c.SongDetail(123); return err }},
 			{name: "song", call: func() error { _, _, err := c.SongDetailAndURL(123); return err }},
 			{name: "lyric", call: func() error { _, _, err := c.LyricAndDetail(123); return err }},
-			{name: "search", call: func() error { _, err := c.SearchSong("test", 1); return err }},
+			{name: "search", call: func() error { _, err := c.SearchSong("test", 1, 0); return err }},
 			{name: "program", call: func() error { _, err := c.ProgramDetail(123); return err }},
 			{name: "login status", call: func() error { _, err := c.LoginStatusValid(); return err }},
 			{name: "QR key", anonymous: true, call: func() error { _, err := c.CreateQRLoginKey(); return err }},

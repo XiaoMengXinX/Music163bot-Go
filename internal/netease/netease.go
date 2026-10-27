@@ -87,10 +87,11 @@ func (c *Client) LyricAndDetail(musicID int) (types.SongLyricData, types.SongsDe
 	return lyric, detail, nil
 }
 
-func (c *Client) SearchSong(keyword string, limit int) (types.SearchSongData, error) {
+func (c *Client) SearchSong(keyword string, limit, offset int) (types.SearchSongData, error) {
 	return api.SearchSong(c.requestData(), api.SearchSongConfig{
 		Keyword: keyword,
 		Limit:   limit,
+		Offset:  offset,
 	})
 }
 

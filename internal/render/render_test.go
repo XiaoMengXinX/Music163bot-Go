@@ -110,3 +110,20 @@ func TestLyricCaption(t *testing.T) {
 		})
 	}
 }
+
+func TestSearchItem(t *testing.T) {
+	for _, tt := range []struct {
+		n    int
+		want string
+	}{
+		{n: 1, want: "<code>1. </code> <code>&lt;Song&gt; - A&amp;B</code>\n"},
+		{n: 10, want: "<code>10.</code> <code>&lt;Song&gt; - A&amp;B</code>\n"},
+	} {
+		if got := SearchItem(tt.n, "<Song>", "A&B"); got != tt.want {
+			t.Errorf("SearchItem(%d) = %q, want %q", tt.n, got, tt.want)
+		}
+	}
+	if got := SearchPage(2, 5); got != "<code>第[2/5]页</code>\n" {
+		t.Errorf("SearchPage = %q", got)
+	}
+}

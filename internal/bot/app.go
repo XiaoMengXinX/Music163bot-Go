@@ -72,6 +72,8 @@ type App struct {
 	warnMu        sync.Mutex      // 保护 warnCancel
 	warnCancel    context.CancelFunc
 	reload        context.CancelCauseFunc
+	cooldownMu    sync.Mutex                // 保护 cooldowns
+	cooldowns     map[cooldownKey]time.Time // 冷却截止时间
 }
 
 // Run 阻塞运行 bot，返回 true 表示需重载配置
@@ -172,6 +174,7 @@ func (a *App) registerHandlers(tg *tgb.Bot) {
 	a.command(tg, "setcachechat", a.handleSetCacheChat, a.adminOnly)
 
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "music ", tgb.MatchTypePrefix, a.handleCallbackMusic)
+	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "search ", tgb.MatchTypePrefix, a.handleCallbackSearch)
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "cancellogin", tgb.MatchTypeExact, a.handleCallbackCancelLogin, a.adminOnly)
 	tg.RegisterHandler(tgb.HandlerTypeCallbackQueryData, "startlogin", tgb.MatchTypeExact, a.handleCallbackStartLogin, a.adminOnly)
 	tg.RegisterHandlerMatchFunc(func(u *models.Update) bool { return u.InlineQuery != nil }, a.handleInline)
