@@ -66,6 +66,9 @@ func main() {
 
 		reload, err := bot.Run(ctx, cfg, *cfgPath, log, build, loginState, apiHTTP)
 		apiHTTP.CloseIdleConnections()
+		if ctx.Err() != nil {
+			return
+		}
 		if err != nil {
 			log.Errorln(err)
 			os.Exit(1)

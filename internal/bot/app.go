@@ -117,7 +117,12 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 
 		tgb.WithMiddlewares(a.recoverMiddleware),
 		tgb.WithDefaultHandler(a.handleDefault),
-		tgb.WithErrorsHandler(func(err error) { log.Errorf("telegram: %v", err) }),
+		tgb.WithErrorsHandler(func(err error) {
+			// 停止或重载时中断的轮询请求不是错误
+			if runCtx.Err() == nil {
+				log.Errorf("telegram: %v", err)
+			}
+		}),
 	}
 	if cfg.Bot.Debug {
 		opts = append(opts, tgb.WithDebug())
