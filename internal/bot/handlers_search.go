@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 	"hash/fnv"
 	"math"
 	"strconv"
@@ -177,18 +176,8 @@ func (a *App) handleCallbackMusic(ctx context.Context, tg *tgb.Bot, update *mode
 		a.answerCallback(ctx, query.ID, answer)
 		return
 	}
-	if msg.Chat.Type == models.ChatTypePrivate {
-		a.answerCallback(ctx, query.ID, render.CallbackText)
-		if err := a.processMusic(ctx, musicID, msg, nil, nil); err != nil {
-			a.log.Errorln(err)
-		}
-		return
-	}
-	if _, err := a.tg.AnswerCallbackQuery(ctx, &tgb.AnswerCallbackQueryParams{
-		CallbackQueryID: query.ID,
-		Text:            render.CallbackText,
-		URL:             fmt.Sprintf("t.me/%s?start=%d", a.me.Username, musicID),
-	}); err != nil {
+	a.answerCallback(ctx, query.ID, render.CallbackText)
+	if err := a.processMusic(ctx, musicID, msg.ReplyToMessage, nil, nil); err != nil {
 		a.log.Errorln(err)
 	}
 }

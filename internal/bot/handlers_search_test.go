@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,9 +18,11 @@ import (
 	"github.com/XiaoMengXinX/Music163Api-Go/utils"
 	tgb "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"gorm.io/gorm/logger"
 
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/netease"
 	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/render"
+	"github.com/XiaoMengXinX/Music163bot-Go/v3/internal/store"
 )
 
 func TestSearchEscapesResults(t *testing.T) {
@@ -59,6 +63,7 @@ type searchTelegram struct {
 	answers []string
 	markups []models.InlineKeyboardMarkup
 	offsets []int
+	audios  []string
 }
 
 func newSearchTest(t *testing.T, total int) (*App, *tgb.Bot, *searchTelegram) {
@@ -81,6 +86,11 @@ func newSearchTest(t *testing.T, total int) (*App, *tgb.Bot, *searchTelegram) {
 			fake.answers = append(fake.answers, r.FormValue("text")+r.FormValue("url"))
 			_, _ = io.WriteString(w, `{"ok":true,"result":true}`)
 			return
+		case strings.HasSuffix(r.URL.Path, "/sendAudio"):
+			fake.audios = append(fake.audios, r.FormValue("chat_id")+" "+r.FormValue("audio")+" "+r.FormValue("reply_parameters"))
+		case strings.HasSuffix(r.URL.Path, "/deleteMessage"):
+			_, _ = io.WriteString(w, `{"ok":true,"result":true}`)
+			return
 		}
 		_, _ = io.WriteString(w, `{"ok":true,"result":{"message_id":10,"chat":{"id":42,"type":"private"}}}`)
 	}))
@@ -90,6 +100,15 @@ func newSearchTest(t *testing.T, total int) (*App, *tgb.Bot, *searchTelegram) {
 		t.Fatal(err)
 	}
 	a := newTestApp(tg)
+	st, err := store.Open(filepath.Join(t.TempDir(), "cache.db"), logger.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	a.store = st
+	if err := st.Save(&store.SongInfo{MusicID: 1, SongName: "Song 1", FileID: "cached-audio"}); err != nil {
+		t.Fatal(err)
+	}
 	offsetPattern := regexp.MustCompile(`"offset":(\d+)`)
 	a.api = netease.New("", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if err := r.ParseForm(); err != nil {
@@ -218,7 +237,6 @@ func TestSearchMaxPage(t *testing.T) {
 func TestSearchCallbackChecks(t *testing.T) {
 	group := models.Chat{ID: -100123, Type: models.ChatTypeSupergroup}
 	hash := searchHash("晴天")
-	deepLink := render.CallbackText + "t.me/testbot?start=1"
 	type press struct {
 		music bool
 		from  int64
@@ -229,14 +247,15 @@ func TestSearchCallbackChecks(t *testing.T) {
 		presses  []press
 		want     []string
 		requests int
+		audios   int
 	}{
 		{name: "expired page", presses: []press{{from: 42, sent: -11 * time.Minute}}, want: []string{render.SearchExpired}},
 		{name: "expired music", presses: []press{{music: true, from: 42, sent: -11 * time.Minute}}, want: []string{render.SearchExpired}},
 		{name: "other user page", presses: []press{{from: 7}}, want: []string{render.SearchNotOwner}},
 		{name: "other user music", presses: []press{{music: true, from: 7}}, want: []string{render.SearchNotOwner}},
 		{name: "page cooldown", presses: []press{{from: 42}, {from: 42}}, want: []string{"", render.Cooldown(5)}, requests: 1},
-		{name: "music cooldown", presses: []press{{music: true, from: 42}, {music: true, from: 42}}, want: []string{deepLink, render.Cooldown(10)}},
-		{name: "separate cooldowns", presses: []press{{from: 42}, {music: true, from: 42}}, want: []string{"", deepLink}, requests: 1},
+		{name: "music cooldown", presses: []press{{music: true, from: 42}, {music: true, from: 42}}, want: []string{render.CallbackText, render.Cooldown(10)}, audios: 1},
+		{name: "separate cooldowns", presses: []press{{from: 42}, {music: true, from: 42}}, want: []string{"", render.CallbackText}, requests: 1, audios: 1},
 		{name: "other user not cooled down", presses: []press{{from: 7}, {from: 42}}, want: []string{render.SearchNotOwner, ""}, requests: 1},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -255,6 +274,25 @@ func TestSearchCallbackChecks(t *testing.T) {
 			if len(fake.offsets) != tt.requests {
 				t.Errorf("search requests = %d, want %d", len(fake.offsets), tt.requests)
 			}
+			if len(fake.audios) != tt.audios {
+				t.Fatalf("audios = %q, want %d", fake.audios, tt.audios)
+			}
+			for _, audio := range fake.audios {
+				if !strings.HasPrefix(audio, "-100123 cached-audio ") || !strings.Contains(audio, `"message_id":1`) {
+					t.Errorf("audio = %q, want cached song in group replying to /search", audio)
+				}
+			}
 		})
+	}
+}
+
+func TestSearchCallbackDataLength(t *testing.T) {
+	keyboard := searchKeyboard([]int{math.MaxInt64}, 33, searchMaxPage-1, true, searchHash(strings.Repeat("晴", 4096)))
+	for _, row := range keyboard.InlineKeyboard {
+		for _, button := range row {
+			if n := len(button.CallbackData); n == 0 || n > 64 {
+				t.Errorf("callback data %q has %d bytes, want 1-64", button.CallbackData, n)
+			}
+		}
 	}
 }
