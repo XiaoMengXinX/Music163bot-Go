@@ -93,6 +93,8 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 	runCtx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
+	log.AddHook(expectedErrorHook{})
+
 	a := &App{
 		cfg:       cfg,
 		cfgPath:   cfgPath,
