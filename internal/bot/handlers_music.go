@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -235,7 +234,7 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	}
 	if len(detail.Songs) == 0 {
 		a.showStatus(status, render.FetchInfoFailed)
-		return songInfo, errors.New(render.FetchInfoFailed)
+		return songInfo, fmt.Errorf("%s: music %d", render.FetchInfoFailed, musicID)
 	}
 
 	songInfo.FromChatID = message.Chat.ID
@@ -256,7 +255,11 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	}
 	if len(urlData.Data) == 0 || urlData.Data[0].Url == "" {
 		a.showStatus(status, render.GetURLFailed)
-		return songInfo, errors.New(render.GetURLFailed)
+		code, fee := urlData.Code, 0
+		if len(urlData.Data) != 0 {
+			code, fee = urlData.Data[0].Code, urlData.Data[0].Fee
+		}
+		return songInfo, fmt.Errorf("%s: music %d, code %d, fee %d", render.GetURLFailed, musicID, code, fee)
 	}
 	switch path.Ext(textx.URLBase(urlData.Data[0].Url)) {
 	case ".mp3":

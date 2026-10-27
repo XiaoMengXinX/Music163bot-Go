@@ -165,7 +165,10 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 func TestProcessMusicInfoWithoutURL(t *testing.T) {
-	for _, data := range []string{`[]`, `[{"url":""}]`} {
+	for data, want := range map[string]string{
+		`[]`:                              ": music 123, code 200, fee 0",
+		`[{"url":"","code":404,"fee":1}]`: ": music 123, code 404, fee 1",
+	} {
 		t.Run(data, func(t *testing.T) {
 			tg, rec := newTestBot(t)
 			a := newTestApp(tg)
@@ -180,7 +183,7 @@ func TestProcessMusicInfoWithoutURL(t *testing.T) {
 			requests := 0
 			a.api = netease.New("cookie", "hires", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 				requests++
-				body := `{"/api/v3/song/detail":{"songs":[{"name":"雨き声残響","ar":[{"name":"ゆめこ"}],"al":{"name":"最新热歌慢摇92"}}]},"/api/song/enhance/player/url/v1":{"data":` + data + `}}`
+				body := `{"/api/v3/song/detail":{"songs":[{"name":"雨き声残響","ar":[{"name":"ゆめこ"}],"al":{"name":"最新热歌慢摇92"}}]},"/api/song/enhance/player/url/v1":{"code":200,"data":` + data + `}}`
 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
 			})})
 			calls := 0
@@ -192,8 +195,8 @@ func TestProcessMusicInfoWithoutURL(t *testing.T) {
 					t.Errorf("unexpected song info: %+v", info)
 				}
 			})
-			if err == nil || err.Error() != render.GetURLFailed {
-				t.Fatalf("err = %v, want %s", err, render.GetURLFailed)
+			if err == nil || err.Error() != render.GetURLFailed+want {
+				t.Fatalf("err = %v, want %s", err, render.GetURLFailed+want)
 			}
 			if calls != 1 || requests != 1 {
 				t.Errorf("metadata calls = %d, API requests = %d, want 1 each", calls, requests)
