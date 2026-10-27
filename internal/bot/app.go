@@ -128,6 +128,12 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 	}
 	if cfg.Bot.Debug {
 		opts = append(opts, tgb.WithDebug())
+		// 日志级别为 debug 时才写入日志文件，否则 SDK 默认只输出到终端
+		if log.IsLevelEnabled(logrus.DebugLevel) {
+			opts = append(opts, tgb.WithDebugHandler(func(format string, args ...any) {
+				log.Debugf("tgbot: "+format, args...)
+			}))
+		}
 	}
 	tg, err := tgb.New(cfg.Bot.Token, opts...)
 	if err != nil {
