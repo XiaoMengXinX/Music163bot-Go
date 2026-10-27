@@ -23,7 +23,7 @@ func (a *App) handleInline(ctx context.Context, tg *tgb.Bot, update *models.Upda
 	case strings.Contains(query.Query, "search"):
 		err = a.answerInlineSearch(ctx, query)
 	default:
-		if musicID, _ := strconv.Atoi(textx.LinkTestMusic(query.Query)); musicID != 0 {
+		if musicID := textx.ParseMusicID(textx.ResolveShortLink(query.Query)); musicID != 0 {
 			err = a.answerInlineMusic(ctx, query, musicID)
 		} else {
 			err = a.answerInlineEmpty(ctx, query)

@@ -19,6 +19,10 @@ func (a *App) handleGuest(ctx context.Context, tg *tgb.Bot, update *models.Updat
 	if m == nil || m.GuestQueryID == "" {
 		return
 	}
+	// 通过 inline 发送的消息也会触发访客模式
+	if m.ViaBot != nil && m.ViaBot.ID == a.me.ID {
+		return
+	}
 
 	var result models.InlineQueryResult
 	if reply := m.ReplyToMessage; reply != nil && reply.Voice != nil {

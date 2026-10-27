@@ -171,6 +171,7 @@ func TestGuestRecognizeReplyValidation(t *testing.T) {
 		answer  bool
 	}{
 		{name: "no guest message"},
+		{name: "sent via inline", message: &models.Message{GuestQueryID: "query", ViaBot: &models.User{ID: 1}, Text: "https://music.163.com/song?id=1"}},
 		{name: "missing query ID", message: &models.Message{ReplyToMessage: &models.Message{Voice: &models.Voice{FileID: "guest-voice"}}}},
 		{name: "no reply", message: &models.Message{GuestQueryID: "query"}, answer: true},
 		{name: "non voice reply", message: &models.Message{GuestQueryID: "query", ReplyToMessage: &models.Message{Text: "song"}}, answer: true},
