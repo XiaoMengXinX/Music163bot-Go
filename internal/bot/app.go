@@ -62,6 +62,7 @@ type App struct {
 	build         BuildInfo
 	cacheDir      string
 	http          *http.Client
+	tgHTTP        *http.Client // Bot API 请求与流式上传共用
 	musicSem      *semaphore.Weighted
 	statusSem     *semaphore.Weighted
 	loginMu       sync.Mutex // 同时只允许一个扫码登录会话
@@ -108,6 +109,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 		build:     build,
 		cacheDir:  cacheDir,
 		http:      &http.Client{Timeout: 60 * time.Second},
+		tgHTTP:    &http.Client{Timeout: cfg.Bot.UploadTimeout.D()},
 		musicSem:  semaphore.NewWeighted(int64(cfg.Download.Concurrency)),
 		statusSem: semaphore.NewWeighted(1),
 		reload:    cancel,
@@ -115,7 +117,7 @@ func Run(ctx context.Context, cfg *config.Config, cfgPath string, log *logrus.Lo
 
 	opts := []tgb.Option{
 		tgb.WithServerURL(cfg.Bot.APIURL),
-		tgb.WithHTTPClient(min(time.Minute, cfg.Bot.UploadTimeout.D()), &http.Client{Timeout: cfg.Bot.UploadTimeout.D()}),
+		tgb.WithHTTPClient(min(time.Minute, cfg.Bot.UploadTimeout.D()), a.tgHTTP),
 		tgb.WithSkipGetMe(), // 统一在下方 GetMe 校验
 		tgb.WithAllowedUpdates(tgb.AllowedUpdates{"message", "callback_query", "inline_query", "guest_message"}), // 避免沿用服务端设置而漏收回调
 

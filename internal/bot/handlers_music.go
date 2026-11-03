@@ -449,28 +449,11 @@ func (a *App) sendMusic(ctx context.Context, songInfo store.SongInfo, prog *type
 	}
 	if songInfo.FileID != "" {
 		params.Audio = &models.InputFileString{Data: songInfo.FileID}
-	} else {
-		file, err := os.Open(musicPath)
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-		params.Audio = &models.InputFileUpload{Filename: filepath.Base(musicPath), Data: file}
-		_, _ = a.tg.SendChatAction(ctx, &tgb.SendChatActionParams{
-			ChatID: chatID,
-			Action: models.ChatActionUploadDocument,
-		})
+		return a.tg.SendAudio(ctx, params)
 	}
-	if songInfo.ThumbFileID != "" {
-		params.Thumbnail = &models.InputFileString{Data: songInfo.ThumbFileID}
-	}
-	if picPath != "" {
-		picFile, err := os.Open(picPath)
-		if err != nil {
-			return nil, err
-		}
-		defer picFile.Close()
-		params.Thumbnail = &models.InputFileUpload{Filename: filepath.Base(picPath), Data: picFile}
-	}
-	return a.tg.SendAudio(ctx, params)
+	_, _ = a.tg.SendChatAction(ctx, &tgb.SendChatActionParams{
+		ChatID: chatID,
+		Action: models.ChatActionUploadDocument,
+	})
+	return a.sendAudioFile(ctx, params, musicPath, picPath)
 }

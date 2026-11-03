@@ -63,6 +63,7 @@ func (r *requestRecorder) has(prefix string) bool {
 
 func newTestApp(tg *tgb.Bot) *App {
 	cfg := config.Default()
+	cfg.Bot.Token = "1:test"
 	cfg.Bot.Admin = []int64{42}
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
@@ -71,6 +72,7 @@ func newTestApp(tg *tgb.Bot) *App {
 		tg:        tg,
 		me:        &models.User{ID: 1, Username: "testbot"},
 		usernames: []string{"testbot"},
+		tgHTTP:    http.DefaultClient,
 		log:       log,
 	}
 }

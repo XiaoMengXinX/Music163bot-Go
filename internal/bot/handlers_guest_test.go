@@ -46,6 +46,7 @@ type guestAnswer struct {
 }
 
 type guestTelegram struct {
+	url           string
 	methods       []string
 	uploads       []url.Values
 	answers       []guestAnswer
@@ -115,6 +116,7 @@ func newGuestTestBot(t *testing.T) (*tgb.Bot, *guestTelegram) {
 		}
 	}))
 	t.Cleanup(srv.Close)
+	fake.url = srv.URL
 	tg, err := tgb.New("1:test", tgb.WithServerURL(srv.URL), tgb.WithSkipGetMe(), tgb.WithNotAsyncHandlers())
 	if err != nil {
 		t.Fatal(err)
@@ -457,6 +459,7 @@ func TestGuestMusicCacheChat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, fake := newGuestTestBot(t)
 			a := newTestApp(tg)
+			a.cfg.Bot.APIURL = fake.url
 			a.cacheDir = t.TempDir()
 			a.http = &http.Client{}
 			a.dl = fetch.New(a.cacheDir, 10*time.Second, 1, strings.TrimPrefix(music.URL, "https://"), true)
