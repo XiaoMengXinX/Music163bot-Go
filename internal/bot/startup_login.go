@@ -87,8 +87,6 @@ func (a *App) startupLogin(runCtx context.Context, cancelRun context.CancelCause
 				cancelRun(errLoginCancelled)
 			}
 			return
-		case <-runCtx.Done():
-			return
 		case <-deadline:
 			a.startupLoginTimeout(runCtx, sess, cancelRun)
 			return
@@ -128,7 +126,6 @@ func (a *App) startupLogin(runCtx context.Context, cancelRun context.CancelCause
 				fmt.Printf("扫码登录成功: %s%s\n", nickname, note)
 				a.finishStartupPrompts(runCtx, sess, render.LoginStartupDone)
 				a.broadcastStartup(sess, render.LoginOK(nickname), emptyKeyboard())
-				a.resumeDownloads(runCtx)
 				go a.watchCookie(runCtx)
 				return
 			case netease.QRExpired:

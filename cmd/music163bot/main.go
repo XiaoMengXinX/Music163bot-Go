@@ -56,7 +56,6 @@ func main() {
 		log, closeLog := logging.Setup(cfg.Log.Level, cfg.Log.Path)
 		log.Printf("Music163bot-Go %s 启动中", build.VersionName)
 
-		// 网络错误不视为 Cookie 失效
 		apiHTTP, err := cfg.Netease.HTTPClient()
 		if err != nil {
 			log.Errorln(err)
@@ -112,7 +111,6 @@ func autoMigrateINI(cfgPath string) {
 		os.Exit(1)
 	}
 	_, notes, err := config.MigrateINIFile(iniPath, cfgPath)
-	fmt.Fprintf(os.Stderr, "检测到 v2 配置文件 %s，已自动迁移为 %s\n", iniPath, cfgPath)
 	for _, n := range notes {
 		fmt.Fprintf(os.Stderr, "迁移提示: %s\n", n)
 	}
@@ -120,6 +118,7 @@ func autoMigrateINI(cfgPath string) {
 		fmt.Fprintf(os.Stderr, "配置迁移失败: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Fprintf(os.Stderr, "检测到 v2 配置文件 %s，已自动迁移为 %s\n", iniPath, cfgPath)
 }
 
 func runMigrateConfig(args []string) {

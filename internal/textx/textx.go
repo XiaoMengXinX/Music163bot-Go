@@ -158,5 +158,8 @@ func ResolveShortLink(text string) string {
 		return text
 	}
 	defer resp.Body.Close()
-	return resp.Header.Get("Location")
+	if location := resp.Header.Get("Location"); location != "" {
+		return location
+	}
+	return text
 }
