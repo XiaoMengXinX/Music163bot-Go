@@ -273,6 +273,11 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	if songInfo.Duration > 0 {
 		songInfo.BitRate = 8 * urlData.Data[0].Size / songInfo.Duration
 	}
+	if limitMB := a.uploadLimitMB(); songInfo.MusicSize > limitMB<<20 {
+		reason := render.MusicTooLarge(limitMB)
+		a.showStatus(status, render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, reason))
+		return songInfo, fmt.Errorf("%s: music %d, size %d", reason, musicID, songInfo.MusicSize)
+	}
 
 	if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Downloading)); err != nil {
 		return songInfo, err
@@ -383,6 +388,14 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 		songInfo.ThumbFileID = audio.Audio.Thumbnail.FileID
 	}
 	return songInfo, a.store.Save(&songInfo)
+}
+
+// uploadLimitMB 官方 Bot API 限制上传 50 MB，--local 模式的自建服务为 2000 MB
+func (a *App) uploadLimitMB() int {
+	if a.cfg.Bot.LocalMode {
+		return 2000
+	}
+	return 50
 }
 
 // songFileName 歌曲与歌词文件共用命名

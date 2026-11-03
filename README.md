@@ -118,8 +118,8 @@ api_url = "http://127.0.0.1:8081"
 local_mode = true
 ```
 
-也可设置环境变量 `MUSIC163BOT_BOT_LOCAL_MODE=true`。此选项只控制 bot 的文件读取方式，
-Bot API 服务需要单独启用 `--local`。
+也可设置环境变量 `MUSIC163BOT_BOT_LOCAL_MODE=true`。此选项控制 bot 的文件读取方式和歌曲大小上限，
+Bot API 服务需要单独启用 `--local`。开启后可发送不超过 2000 MB 的歌曲，否则上限为官方 API 的 50 MB，超过上限的歌曲不会下载。
 
 bot 必须能读取 `getFile` 返回的绝对路径。同机直接运行时确保有读取权限；
 如果 bot 在容器中，需要将 API 的实际文件存储目录以相同绝对路径、只读方式挂载到 bot 容器。

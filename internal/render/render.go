@@ -215,3 +215,7 @@ func SongLink(musicID int) string {
 func ProgramLink(programID int) string {
 	return fmt.Sprintf("https://music.163.com/program?id=%d", programID)
 }
+
+func MusicTooLarge(limitMB int) string {
+	return fmt.Sprintf("文件超过 Telegram %d MB 的上传上限，无法发送", limitMB)
+}

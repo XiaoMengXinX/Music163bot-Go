@@ -444,6 +444,7 @@ func TestGuestMusicCacheChat(t *testing.T) {
 		cacheChat     int64
 		cookieExpired bool
 		noURL         bool
+		tooLarge      bool
 		program       bool
 		wantUpload    bool
 		wantText      string
@@ -451,6 +452,7 @@ func TestGuestMusicCacheChat(t *testing.T) {
 	}{
 		{name: "upload to cache chat", cacheChat: -100123, wantUpload: true, wantMetadata: 1},
 		{name: "no download URL", cacheChat: -100123, noURL: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
+		{name: "too large", cacheChat: -100123, tooLarge: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
 		{name: "cookie expired", cacheChat: -100123, cookieExpired: true, wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
 		{name: "no cache chat", wantText: render.GuestMusicResult("<Song>", "A&B", "Album"), wantMetadata: 1},
 		{name: "program upload to cache chat", cacheChat: -100123, program: true, wantUpload: true, wantMetadata: 2},
@@ -486,7 +488,11 @@ func TestGuestMusicCacheChat(t *testing.T) {
 					if tt.noURL {
 						songURL = ""
 					}
-					body = `{"/api/v3/song/detail":` + detail + `,"/api/song/enhance/player/url/v1":{"data":[{"url":"` + songURL + `","size":` + strconv.Itoa(len(audio)) + `}]}}`
+					size := len(audio)
+					if tt.tooLarge {
+						size = a.uploadLimitMB()<<20 + 1
+					}
+					body = `{"/api/v3/song/detail":` + detail + `,"/api/song/enhance/player/url/v1":{"data":[{"url":"` + songURL + `","size":` + strconv.Itoa(size) + `}]}}`
 				}
 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil
 			})})
