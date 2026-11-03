@@ -26,15 +26,19 @@ func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 type dailyFileWriter struct {
-	mu  sync.Mutex
-	dir string
-	day string
-	f   *os.File
+	mu     sync.Mutex
+	dir    string
+	day    string
+	f      *os.File
+	closed bool
 }
 
 func (w *dailyFileWriter) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if w.closed {
+		return len(p), nil
+	}
 	day := time.Now().Local().Format("2006-01-02")
 	if w.f == nil || day != w.day {
 		if err := os.MkdirAll(w.dir, 0o755); err != nil {
@@ -52,7 +56,20 @@ func (w *dailyFileWriter) Write(p []byte) (int, error) {
 	return w.f.Write(p)
 }
 
-func Setup(level, dir string) *logrus.Logger {
+func (w *dailyFileWriter) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.closed = true
+	if w.f == nil {
+		return nil
+	}
+	err := w.f.Close()
+	w.f = nil
+	return err
+}
+
+// Setup 返回的 close 关闭日志文件，之后的日志只输出到终端
+func Setup(level, dir string) (*logrus.Logger, func() error) {
 	l := logrus.New()
 	l.SetFormatter(&Formatter{})
 	l.SetReportCaller(true)
@@ -61,12 +78,13 @@ func Setup(level, dir string) *logrus.Logger {
 		lvl = logrus.InfoLevel
 	}
 	l.SetLevel(lvl)
-	if dir != "" {
-		l.SetOutput(io.MultiWriter(os.Stdout, &dailyFileWriter{dir: dir}))
-	} else {
+	if dir == "" {
 		l.SetOutput(os.Stdout)
+		return l, func() error { return nil }
 	}
-	return l
+	file := &dailyFileWriter{dir: dir}
+	l.SetOutput(io.MultiWriter(os.Stdout, file))
+	return l, file.Close
 }
 
 // debug 记录全部 SQL，info 仅记录慢查询和错误

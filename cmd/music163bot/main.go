@@ -53,7 +53,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "加载配置失败: %v\n", err)
 			os.Exit(1)
 		}
-		log := logging.Setup(cfg.Log.Level, cfg.Log.Path)
+		log, closeLog := logging.Setup(cfg.Log.Level, cfg.Log.Path)
 		log.Printf("Music163bot-Go %s 启动中", build.VersionName)
 
 		// 网络错误不视为 Cookie 失效
@@ -77,6 +77,9 @@ func main() {
 			return
 		}
 		log.Println("/reload：重新加载配置中")
+		if err := closeLog(); err != nil {
+			fmt.Fprintf(os.Stderr, "关闭日志文件失败: %v\n", err)
+		}
 		// 重载须复用信号 ctx，不能调用 stop
 	}
 }
