@@ -273,12 +273,6 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 	if songInfo.Duration > 0 {
 		songInfo.BitRate = 8 * urlData.Data[0].Size / songInfo.Duration
 	}
-	if picRes, err := a.http.Head(detail.Songs[0].Al.PicUrl); err == nil {
-		_ = picRes.Body.Close()
-		songInfo.PicSize = int(picRes.ContentLength)
-	} else {
-		a.log.Errorln(err)
-	}
 
 	if err := status(render.MusicStatus(songInfo.SongName, songInfo.SongAlbum, songInfo.FileExt, float64(songInfo.MusicSize)/1024/1024, render.Downloading)); err != nil {
 		return songInfo, err
@@ -309,58 +303,8 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 		return songInfo, err
 	}
 
-	if md5sum := urlData.Data[0].Md5; md5sum != "" {
-		if err := fetch.VerifyMD5(musicPath, md5sum); err != nil {
-			if rmErr := os.Remove(musicPath); rmErr != nil {
-				a.log.Errorln(rmErr)
-			}
-			a.showDownloadFailed(status, songInfo, render.Md5VerFailed)
-			return songInfo, err
-		}
-	}
-
-	// 封面失败不阻断发歌
-	var picPath, resizePicPath string
-	if picURL := detail.Songs[0].Al.PicUrl; picURL != "" {
-		picName := fmt.Sprintf("%d-%s", timeStamp, textx.URLBase(picURL))
-		if err := a.dl.DownloadFile(picURL, picName); err != nil {
-			a.log.Errorln(err)
-		} else {
-			picPath = filepath.Join(a.cacheDir, picName)
-			resized, err := tagging.ResizeCover(picPath)
-			if err != nil {
-				a.log.Errorln(err)
-			} else {
-				resizePicPath = resized
-			}
-		}
-	}
-
-	var musicPic string
-	if picStat, err := os.Stat(picPath); err == nil {
-		if picStat.Size() > 2*1024*1024 {
-			musicPic = resizePicPath
-			if embStat, err := os.Stat(resizePicPath); err == nil {
-				songInfo.EmbPicSize = int(embStat.Size())
-			}
-		} else {
-			musicPic = picPath
-			songInfo.EmbPicSize = songInfo.PicSize
-		}
-	} else {
-		a.log.Errorln(err)
-	}
-
-	newDir := filepath.Join(a.cacheDir, strconv.FormatInt(timeStamp, 10))
-	if err := os.Mkdir(newDir, os.ModePerm); err != nil {
-		a.showDownloadFailed(status, songInfo, render.ProcessFailed)
-		return songInfo, err
-	}
-	filePath := filepath.Join(newDir, songFileName(songInfo.SongArtists, songInfo.SongName, songInfo.FileExt))
-	if err := os.Rename(musicPath, filePath); err != nil {
-		a.log.Errorln(err)
-		filePath = musicPath
-	}
+	filePath := musicPath
+	var picPath, resizePicPath, newDir string
 	defer func() {
 		for _, f := range []string{filePath, resizePicPath, picPath} {
 			if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
@@ -371,6 +315,53 @@ func (a *App) fetchMusic(ctx context.Context, musicID int, message *models.Messa
 			a.log.Errorln(err)
 		}
 	}()
+
+	if md5sum := urlData.Data[0].Md5; md5sum != "" {
+		if err := fetch.VerifyMD5(musicPath, md5sum); err != nil {
+			a.showDownloadFailed(status, songInfo, render.Md5VerFailed)
+			return songInfo, err
+		}
+	}
+
+	// 封面失败不阻断发歌
+	var musicPic string
+	if picURL := detail.Songs[0].Al.PicUrl; picURL != "" {
+		picName := fmt.Sprintf("%d-%s", timeStamp, textx.URLBase(picURL))
+		if err := a.dl.DownloadFile(picURL, picName); err != nil {
+			a.log.Errorln(err)
+		} else {
+			picPath = filepath.Join(a.cacheDir, picName)
+			if resizePicPath, err = tagging.ResizeCover(picPath); err != nil {
+				a.log.Errorln(err)
+			}
+			if picStat, err := os.Stat(picPath); err != nil {
+				a.log.Errorln(err)
+			} else {
+				songInfo.PicSize = int(picStat.Size())
+				if picStat.Size() > 2*1024*1024 {
+					musicPic = resizePicPath
+					if embStat, err := os.Stat(resizePicPath); err == nil {
+						songInfo.EmbPicSize = int(embStat.Size())
+					}
+				} else {
+					musicPic = picPath
+					songInfo.EmbPicSize = songInfo.PicSize
+				}
+			}
+		}
+	}
+
+	newDir = filepath.Join(a.cacheDir, strconv.FormatInt(timeStamp, 10))
+	if err := os.Mkdir(newDir, os.ModePerm); err != nil {
+		a.showDownloadFailed(status, songInfo, render.ProcessFailed)
+		return songInfo, err
+	}
+	renamed := filepath.Join(newDir, songFileName(songInfo.SongArtists, songInfo.SongName, songInfo.FileExt))
+	if err := os.Rename(musicPath, renamed); err != nil {
+		a.log.Errorln(err)
+	} else {
+		filePath = renamed
+	}
 
 	if err := tagging.Write(filePath, musicPic, detail.Songs[0], urlData.Data[0]); err != nil {
 		a.showDownloadFailed(status, songInfo, render.ProcessFailed)
