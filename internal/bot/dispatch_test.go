@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -66,10 +67,11 @@ func newTestApp(tg *tgb.Bot) *App {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
 	return &App{
-		cfg: cfg,
-		tg:  tg,
-		me:  &models.User{ID: 1, Username: "testbot"},
-		log: log,
+		cfg:       cfg,
+		tg:        tg,
+		me:        &models.User{ID: 1, Username: "testbot"},
+		usernames: []string{"testbot"},
+		log:       log,
 	}
 }
 
@@ -173,19 +175,47 @@ func TestMatchCommand(t *testing.T) {
 			Entities: []models.MessageEntity{{Type: models.MessageEntityTypeBotCommand, Offset: offset, Length: length}},
 		}}
 	}
-	match := matchCommand("music", "mybot")
+	match := matchCommand("music", []string{"Music163bot", "neteasebot"})
 	tests := []struct {
 		u    *models.Update
 		want bool
 	}{
 		{mk("/music", 0, 6), true},
-		{mk("/music@mybot 1", 0, 12), true},
+		{mk("/music@Music163bot 1", 0, 18), true},
+		{mk("/music@music163bot", 0, 18), true},
+		{mk("/music@neteasebot", 0, 17), true},
 		{mk("/music@otherbot", 0, 15), false},
+		{mk("/musicx", 0, 7), false},
 		{mk("hi /music", 3, 6), false},
 	}
 	for i, tt := range tests {
 		if got := match(tt.u); got != tt.want {
 			t.Errorf("case %d: match = %v, want %v", i, got, tt.want)
+		}
+	}
+}
+
+func TestBotUsernames(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		resp string
+		want []string
+	}{
+		{"active usernames", `{"ok":true,"result":{"id":1,"type":"private","username":"Music163bot","active_usernames":["Music163bot","neteasebot"]}}`, []string{"Music163bot", "neteasebot"}},
+		{"getChat failed", `{"ok":false,"error_code":400,"description":"Bad Request"}`, []string{"Music163bot"}},
+	} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(c.resp))
+		}))
+		tg, err := tgb.New("1:test", tgb.WithServerURL(srv.URL), tgb.WithSkipGetMe())
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := botUsernames(context.Background(), tg, &models.User{ID: 1, Username: "Music163bot"})
+		srv.Close()
+		if !slices.Equal(got, c.want) {
+			t.Errorf("%s: usernames = %v, want %v", c.name, got, c.want)
 		}
 	}
 }
